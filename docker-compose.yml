@@ -1,0 +1,39 @@
+# Enterprise AI Agents - Docker Compose Configuration
+# Project Creator: Herman Swanepoel
+
+version: '3.8'
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: enterprise-ai-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes
+    restart: unless-stopped
+    networks:
+      - enterprise-ai-network
+
+  chromadb:
+    image: chromadb/chroma:latest
+    container_name: enterprise-ai-chromadb
+    ports:
+      - "8001:8000"
+    volumes:
+      - ./data/chroma:/chroma/chroma
+    environment:
+      - IS_PERSISTENT=TRUE
+      - ANONYMIZED_TELEMETRY=FALSE
+    restart: unless-stopped
+    networks:
+      - enterprise-ai-network
+
+volumes:
+  redis-data:
+    driver: local
+
+networks:
+  enterprise-ai-network:
+    driver: bridge

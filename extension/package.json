@@ -1,0 +1,211 @@
+{
+  "name": "enterprise-ai-agents",
+  "displayName": "Enterprise AI Agents",
+  "description": "Multi-agent AI coding assistant with privacy-first local operations",
+  "version": "1.0.0",
+  "publisher": "herman-swanepoel",
+  "author": {
+    "name": "Herman Swanepoel"
+  },
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Machine Learning",
+    "Snippets",
+    "Other"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "enterpriseAI.toggleMode",
+        "title": "Enterprise AI: Toggle Offline/Online Mode"
+      },
+      {
+        "command": "enterpriseAI.generateTests",
+        "title": "Enterprise AI: Generate Tests for Current File"
+      },
+      {
+        "command": "enterpriseAI.refactorSelection",
+        "title": "Enterprise AI: Refactor Selection"
+      },
+      {
+        "command": "enterpriseAI.explainCode",
+        "title": "Enterprise AI: Explain Code"
+      },
+      {
+        "command": "enterpriseAI.findSecurityIssues",
+        "title": "Enterprise AI: Find Security Issues"
+      },
+      {
+        "command": "enterpriseAI.generateDocumentation",
+        "title": "Enterprise AI: Generate Documentation"
+      },
+      {
+        "command": "enterpriseAI.startAgentDiscussion",
+        "title": "Enterprise AI: Start Agent Discussion"
+      },
+      {
+        "command": "enterpriseAI.viewAnalytics",
+        "title": "Enterprise AI: View Analytics Dashboard"
+      },
+      {
+        "command": "enterpriseAI.reindexCodebase",
+        "title": "Enterprise AI: Reindex Codebase"
+      },
+      {
+        "command": "enterpriseAI.accessibility.showSettings",
+        "title": "Enterprise AI: Accessibility Settings"
+      },
+      {
+        "command": "enterpriseAI.accessibility.showHelp",
+        "title": "Enterprise AI: Keyboard Shortcuts Help"
+      }
+    ],
+    "configuration": {
+      "title": "Enterprise AI Agents",
+      "properties": {
+        "enterpriseAI.backend.url": {
+          "type": "string",
+          "default": "http://localhost:8000",
+          "description": "Backend service URL"
+        },
+        "enterpriseAI.privacy.allowCloud": {
+          "type": "boolean",
+          "default": false,
+          "description": "Allow cloud LLM fallback"
+        },
+        "enterpriseAI.privacy.allowTelemetry": {
+          "type": "boolean",
+          "default": false,
+          "description": "Allow anonymous usage telemetry"
+        },
+        "enterpriseAI.llm.provider": {
+          "type": "string",
+          "default": "ollama",
+          "enum": ["ollama", "lmstudio", "cloud"],
+          "description": "LLM provider"
+        },
+        "enterpriseAI.llm.model": {
+          "type": "string",
+          "default": "codellama:7b",
+          "description": "Default LLM model"
+        },
+        "enterpriseAI.suggestions.autoTrigger": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically trigger inline suggestions"
+        },
+        "enterpriseAI.suggestions.debounceMs": {
+          "type": "number",
+          "default": 200,
+          "description": "Debounce time for suggestions (ms)"
+        },
+        "enterpriseAI.accessibility.screenReaderEnabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable screen reader announcements"
+        },
+        "enterpriseAI.accessibility.highContrastMode": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable high contrast mode"
+        },
+        "enterpriseAI.accessibility.fontSize": {
+          "type": "number",
+          "default": 14,
+          "minimum": 10,
+          "maximum": 32,
+          "description": "Font size for extension UI (px)"
+        },
+        "enterpriseAI.accessibility.keyboardNavigationEnabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable enhanced keyboard navigation"
+        },
+        "enterpriseAI.accessibility.announceActions": {
+          "type": "boolean",
+          "default": true,
+          "description": "Announce actions to screen reader"
+        },
+        "enterpriseAI.accessibility.reducedMotion": {
+          "type": "boolean",
+          "default": false,
+          "description": "Reduce animations and transitions"
+        }
+      }
+    },
+    "keybindings": [
+      {
+        "command": "enterpriseAI.toggleMode",
+        "key": "ctrl+shift+m",
+        "mac": "cmd+shift+m",
+        "when": "editorTextFocus"
+      },
+      {
+        "command": "enterpriseAI.generateTests",
+        "key": "ctrl+shift+t",
+        "mac": "cmd+shift+t",
+        "when": "editorTextFocus"
+      },
+      {
+        "command": "enterpriseAI.refactorSelection",
+        "key": "ctrl+shift+r",
+        "mac": "cmd+shift+r",
+        "when": "editorHasSelection"
+      },
+      {
+        "command": "enterpriseAI.explainCode",
+        "key": "ctrl+shift+e",
+        "mac": "cmd+shift+e",
+        "when": "editorTextFocus"
+      },
+      {
+        "command": "enterpriseAI.findSecurityIssues",
+        "key": "ctrl+shift+s",
+        "mac": "cmd+shift+s",
+        "when": "editorTextFocus"
+      },
+      {
+        "command": "enterpriseAI.generateDocumentation",
+        "key": "ctrl+shift+d",
+        "mac": "cmd+shift+d",
+        "when": "editorTextFocus"
+      },
+      {
+        "command": "enterpriseAI.accessibility.showSettings",
+        "key": "ctrl+shift+alt+a",
+        "mac": "cmd+shift+alt+a"
+      },
+      {
+        "command": "enterpriseAI.accessibility.showHelp",
+        "key": "ctrl+shift+alt+h",
+        "mac": "cmd+shift+alt+h"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src --ext ts",
+    "test": "node ./out/test/runTest.js"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "@types/vscode": "^1.85.0",
+    "@typescript-eslint/eslint-plugin": "^6.13.0",
+    "@typescript-eslint/parser": "^6.13.0",
+    "eslint": "^8.54.0",
+    "typescript": "^5.3.2"
+  },
+  "dependencies": {
+    "ws": "^8.14.2"
+  }
+}
