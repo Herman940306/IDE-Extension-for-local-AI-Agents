@@ -1,8 +1,20 @@
-"""
-Utilities module
-Project Creator: Herman Swanepoel
-"""
+# Utils Package
+# Project Creator: Herman Swanepoel
 
-from .parallel_file_creator import ParallelFileCreator, create_files_parallel
+from .exceptions import (
+    AuraIAException,
+    AdapterException,
+    LLMException,
+    ValidationException,
+    CircuitBreakerOpenException,
+    RateLimitExceededException,
+)
 
-__all__ = ["ParallelFileCreator", "create_files_parallel"]
+__all__ = [
+    "AuraIAException",
+    "AdapterException",
+    "LLMException",
+    "ValidationException",
+    "CircuitBreakerOpenException",
+    "RateLimitExceededException",
+]
