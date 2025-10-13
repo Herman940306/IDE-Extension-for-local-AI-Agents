@@ -66,8 +66,14 @@ class SuperAGIAdapter(AgentAdapter):
 
             self.is_initialized = True
 
+        except httpx.HTTPError as e:
+            raise AdapterExceptions.AdapterConnectionError(
+                f"Failed to connect to SuperAGI: {e}"
+            )
         except Exception as e:
-            raise Exception(f"Failed to initialize SuperAGI adapter: {e}")
+            raise AdapterExceptions.AdapterInitializationError(
+                f"Failed to initialize SuperAGI adapter: {e}"
+            )
 
     async def execute_task(self, task: Task, context: CodeContext) -> AgentResponse:
         """
@@ -117,7 +123,7 @@ class SuperAGIAdapter(AgentAdapter):
             # Convert result to response
             return self._convert_result(result, task)
 
-        except Exception as e:
+        except AdapterExceptions.AdapterError as e:
             return AgentResponse(
                 task_id=task.id,
                 agent_name=self.config.name,
@@ -125,10 +131,18 @@ class SuperAGIAdapter(AgentAdapter):
                 confidence=0.0,
                 reasoning=f"Task execution failed: {str(e)}"
             )
+        except Exception as e:
+            return AgentResponse(
+                task_id=task.id,
+                agent_name=self.config.name,
+                suggestions=[],
+                confidence=0.0,
+                reasoning=f"Unexpected error: {str(e)}"
+            )
 
     def _get_default_goals(self) -> List[str]:
         """Get default goals for the agent"""
-        goals = []
+        goals: List[str] = []
 
         if Capability.CODE_GENERATION in self.config.capabilities:
             goals.append("Generate high-quality, maintainable code")
@@ -146,7 +160,7 @@ class SuperAGIAdapter(AgentAdapter):
 
     def _get_tools(self) -> List[str]:
         """Get tools for the agent based on capabilities"""
-        tools = [
+        tools: List[str] = [
             "code_analysis",
             "file_reader",
             "file_writer",
@@ -230,9 +244,13 @@ class SuperAGIAdapter(AgentAdapter):
                 poll_interval = min(poll_interval * backoff_multiplier, max_interval)
 
             except httpx.HTTPError as e:
-                raise Exception(f"Failed to monitor execution: {e}")
+                raise AdapterExceptions.AdapterConnectionError(
+                    f"Failed to monitor execution: {e}"
+                )
 
-        raise Exception(f"Execution timed out after {max_wait} seconds")
+        raise AdapterExceptions.AdapterTimeoutError(
+            f"Execution timed out after {max_wait} seconds"
+        )
 
     def _convert_result(self, result: Dict[str, Any], task: Task) -> AgentResponse:
         """
@@ -277,7 +295,7 @@ class SuperAGIAdapter(AgentAdapter):
 
     def _parse_suggestions(self, output: str, steps: List[Dict[str, Any]]) -> List[Suggestion]:
         """Parse suggestions from SuperAGI output using shared utilities"""
-        suggestions = []
+        suggestions: List[Suggestion] = []
 
         # Extract code blocks from output using shared utility
         code_blocks = AdapterUtils.extract_code_blocks(output)

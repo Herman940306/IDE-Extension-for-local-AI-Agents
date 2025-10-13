@@ -7,7 +7,10 @@ to reduce code duplication and improve maintainability.
 """
 
 import re
-from typing import List, Dict, Any, Tuple
+import hashlib
+import time
+from functools import lru_cache
+from typing import List, Dict, Any, Tuple, Optional
 
 
 class AdapterUtils:
@@ -148,6 +151,118 @@ class AdapterUtils:
         )
         
         return successful_steps / len(steps)
+
+
+class ResponseCache:
+    """
+    LRU cache for LLM responses based on code context similarity
+    Reduces redundant API calls for similar code patterns
+    """
+    
+    def __init__(self, max_size: int = 100, ttl_seconds: int = 3600):
+        """
+        Initialize response cache
+        
+        Args:
+            max_size: Maximum number of cached responses
+            ttl_seconds: Time-to-live for cache entries in seconds
+        """
+        self.max_size = max_size
+        self.ttl_seconds = ttl_seconds
+        self.cache: Dict[str, Dict[str, Any]] = {}
+        self.access_times: Dict[str, float] = {}
+    
+    def generate_key(
+        self,
+        code: str,
+        language: str,
+        task_type: str,
+        agent_name: str
+    ) -> str:
+        """
+        Generate cache key from code context
+        
+        Args:
+            code: Source code
+            language: Programming language
+            task_type: Type of task (refactor, explain, etc.)
+            agent_name: Name of the agent
+            
+        Returns:
+            SHA256 hash as cache key
+        """
+        content = f"{code}|{language}|{task_type}|{agent_name}"
+        return hashlib.sha256(content.encode()).hexdigest()
+    
+    def get(self, key: str) -> Optional[Any]:
+        """
+        Get cached response if valid
+        
+        Args:
+            key: Cache key
+            
+        Returns:
+            Cached response or None if expired/missing
+        """
+        if key not in self.cache:
+            return None
+        
+        # Check TTL
+        age = time.time() - self.access_times.get(key, 0)
+        if age > self.ttl_seconds:
+            self.invalidate(key)
+            return None
+        
+        # Update access time
+        self.access_times[key] = time.time()
+        return self.cache[key]
+    
+    def set(self, key: str, response: Any) -> None:
+        """
+        Store response in cache
+        
+        Args:
+            key: Cache key
+            response: Response to cache
+        """
+        # Evict oldest if at capacity
+        if len(self.cache) >= self.max_size:
+            oldest_key = min(self.access_times.items(), key=lambda x: x[1])[0]
+            self.invalidate(oldest_key)
+        
+        self.cache[key] = response
+        self.access_times[key] = time.time()
+    
+    def invalidate(self, key: str) -> None:
+        """Remove entry from cache"""
+        self.cache.pop(key, None)
+        self.access_times.pop(key, None)
+    
+    def clear(self) -> None:
+        """Clear all cache entries"""
+        self.cache.clear()
+        self.access_times.clear()
+    
+    def get_stats(self) -> Dict[str, Any]:
+        """Get cache statistics"""
+        return {
+            "size": len(self.cache),
+            "max_size": self.max_size,
+            "hit_rate": self._calculate_hit_rate(),
+            "oldest_entry_age": self._get_oldest_entry_age()
+        }
+    
+    def _calculate_hit_rate(self) -> float:
+        """Calculate cache hit rate (placeholder for actual tracking)"""
+        # In production, track hits/misses
+        return 0.0
+    
+    def _get_oldest_entry_age(self) -> float:
+        """Get age of oldest cache entry in seconds"""
+        if not self.access_times:
+            return 0.0
+        oldest_time = min(self.access_times.values())
+        return time.time() - oldest_time
 
 
 class AdapterExceptions:

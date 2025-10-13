@@ -42,6 +42,11 @@ interface WorkflowPattern {
     suggestion?: string;
 }
 
+interface CacheEntry {
+    data: any;
+    timestamp: number;
+}
+
 export class AnalyticsService {
     private context: vscode.ExtensionContext;
     private events: SuggestionEvent[] = [];
@@ -49,10 +54,25 @@ export class AnalyticsService {
     private readonly RETENTION_DAYS = 90;
     private enabled: boolean = true;
 
+    // Predictive caching
+    private cache: Map<string, CacheEntry> = new Map();
+    private readonly CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+    private readonly CACHE_KEYS = {
+        SUMMARY: 'summary',
+        RATES: 'rates',
+        AGENT_METRICS: 'agent_metrics',
+        PRODUCTIVITY: 'productivity',
+        PATTERNS: 'patterns',
+        TIME_SERIES: 'time_series',
+        LANGUAGE_DIST: 'language_dist',
+        HOURLY: 'hourly'
+    };
+
     constructor(context: vscode.ExtensionContext) {
         this.context = context;
         this.loadEvents();
         this.checkOptOut();
+        this.startCacheCleanup();
     }
 
     /**
@@ -86,12 +106,15 @@ export class AnalyticsService {
         // Clean old events
         this.cleanOldEvents();
 
+        // Invalidate cache on new data
+        this.invalidateCache();
+
         // Save to storage
         this.saveEvents();
     }
 
     /**
-     * Get suggestion acceptance/rejection rates
+     * Get suggestion acceptance/rejection rates (with caching)
      */
     public getSuggestionRates(): {
         total: number;
@@ -99,23 +122,50 @@ export class AnalyticsService {
         rejected: number;
         acceptanceRate: number;
     } {
+        const cached = this.getFromCache<{
+            total: number;
+            accepted: number;
+            rejected: number;
+            acceptanceRate: number;
+        }>(this.CACHE_KEYS.RATES);
+        if (cached) {
+            return cached;
+        }
+
         const total = this.events.length;
         const accepted = this.events.filter(e => e.accepted).length;
         const rejected = total - accepted;
         const acceptanceRate = total > 0 ? accepted / total : 0;
 
-        return {
+        const result = {
             total,
             accepted,
             rejected,
             acceptanceRate
         };
+
+        this.setCache(this.CACHE_KEYS.RATES, result);
+        return result;
     }
 
     /**
-     * Get agent effectiveness metrics
+     * Get agent effectiveness metrics (with caching)
      */
     public getAgentMetrics(): AgentMetrics[] {
+        const cached = this.getFromCache<AgentMetrics[]>(this.CACHE_KEYS.AGENT_METRICS);
+        if (cached) {
+            return cached;
+        }
+
+        const result = this.computeAgentMetrics();
+        this.setCache(this.CACHE_KEYS.AGENT_METRICS, result);
+        return result;
+    }
+
+    /**
+     * Compute agent effectiveness metrics
+     */
+    private computeAgentMetrics(): AgentMetrics[] {
         const agentMap = new Map<string, {
             total: number;
             accepted: number;
@@ -404,7 +454,7 @@ export class AnalyticsService {
     }
 
     /**
-     * Get summary statistics
+     * Get summary statistics (with caching)
      */
     public getSummary(): {
         totalSuggestions: number;
@@ -413,18 +463,81 @@ export class AnalyticsService {
         topLanguage: string;
         mostProductiveHour: number;
     } {
+        const cached = this.getFromCache<{
+            totalSuggestions: number;
+            acceptanceRate: number;
+            topAgent: string;
+            topLanguage: string;
+            mostProductiveHour: number;
+        }>(this.CACHE_KEYS.SUMMARY);
+        if (cached) {
+            return cached;
+        }
+
         const rates = this.getSuggestionRates();
         const agentMetrics = this.getAgentMetrics();
         const productivity = this.getProductivityMetrics();
         const langDist = this.getLanguageDistribution();
 
-        return {
+        const result = {
             totalSuggestions: rates.total,
             acceptanceRate: rates.acceptanceRate,
             topAgent: agentMetrics[0]?.agentName || 'N/A',
             topLanguage: langDist[0]?.language || 'N/A',
             mostProductiveHour: productivity.mostProductiveHours[0] || 0
         };
+
+        this.setCache(this.CACHE_KEYS.SUMMARY, result);
+        return result;
+    }
+
+    /**
+     * Get data from cache if valid
+     */
+    private getFromCache<T>(key: string): T | undefined {
+        const entry = this.cache.get(key);
+        if (!entry) {
+            return undefined;
+        }
+
+        const age = Date.now() - entry.timestamp;
+        if (age > this.CACHE_TTL) {
+            this.cache.delete(key);
+            return undefined;
+        }
+
+        return entry.data as T;
+    }
+
+    /**
+     * Set data in cache
+     */
+    private setCache<T>(key: string, data: T): void {
+        this.cache.set(key, {
+            data,
+            timestamp: Date.now()
+        });
+    }
+
+    /**
+     * Invalidate all cache entries
+     */
+    private invalidateCache(): void {
+        this.cache.clear();
+    }
+
+    /**
+     * Start periodic cache cleanup
+     */
+    private startCacheCleanup(): void {
+        setInterval(() => {
+            const now = Date.now();
+            for (const [key, entry] of this.cache.entries()) {
+                if (now - entry.timestamp > this.CACHE_TTL) {
+                    this.cache.delete(key);
+                }
+            }
+        }, 60000); // Clean every minute
     }
 
     /**
@@ -432,5 +545,6 @@ export class AnalyticsService {
      */
     public async dispose() {
         await this.saveEvents();
+        this.cache.clear();
     }
 }

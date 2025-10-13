@@ -69,8 +69,14 @@ class AutoGPTAdapter(AgentAdapter):
 
             self.is_initialized = True
 
+        except httpx.HTTPError as e:
+            raise AdapterExceptions.AdapterConnectionError(
+                f"Failed to connect to AutoGPT: {e}"
+            )
         except Exception as e:
-            raise Exception(f"Failed to initialize AutoGPT adapter: {e}")
+            raise AdapterExceptions.AdapterInitializationError(
+                f"Failed to initialize AutoGPT adapter: {e}"
+            )
 
     async def execute_task(self, task: Task, context: CodeContext) -> AgentResponse:
         """
@@ -119,13 +125,21 @@ class AutoGPTAdapter(AgentAdapter):
             # Convert result to response
             return self._convert_result(result, task, context)
 
-        except Exception as e:
+        except AdapterExceptions.AdapterError as e:
             return AgentResponse(
                 task_id=task.id,
                 agent_name=self.config.name,
                 suggestions=[],
                 confidence=0.0,
                 reasoning=f"Task execution failed: {str(e)}"
+            )
+        except Exception as e:
+            return AgentResponse(
+                task_id=task.id,
+                agent_name=self.config.name,
+                suggestions=[],
+                confidence=0.0,
+                reasoning=f"Unexpected error: {str(e)}"
             )
 
     def _get_role(self) -> str:
@@ -141,7 +155,7 @@ class AutoGPTAdapter(AgentAdapter):
 
     def _get_default_goals(self) -> List[str]:
         """Get default goals for the agent"""
-        goals = []
+        goals: List[str] = []
 
         if Capability.RESEARCH in self.config.capabilities:
             goals.extend([
@@ -168,7 +182,7 @@ class AutoGPTAdapter(AgentAdapter):
 
     def _get_plugins(self) -> List[str]:
         """Get plugins for the agent"""
-        plugins = [
+        plugins: List[str] = [
             "file_operations",
             "web_search",
             "code_analysis"
@@ -361,7 +375,7 @@ class AutoGPTAdapter(AgentAdapter):
         context: CodeContext
     ) -> List[Suggestion]:
         """Parse suggestions from AutoGPT output using shared utilities"""
-        suggestions = []
+        suggestions: List[Suggestion] = []
 
         # Extract code blocks from output using shared utility
         code_blocks = AdapterUtils.extract_code_blocks(output)
