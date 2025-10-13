@@ -55,7 +55,8 @@
   - Create health check wrapper with timeout
   - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5, 1.6_
 
-- [-] 2.1 Create adapter_utils.py module
+- [x] 2.1 Create adapter_utils.py module
+
 
   - Implement `exponential_backoff()` with configurable retry logic
   - Add jitter calculation to prevent thundering herd
@@ -130,12 +131,14 @@
   - _Requirements: 2.5, 2.7_
 
 
+
 ---
 
 - [ ] 4. Implement circuit breaker pattern
   - Create circuit breaker manager with state machine
   - Implement CLOSED → OPEN → HALF_OPEN → CLOSED transitions
   - Add failure tracking and timeout logic
+
   - Integrate with adapter calls
   - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7_
 
@@ -260,21 +263,27 @@
   - Test file content size validation
   - _Requirements: 7.5, 7.7_
 
+
+
 ---
 
 - [ ] 7. Implement middleware layer
   - Create correlation ID middleware
   - Integrate rate limiting middleware
+
+
   - Integrate request size middleware
   - Configure middleware pipeline
   - _Requirements: 4.4, 6.1, 6.2, 7.1, 7.2_
 
-- [ ] 7.1 Create CorrelationIDMiddleware
+- [x] 7.1 Create CorrelationIDMiddleware
+
   - Extract or generate correlation ID from headers
   - Store correlation ID in request state
   - Add correlation ID to response headers
   - Propagate correlation ID to logging context
   - _Requirements: 4.4_
+
 
 - [ ] 7.2 Configure middleware pipeline in main.py
   - Add CorrelationIDMiddleware first
@@ -283,21 +292,26 @@
   - Configure middleware order for proper execution
   - _Requirements: 6.1, 6.2, 7.1, 7.2_
 
+
 - [ ]* 7.3 Write integration tests for middleware
   - Test correlation ID propagation
   - Test rate limiting enforcement
+
+
   - Test request size validation
   - Test middleware execution order
   - _Requirements: 4.4, 6.5, 7.5_
 
 ---
 
-- [ ] 8. Enhance OpenAPI documentation
+- [x] 8. Enhance OpenAPI documentation
+
   - Configure FastAPI to generate comprehensive OpenAPI spec
   - Add descriptions to all endpoints
   - Document request/response schemas
   - Add example payloads
   - _Requirements: 8.1, 8.2, 8.3, 8.4, 8.5, 8.6, 8.7_
+
 
 - [ ] 8.1 Add endpoint descriptions and metadata
   - Add docstrings to all route handlers
@@ -306,11 +320,13 @@
   - Document authentication requirements
   - _Requirements: 8.4, 8.5_
 
+
 - [ ] 8.2 Configure OpenAPI settings
   - Set API title, version, and description
   - Configure Swagger UI at `/docs`
   - Configure ReDoc at `/redoc`
   - Add contact and license information
+
   - _Requirements: 8.1, 8.2, 8.3_
 
 - [ ] 8.3 Add example payloads
@@ -327,28 +343,34 @@
   - Ensure auto-update on code changes
   - _Requirements: 8.7_
 
+
+
 ---
 
 - [ ] 9. Increase test coverage to 60%
   - Write unit tests for all new components
   - Add integration tests for end-to-end flows
+
   - Configure pytest coverage reporting
   - Fix any failing tests
   - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5, 5.6, 5.7_
 
 - [ ] 9.1 Configure pytest coverage
   - Add pytest-cov to requirements
+
   - Configure coverage settings in pyproject.toml
   - Set coverage target to 60%
   - Add coverage report to CI/CD
   - _Requirements: 5.1_
 
-- [ ] 9.2 Write missing unit tests
+- [x] 9.2 Write missing unit tests
+
   - Identify modules with low coverage
   - Write unit tests for uncovered code paths
   - Focus on critical paths (adapters, services)
   - Aim for 80%+ coverage on new code
   - _Requirements: 5.2, 5.3_
+
 
 - [ ] 9.3 Write integration tests
   - Test adapter with cache and circuit breaker
