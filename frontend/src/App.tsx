@@ -28,7 +28,6 @@ function App() {
     const [chatHistory, setChatHistory] = useState<ChatSession[]>([]);
     const [currentChatId, setCurrentChatId] = useState<string | null>(null);
     const [mode, setMode] = useState<'local' | 'cloud'>('local');
-    const [selectedModel, setSelectedModel] = useState('auto');
 
     useEffect(() => {
         // Load chat history from localStorage
