@@ -5,7 +5,7 @@ Project Creator: Herman Swanepoel
 
 import logging
 import asyncio
-from typing import List, Dict, Any, Optional, Set, Callable
+from typing import List, Dict, Any, Optional, Set, Callable, Tuple
 from pathlib import Path
 import re
 import time
@@ -14,6 +14,18 @@ from collections import OrderedDict
 from git import Repo, InvalidGitRepositoryError
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler, FileModifiedEvent, FileCreatedEvent, FileDeletedEvent
+import networkx as nx
+
+try:
+    from tree_sitter import Language, Parser
+    import tree_sitter_python as tspython
+    import tree_sitter_javascript as tsjavascript
+    import tree_sitter_typescript as tstypescript
+    TREE_SITTER_AVAILABLE = True
+except ImportError:
+    TREE_SITTER_AVAILABLE = False
+    logger.warning("tree-sitter not available - AST parsing disabled")
+
 from models import CodeContext, GitCommit
 
 logger = logging.getLogger(__name__)
@@ -96,6 +108,15 @@ class ContextManager:
         self.git_cache_time: float = 0
         self.git_cache_ttl: float = 60.0  # 60 seconds
         
+        # Dependency graph
+        self.dependency_graph: nx.DiGraph = nx.DiGraph()
+        self.graph_last_updated: float = 0
+        
+        # Tree-sitter parsers
+        self.parsers: Dict[str, Parser] = {}
+        if TREE_SITTER_AVAILABLE:
+            self._initialize_parsers()
+        
         # File watcher
         self.observer: Optional[Observer] = None
         self.file_change_callbacks: List[Callable] = []
@@ -104,6 +125,38 @@ class ContextManager:
             self._setup_file_watcher()
         self.repo: Optional[Repo] = None
         self._initialize_git()
+
+    def _initialize_parsers(self) -> None:
+        """Initialize tree-sitter parsers for supported languages"""
+        try:
+            # Python parser
+            PY_LANGUAGE = Language(tspython.language(), "python")
+            py_parser = Parser()
+            py_parser.set_language(PY_LANGUAGE)
+            self.parsers['python'] = py_parser
+            
+            # JavaScript parser
+            JS_LANGUAGE = Language(tsjavascript.language(), "javascript")
+            js_parser = Parser()
+            js_parser.set_language(JS_LANGUAGE)
+            self.parsers['javascript'] = js_parser
+            
+            # TypeScript parser
+            TS_LANGUAGE = Language(tstypescript.language_typescript(), "typescript")
+            ts_parser = Parser()
+            ts_parser.set_language(TS_LANGUAGE)
+            self.parsers['typescript'] = ts_parser
+            
+            # TSX parser
+            TSX_LANGUAGE = Language(tstypescript.language_tsx(), "tsx")
+            tsx_parser = Parser()
+            tsx_parser.set_language(TSX_LANGUAGE)
+            self.parsers['tsx'] = tsx_parser
+            
+            logger.info("✓ Tree-sitter parsers initialized")
+        except Exception as e:
+            logger.error(f"Failed to initialize tree-sitter parsers: {e}")
+            self.parsers = {}
 
     def _initialize_git(self) -> None:
         """Initialize Git repository if available"""
@@ -335,6 +388,330 @@ class ContextManager:
             logger.warning(f"Failed to get surrounding code: {e}")
             return ""
 
+    async def parse_ast(self, file_path: Path, content: Optional[str] = None) -> Optional[Dict[str, Any]]:
+        """
+        Parse file using tree-sitter AST
+        
+        Args:
+            file_path: Path to file
+            content: File content (optional, will read if not provided)
+            
+        Returns:
+            Dictionary with AST information (functions, classes, imports, etc.)
+        """
+        if not TREE_SITTER_AVAILABLE:
+            return None
+        
+        # Check cache
+        cache_key = str(file_path)
+        cached = self.ast_cache.get(cache_key)
+        if cached:
+            return cached
+        
+        try:
+            language = self._detect_language(file_path)
+            parser = self.parsers.get(language)
+            
+            if not parser:
+                return None
+            
+            # Read content if not provided
+            if content is None:
+                content = await self._read_file(file_path)
+            
+            # Parse
+            tree = parser.parse(bytes(content, "utf8"))
+            root_node = tree.root_node
+            
+            # Extract symbols
+            ast_info = {
+                "functions": [],
+                "classes": [],
+                "imports": [],
+                "variables": [],
+                "language": language
+            }
+            
+            # Language-specific extraction
+            if language == "python":
+                ast_info = self._extract_python_symbols(root_node, content)
+            elif language in ["javascript", "typescript", "tsx"]:
+                ast_info = self._extract_js_symbols(root_node, content)
+            
+            # Cache result
+            self.ast_cache.put(cache_key, ast_info)
+            
+            return ast_info
+            
+        except Exception as e:
+            logger.error(f"Failed to parse AST for {file_path}: {e}")
+            return None
+
+    def _extract_python_symbols(self, root_node, content: str) -> Dict[str, Any]:
+        """Extract symbols from Python AST"""
+        symbols = {
+            "functions": [],
+            "classes": [],
+            "imports": [],
+            "variables": [],
+            "language": "python"
+        }
+        
+        def traverse(node):
+            if node.type == "function_definition":
+                func_name = self._get_node_text(node.child_by_field_name("name"), content)
+                symbols["functions"].append({
+                    "name": func_name,
+                    "line": node.start_point[0],
+                    "type": "function"
+                })
+            
+            elif node.type == "class_definition":
+                class_name = self._get_node_text(node.child_by_field_name("name"), content)
+                symbols["classes"].append({
+                    "name": class_name,
+                    "line": node.start_point[0],
+                    "type": "class"
+                })
+            
+            elif node.type in ["import_statement", "import_from_statement"]:
+                import_text = self._get_node_text(node, content)
+                symbols["imports"].append(import_text)
+            
+            # Recurse
+            for child in node.children:
+                traverse(child)
+        
+        traverse(root_node)
+        return symbols
+
+    def _extract_js_symbols(self, root_node, content: str) -> Dict[str, Any]:
+        """Extract symbols from JavaScript/TypeScript AST"""
+        symbols = {
+            "functions": [],
+            "classes": [],
+            "imports": [],
+            "variables": [],
+            "language": "javascript"
+        }
+        
+        def traverse(node):
+            if node.type in ["function_declaration", "function", "arrow_function"]:
+                func_name = "anonymous"
+                name_node = node.child_by_field_name("name")
+                if name_node:
+                    func_name = self._get_node_text(name_node, content)
+                symbols["functions"].append({
+                    "name": func_name,
+                    "line": node.start_point[0],
+                    "type": "function"
+                })
+            
+            elif node.type == "class_declaration":
+                class_name = self._get_node_text(node.child_by_field_name("name"), content)
+                symbols["classes"].append({
+                    "name": class_name,
+                    "line": node.start_point[0],
+                    "type": "class"
+                })
+            
+            elif node.type == "import_statement":
+                import_text = self._get_node_text(node, content)
+                symbols["imports"].append(import_text)
+            
+            # Recurse
+            for child in node.children:
+                traverse(child)
+        
+        traverse(root_node)
+        return symbols
+
+    def _get_node_text(self, node, content: str) -> str:
+        """Get text content of a tree-sitter node"""
+        if node is None:
+            return ""
+        return content[node.start_byte:node.end_byte]
+
+    async def build_dependency_graph(self, force_rebuild: bool = False) -> nx.DiGraph:
+        """
+        Build dependency graph for the entire codebase
+        
+        Args:
+            force_rebuild: Force rebuild even if cache is valid
+            
+        Returns:
+            NetworkX directed graph of file dependencies
+        """
+        # Check if rebuild needed
+        if not force_rebuild and time.time() - self.graph_last_updated < 300:  # 5 minutes
+            return self.dependency_graph
+        
+        logger.info("Building dependency graph...")
+        self.dependency_graph = nx.DiGraph()
+        
+        try:
+            # Find all code files
+            code_files = []
+            for ext in ['.py', '.js', '.ts', '.tsx', '.jsx']:
+                code_files.extend(self.workspace_path.rglob(f"*{ext}"))
+            
+            # Build graph
+            for file_path in code_files:
+                try:
+                    rel_path = str(file_path.relative_to(self.workspace_path))
+                    
+                    # Add node
+                    self.dependency_graph.add_node(rel_path, path=str(file_path))
+                    
+                    # Get dependencies
+                    dependencies = await self._get_dependencies(file_path)
+                    
+                    # Add edges
+                    for dep in dependencies:
+                        # Resolve dependency path
+                        dep_path = self._resolve_import_path(file_path, dep)
+                        if dep_path:
+                            dep_rel = str(dep_path.relative_to(self.workspace_path))
+                            self.dependency_graph.add_edge(rel_path, dep_rel)
+                
+                except Exception as e:
+                    logger.warning(f"Failed to process {file_path}: {e}")
+                    continue
+            
+            self.graph_last_updated = time.time()
+            logger.info(f"✓ Dependency graph built: {self.dependency_graph.number_of_nodes()} nodes, {self.dependency_graph.number_of_edges()} edges")
+            
+        except Exception as e:
+            logger.error(f"Failed to build dependency graph: {e}")
+        
+        return self.dependency_graph
+
+    def _resolve_import_path(self, source_file: Path, import_path: str) -> Optional[Path]:
+        """
+        Resolve relative import to absolute file path
+        
+        Args:
+            source_file: Source file doing the import
+            import_path: Import path (e.g., './utils', '../models/user')
+            
+        Returns:
+            Resolved file path or None
+        """
+        try:
+            # Handle relative imports
+            if import_path.startswith('.'):
+                base_dir = source_file.parent
+                resolved = (base_dir / import_path).resolve()
+                
+                # Try with common extensions
+                for ext in ['', '.py', '.js', '.ts', '.tsx', '.jsx']:
+                    candidate = resolved.with_suffix(ext)
+                    if candidate.exists() and candidate.is_file():
+                        return candidate
+                
+                # Try as directory with index file
+                for index_file in ['__init__.py', 'index.js', 'index.ts']:
+                    candidate = resolved / index_file
+                    if candidate.exists():
+                        return candidate
+            
+            return None
+            
+        except Exception as e:
+            logger.debug(f"Failed to resolve import {import_path}: {e}")
+            return None
+
+    async def get_file_dependencies(self, file_path: str) -> Dict[str, Any]:
+        """
+        Get dependencies for a specific file
+        
+        Args:
+            file_path: Relative path to file
+            
+        Returns:
+            Dictionary with dependency information
+        """
+        # Ensure graph is built
+        await self.build_dependency_graph()
+        
+        if file_path not in self.dependency_graph:
+            return {
+                "file": file_path,
+                "dependencies": [],
+                "dependents": [],
+                "depth": 0
+            }
+        
+        # Get direct dependencies (files this file imports)
+        dependencies = list(self.dependency_graph.successors(file_path))
+        
+        # Get dependents (files that import this file)
+        dependents = list(self.dependency_graph.predecessors(file_path))
+        
+        # Calculate dependency depth
+        try:
+            # Find all paths from root nodes
+            root_nodes = [n for n in self.dependency_graph.nodes() if self.dependency_graph.in_degree(n) == 0]
+            depths = []
+            for root in root_nodes:
+                if nx.has_path(self.dependency_graph, root, file_path):
+                    depth = nx.shortest_path_length(self.dependency_graph, root, file_path)
+                    depths.append(depth)
+            depth = max(depths) if depths else 0
+        except:
+            depth = 0
+        
+        return {
+            "file": file_path,
+            "dependencies": dependencies,
+            "dependents": dependents,
+            "depth": depth,
+            "is_leaf": len(dependencies) == 0,
+            "is_root": len(dependents) == 0
+        }
+
+    async def get_impact_analysis(self, file_path: str) -> Dict[str, Any]:
+        """
+        Analyze impact of changes to a file
+        
+        Args:
+            file_path: Relative path to file
+            
+        Returns:
+            Dictionary with impact analysis
+        """
+        # Ensure graph is built
+        await self.build_dependency_graph()
+        
+        if file_path not in self.dependency_graph:
+            return {
+                "file": file_path,
+                "directly_affected": [],
+                "transitively_affected": [],
+                "total_impact": 0
+            }
+        
+        # Get all descendants (files affected by changes)
+        try:
+            descendants = nx.descendants(self.dependency_graph, file_path)
+            directly_affected = list(self.dependency_graph.predecessors(file_path))
+            transitively_affected = list(descendants - set(directly_affected))
+            
+            return {
+                "file": file_path,
+                "directly_affected": directly_affected,
+                "transitively_affected": transitively_affected,
+                "total_impact": len(descendants)
+            }
+        except Exception as e:
+            logger.error(f"Failed to analyze impact: {e}")
+            return {
+                "file": file_path,
+                "directly_affected": [],
+                "transitively_affected": [],
+                "total_impact": 0
+            }
+
     async def get_project_structure(self) -> Dict[str, Any]:
         """
         Get project structure overview
@@ -447,6 +824,9 @@ class ContextManager:
             self.ast_cache.put(rel_path, None)  # Invalidate
             self.context_cache.put(rel_path, None)  # Invalidate
             
+            # Invalidate dependency graph (will be rebuilt on next access)
+            self.graph_last_updated = 0
+            
             logger.debug(f"File {event_type}: {rel_path}")
             
             # Notify callbacks
@@ -510,7 +890,10 @@ class ContextManager:
             "ast_cache_size": len(self.ast_cache.cache),
             "context_cache_size": len(self.context_cache.cache),
             "git_cache_valid": self.git_cache is not None and (time.time() - self.git_cache_time) < self.git_cache_ttl,
-            "file_watcher_active": self.observer is not None and self.observer.is_alive() if self.observer else False
+            "file_watcher_active": self.observer is not None and self.observer.is_alive() if self.observer else False,
+            "dependency_graph_nodes": self.dependency_graph.number_of_nodes(),
+            "dependency_graph_edges": self.dependency_graph.number_of_edges(),
+            "graph_age_seconds": time.time() - self.graph_last_updated if self.graph_last_updated > 0 else None
         }
     
     def __del__(self):
