@@ -1,10 +1,10 @@
 # ==============================================================================
-# AURA-DEV DevOps SSH Connection Script
+# AURA-DEV DevOps WinSCP Connection Script
 # ==============================================================================
 # Project Creator: Herman Swanepoel
-# Version: 1.0
+# Version: 2.0
 # PowerShell: 7.5.3+
-# Description: Production-safe PuTTY + WinSCP auto-login with directory navigation
+# Description: WinSCP auto-login for file management
 # ==============================================================================
 
 #Requires -Version 7.0
@@ -17,9 +17,6 @@
 $configPath = Join-Path $PSScriptRoot "config.ps1"
 if (Test-Path $configPath) {
     $Config = & $configPath
-    # Add temp file paths
-    $Config.PuTTYCommandFile = "$env:TEMP\putty_commands.txt"
-    $Config.WinSCPScriptFile = "$env:TEMP\winscp_script.txt"
 } else {
     Write-Error "Config file not found: $configPath"
     exit 1
@@ -61,42 +58,6 @@ function Test-ApplicationInstalled {
     }
 }
 
-function Start-PuTTYSession {
-    param($Config)
-    
-    Write-Log "Starting PuTTY session..." -Level Info
-    
-    try {
-        # Create command file for auto-navigation
-        # Commands execute after SSH login to navigate to working directory
-        $commands = "cd `"$($Config.RemoteProjectDir)`"`nls -la`n"
-        
-        Set-Content -Path $Config.PuTTYCommandFile -Value $commands -Force -NoNewline
-        Write-Log "Created PuTTY command file" -Level Success
-        
-        # Build PuTTY arguments
-        $puttyArgs = @(
-            "-ssh"
-            "$($Config.Username)@$($Config.ServerIP)"
-            "-pw"
-            $Config.Password
-            "-m"
-            $Config.PuTTYCommandFile
-        )
-        
-        # Start PuTTY process with WindowStyle Normal to ensure it's visible
-        Start-Process -FilePath $Config.PuTTYPath -ArgumentList $puttyArgs -WindowStyle Normal
-        Write-Log "✓ PuTTY session launched successfully" -Level Success
-        Write-Log "  Auto-navigating to: $($Config.RemoteProjectDir)" -Level Info
-        
-        return $true
-    }
-    catch {
-        Write-Log "✗ Failed to start PuTTY: $($_.Exception.Message)" -Level Error
-        return $false
-    }
-}
-
 function Start-WinSCPSession {
     param($Config)
     
@@ -109,25 +70,18 @@ function Start-WinSCPSession {
             New-Item -ItemType Directory -Path $Config.LocalProjectDir -Force | Out-Null
         }
         
-        # Create WinSCP script file for automated navigation
-        # Opens GUI in dual-pane mode with both directories ready for work
-        $winscpScript = @"
-option batch abort
-option confirm off
-open scp://$($Config.Username):$($Config.Password)@$($Config.ServerIP)
-cd "$($Config.RemoteProjectDir)"
-lcd "$($Config.LocalProjectDir)"
-"@
+        # Simple WinSCP connection - just open GUI and connect
+        # User can navigate to desired directory manually
+        $connectionString = "scp://$($Config.Username):$($Config.Password)@$($Config.ServerIP)"
         
-        Set-Content -Path $Config.WinSCPScriptFile -Value $winscpScript -Force
-        Write-Log "Created WinSCP script file" -Level Success
+        Write-Log "Created WinSCP connection string" -Level Success
         
-        # WinSCP arguments for GUI mode with script
+        # WinSCP arguments for GUI mode
         $winscpArgs = @(
-            "/script=$($Config.WinSCPScriptFile)"
+            $connectionString
         )
         
-        # Start WinSCP GUI with working directory set to local project dir
+        # Start WinSCP GUI
         Start-Process -FilePath $Config.WinSCPPath -ArgumentList $winscpArgs -WorkingDirectory $Config.LocalProjectDir
         Write-Log "✓ WinSCP GUI session launched successfully" -Level Success
         Write-Log "  Remote: $($Config.RemoteProjectDir)" -Level Info
@@ -167,32 +121,15 @@ function Show-Banner {
     Write-Host ""
     Write-Host "╔════════════════════════════════════════════════════════════╗" -ForegroundColor Cyan
     Write-Host "║                                                            ║" -ForegroundColor Cyan
-    Write-Host "║          AURA-DEV DevOps SSH Connection Manager           ║" -ForegroundColor Cyan
+    Write-Host "║          AURA-DEV DevOps WinSCP Launcher                  ║" -ForegroundColor Cyan
     Write-Host "║                                                            ║" -ForegroundColor Cyan
-    Write-Host "║  PuTTY + WinSCP Auto-Login & Directory Navigation         ║" -ForegroundColor Cyan
+    Write-Host "║  WinSCP Auto-Login for File Management                    ║" -ForegroundColor Cyan
     Write-Host "║                                                            ║" -ForegroundColor Cyan
     Write-Host "╚════════════════════════════════════════════════════════════╝" -ForegroundColor Cyan
     Write-Host ""
 }
 
-function Invoke-Cleanup {
-    param($Config)
-    
-    Write-Log "Cleaning up temporary files..." -Level Info
-    
-    try {
-        if (Test-Path $Config.PuTTYCommandFile) {
-            Remove-Item $Config.PuTTYCommandFile -Force
-        }
-        if (Test-Path $Config.WinSCPScriptFile) {
-            Remove-Item $Config.WinSCPScriptFile -Force
-        }
-        Write-Log "✓ Cleanup complete" -Level Success
-    }
-    catch {
-        Write-Log "Warning: Cleanup failed: $($_.Exception.Message)" -Level Warning
-    }
-}
+
 
 # ==============================================================================
 # MAIN EXECUTION
@@ -210,13 +147,12 @@ function Main {
     # Pre-flight checks
     Write-Log "=== PRE-FLIGHT CHECKS ===" -Level Info
     
-    $puttyOk = Test-ApplicationInstalled -Path $Config.PuTTYPath -AppName "PuTTY"
     $winscpOk = Test-ApplicationInstalled -Path $Config.WinSCPPath -AppName "WinSCP"
     $networkOk = Test-NetworkConnectivity -ServerIP $Config.ServerIP
     
     Write-Host ""
     
-    if (-not ($puttyOk -and $winscpOk -and $networkOk)) {
+    if (-not ($winscpOk -and $networkOk)) {
         Write-Log "Pre-flight checks failed. Aborting." -Level Error
         return 1
     }
@@ -224,31 +160,24 @@ function Main {
     Write-Log "✓ All pre-flight checks passed" -Level Success
     Write-Host ""
     
-    # Launch sessions
-    Write-Log "=== LAUNCHING SESSIONS ===" -Level Info
-    
-    $puttySuccess = Start-PuTTYSession -Config $Config
-    Start-Sleep -Seconds 2  # Stagger launches
+    # Launch WinSCP
+    Write-Log "=== LAUNCHING WINSCP ===" -Level Info
     
     $winscpSuccess = Start-WinSCPSession -Config $Config
     
     Write-Host ""
     
-    if ($puttySuccess -and $winscpSuccess) {
+    if ($winscpSuccess) {
         Write-Log "=== SUCCESS ===" -Level Success
-        Write-Log "Both sessions launched successfully!" -Level Success
-        Write-Log "PuTTY: Connected to $($Config.ServerIP) in $($Config.RemoteProjectDir)" -Level Info
-        Write-Log "WinSCP: GUI opened with dual-pane view" -Level Info
+        Write-Log "WinSCP launched successfully!" -Level Success
+        Write-Log "Connected to: $($Config.ServerIP)" -Level Info
+        Write-Log "Navigate to: $($Config.RemoteProjectDir)" -Level Info
     } else {
-        Write-Log "=== PARTIAL SUCCESS ===" -Level Warning
-        Write-Log "Some sessions failed to launch. Check logs above." -Level Warning
+        Write-Log "=== FAILED ===" -Level Error
+        Write-Log "WinSCP failed to launch. Check logs above." -Level Error
     }
     
     Write-Host ""
-    
-    # Cleanup
-    Start-Sleep -Seconds 3
-    Invoke-Cleanup -Config $Config
     
     Write-Log "Script execution complete." -Level Info
     Write-Host ""
@@ -270,8 +199,7 @@ catch {
     exit 1
 }
 finally {
-    # Ensure cleanup even on error
-    Invoke-Cleanup -Config $Config
+    # Nothing to cleanup
 }
 
 # ==============================================================================
