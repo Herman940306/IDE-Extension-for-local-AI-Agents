@@ -7,7 +7,6 @@
         "source.fixAll": "explicit"
     },
     "diffEditor.codeLens": true,
-    
     // Python Configuration
     "[python]": {
         "editor.defaultFormatter": "ms-python.black-formatter",
@@ -16,12 +15,10 @@
             "source.organizeImports": "explicit"
         }
     },
-    
     // Black Formatter
     "black-formatter.args": [
         "--line-length=100"
     ],
-    
     // Flake8 Linting
     "flake8.args": [
         "--max-line-length=100",
@@ -29,7 +26,6 @@
     ],
     "python.linting.enabled": true,
     "python.linting.flake8Enabled": true,
-    
     // Python Testing (Pytest)
     "python.testing.pytestArgs": [
         "backend",
@@ -38,7 +34,6 @@
     "python.testing.unittestEnabled": false,
     "python.testing.pytestEnabled": true,
     "python.testing.autoTestDiscoverOnSaveEnabled": true,
-    
     // Error Lens Configuration
     "errorLens.enabled": true,
     "errorLens.enabledDiagnosticLevels": [
@@ -47,14 +42,12 @@
     ],
     "errorLens.followCursor": "activeLine",
     "errorLens.gutterIconsEnabled": true,
-    
     // YAML Configuration
     "yaml.schemas": {
         "https://json.schemastore.org/github-workflow.json": ".github/workflows/*.yml"
     },
     "yaml.format.enable": true,
     "yaml.validate": true,
-    
     // TypeScript/JavaScript Configuration
     "[typescript]": {
         "editor.defaultFormatter": "vscode.typescript-language-features",
@@ -64,7 +57,6 @@
         "editor.defaultFormatter": "vscode.typescript-language-features",
         "editor.formatOnSave": true
     },
-    
     // Files Configuration
     "files.exclude": {
         "**/__pycache__": true,
@@ -73,7 +65,6 @@
         "**/node_modules": true,
         "**/.git": false
     },
-    
     // Search Configuration
     "search.exclude": {
         "**/__pycache__": true,

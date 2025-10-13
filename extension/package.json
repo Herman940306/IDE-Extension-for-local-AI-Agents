@@ -1,19 +1,15 @@
 {
-  "name": "enterprise-ai-agents",
-  "displayName": "Enterprise AI Agents",
-  "description": "Multi-agent AI coding assistant with privacy-first local operations",
+  "name": "aura-ai-assistant",
+  "displayName": "Aura AI Assistant",
+  "description": "Enterprise AI Agents for VS Code",
   "version": "1.0.0",
   "publisher": "herman-swanepoel",
-  "author": {
-    "name": "Herman Swanepoel"
-  },
   "engines": {
-    "vscode": "^1.85.0"
+    "vscode": "^1.80.0"
   },
   "categories": [
     "Programming Languages",
     "Machine Learning",
-    "Snippets",
     "Other"
   ],
   "activationEvents": [
@@ -23,360 +19,51 @@
   "contributes": {
     "commands": [
       {
-        "command": "enterpriseAI.toggleMode",
-        "title": "Enterprise AI: Toggle Offline/Online Mode"
+        "command": "aura.generateCode",
+        "title": "Aura: Generate Code"
       },
       {
-        "command": "enterpriseAI.generateTests",
-        "title": "Enterprise AI: Generate Tests for Current File"
+        "command": "aura.refactorCode",
+        "title": "Aura: Refactor Code"
       },
       {
-        "command": "enterpriseAI.refactorSelection",
-        "title": "Enterprise AI: Refactor Selection"
+        "command": "aura.explainCode",
+        "title": "Aura: Explain Code"
       },
       {
-        "command": "enterpriseAI.explainCode",
-        "title": "Enterprise AI: Explain Code"
-      },
-      {
-        "command": "enterpriseAI.findSecurityIssues",
-        "title": "Enterprise AI: Find Security Issues"
-      },
-      {
-        "command": "enterpriseAI.generateDocumentation",
-        "title": "Enterprise AI: Generate Documentation"
-      },
-      {
-        "command": "enterpriseAI.startAgentDiscussion",
-        "title": "Enterprise AI: Start Agent Discussion"
-      },
-      {
-        "command": "enterpriseAI.viewAnalytics",
-        "title": "Enterprise AI: View Analytics Dashboard"
-      },
-      {
-        "command": "enterpriseAI.reindexCodebase",
-        "title": "Enterprise AI: Reindex Codebase"
-      },
-      {
-        "command": "enterpriseAI.accessibility.showSettings",
-        "title": "Enterprise AI: Accessibility Settings"
-      },
-      {
-        "command": "enterpriseAI.accessibility.showHelp",
-        "title": "Enterprise AI: Keyboard Shortcuts Help"
-      },
-      {
-        "command": "enterpriseAI.refreshAgentStatus",
-        "title": "Enterprise AI: Refresh Agent Status",
-        "icon": "$(refresh)"
-      },
-      {
-        "command": "enterpriseAI.showAgentDetails",
-        "title": "Enterprise AI: Show Agent Details"
-      },
-      {
-        "command": "enterpriseAI.extractFunction",
-        "title": "Enterprise AI: Extract to Function"
-      },
-      {
-        "command": "enterpriseAI.simplifyCode",
-        "title": "Enterprise AI: Simplify Code"
-      },
-      {
-        "command": "enterpriseAI.optimizeCode",
-        "title": "Enterprise AI: Optimize Performance"
-      },
-      {
-        "command": "enterpriseAI.improveNaming",
-        "title": "Enterprise AI: Improve Naming"
-      },
-      {
-        "command": "enterpriseAI.fixDiagnostics",
-        "title": "Enterprise AI: Fix Issues"
-      },
-      {
-        "command": "enterpriseAI.rollbackAction",
-        "title": "Enterprise AI: Rollback Last Action"
-      },
-      {
-        "command": "enterpriseAI.requestAlternatives",
-        "title": "Enterprise AI: Request Alternative Suggestions"
-      },
-      {
-        "command": "enterpriseAI.viewSuggestionStats",
-        "title": "Enterprise AI: View Suggestion Statistics"
-      },
-      {
-        "command": "enterpriseAI.showQuickActions",
-        "title": "Enterprise AI: Show Quick Actions"
+        "command": "aura.fixBugs",
+        "title": "Aura: Fix Bugs"
       }
     ],
-    "viewsContainers": {
-      "activitybar": [
-        {
-          "id": "enterpriseAI",
-          "title": "Enterprise AI Agents",
-          "icon": "$(robot)"
-        }
-      ]
-    },
-    "views": {
-      "enterpriseAI": [
-        {
-          "id": "enterpriseAI.agentStatus",
-          "name": "Agent Status",
-          "icon": "$(robot)",
-          "contextualTitle": "Enterprise AI Agents"
-        }
-      ]
-    },
-    "menus": {
-      "view/title": [
-        {
-          "command": "enterpriseAI.refreshAgentStatus",
-          "when": "view == enterpriseAI.agentStatus",
-          "group": "navigation"
-        }
-      ],
-      "editor/context": [
-        {
-          "command": "enterpriseAI.refactorSelection",
-          "when": "editorHasSelection",
-          "group": "1_modification@1"
-        },
-        {
-          "command": "enterpriseAI.extractFunction",
-          "when": "editorHasSelection",
-          "group": "1_modification@2"
-        },
-        {
-          "command": "enterpriseAI.simplifyCode",
-          "when": "editorHasSelection",
-          "group": "1_modification@3"
-        },
-        {
-          "command": "enterpriseAI.optimizeCode",
-          "when": "editorHasSelection",
-          "group": "1_modification@4"
-        },
-        {
-          "command": "enterpriseAI.explainCode",
-          "when": "editorTextFocus",
-          "group": "2_ai@1"
-        },
-        {
-          "command": "enterpriseAI.generateTests",
-          "when": "editorTextFocus",
-          "group": "2_ai@2"
-        },
-        {
-          "command": "enterpriseAI.generateDocumentation",
-          "when": "editorTextFocus",
-          "group": "2_ai@3"
-        },
-        {
-          "command": "enterpriseAI.findSecurityIssues",
-          "when": "editorTextFocus",
-          "group": "3_security@1"
-        }
-      ],
-      "commandPalette": [
-        {
-          "command": "enterpriseAI.extractFunction",
-          "when": "editorHasSelection"
-        },
-        {
-          "command": "enterpriseAI.simplifyCode",
-          "when": "editorHasSelection"
-        },
-        {
-          "command": "enterpriseAI.optimizeCode",
-          "when": "editorHasSelection"
-        },
-        {
-          "command": "enterpriseAI.refactorSelection",
-          "when": "editorHasSelection"
-        }
-      ]
-    },
     "configuration": {
-      "title": "Enterprise AI Agents",
+      "title": "Aura AI",
       "properties": {
-        "enterpriseAI.backend.url": {
+        "aura.backend.url": {
           "type": "string",
-          "default": "http://localhost:8000",
-          "description": "Backend service URL"
+          "default": "http://127.0.0.1:8001",
+          "description": "Backend API URL"
         },
-        "enterpriseAI.privacy.allowCloud": {
-          "type": "boolean",
-          "default": false,
-          "description": "Allow cloud LLM fallback"
-        },
-        "enterpriseAI.privacy.allowTelemetry": {
-          "type": "boolean",
-          "default": false,
-          "description": "Allow anonymous usage telemetry"
-        },
-        "enterpriseAI.llm.provider": {
+        "aura.backend.websocket": {
           "type": "string",
-          "default": "ollama",
-          "enum": [
-            "ollama",
-            "lmstudio",
-            "cloud"
-          ],
-          "description": "LLM provider"
-        },
-        "enterpriseAI.llm.model": {
-          "type": "string",
-          "default": "codellama:7b",
-          "description": "Default LLM model"
-        },
-        "enterpriseAI.suggestions.autoTrigger": {
-          "type": "boolean",
-          "default": true,
-          "description": "Automatically trigger inline suggestions"
-        },
-        "enterpriseAI.suggestions.debounceMs": {
-          "type": "number",
-          "default": 200,
-          "description": "Debounce time for suggestions (ms)"
-        },
-        "enterpriseAI.accessibility.screenReaderEnabled": {
-          "type": "boolean",
-          "default": false,
-          "description": "Enable screen reader announcements"
-        },
-        "enterpriseAI.accessibility.highContrastMode": {
-          "type": "boolean",
-          "default": false,
-          "description": "Enable high contrast mode"
-        },
-        "enterpriseAI.accessibility.fontSize": {
-          "type": "number",
-          "default": 14,
-          "minimum": 10,
-          "maximum": 32,
-          "description": "Font size for extension UI (px)"
-        },
-        "enterpriseAI.accessibility.keyboardNavigationEnabled": {
-          "type": "boolean",
-          "default": true,
-          "description": "Enable enhanced keyboard navigation"
-        },
-        "enterpriseAI.accessibility.announceActions": {
-          "type": "boolean",
-          "default": true,
-          "description": "Announce actions to screen reader"
-        },
-        "enterpriseAI.accessibility.reducedMotion": {
-          "type": "boolean",
-          "default": false,
-          "description": "Reduce animations and transitions"
+          "default": "ws://127.0.0.1:8001/ws",
+          "description": "Backend WebSocket URL"
         }
       }
-    },
-    "keybindings": [
-      {
-        "command": "enterpriseAI.toggleMode",
-        "key": "ctrl+shift+m",
-        "mac": "cmd+shift+m",
-        "when": "editorTextFocus"
-      },
-      {
-        "command": "enterpriseAI.generateTests",
-        "key": "ctrl+shift+t",
-        "mac": "cmd+shift+t",
-        "when": "editorTextFocus"
-      },
-      {
-        "command": "enterpriseAI.refactorSelection",
-        "key": "ctrl+shift+r",
-        "mac": "cmd+shift+r",
-        "when": "editorHasSelection"
-      },
-      {
-        "command": "enterpriseAI.explainCode",
-        "key": "ctrl+shift+e",
-        "mac": "cmd+shift+e",
-        "when": "editorTextFocus"
-      },
-      {
-        "command": "enterpriseAI.findSecurityIssues",
-        "key": "ctrl+shift+s",
-        "mac": "cmd+shift+s",
-        "when": "editorTextFocus"
-      },
-      {
-        "command": "enterpriseAI.generateDocumentation",
-        "key": "ctrl+shift+d",
-        "mac": "cmd+shift+d",
-        "when": "editorTextFocus"
-      },
-      {
-        "command": "enterpriseAI.accessibility.showSettings",
-        "key": "ctrl+shift+alt+a",
-        "mac": "cmd+shift+alt+a"
-      },
-      {
-        "command": "enterpriseAI.accessibility.showHelp",
-        "key": "ctrl+shift+alt+h",
-        "mac": "cmd+shift+alt+h"
-      },
-      {
-        "command": "enterpriseAI.extractFunction",
-        "key": "ctrl+shift+alt+e",
-        "mac": "cmd+shift+alt+e",
-        "when": "editorHasSelection"
-      },
-      {
-        "command": "enterpriseAI.simplifyCode",
-        "key": "ctrl+shift+alt+s",
-        "mac": "cmd+shift+alt+s",
-        "when": "editorHasSelection"
-      },
-      {
-        "command": "enterpriseAI.optimizeCode",
-        "key": "ctrl+shift+alt+o",
-        "mac": "cmd+shift+alt+o",
-        "when": "editorHasSelection"
-      },
-      {
-        "command": "enterpriseAI.rollbackAction",
-        "key": "ctrl+shift+alt+z",
-        "mac": "cmd+shift+alt+z"
-      },
-      {
-        "command": "enterpriseAI.requestAlternatives",
-        "key": "ctrl+shift+alt+r",
-        "mac": "cmd+shift+alt+r",
-        "when": "editorTextFocus"
-      },
-      {
-        "command": "enterpriseAI.showQuickActions",
-        "key": "ctrl+shift+alt+q",
-        "mac": "cmd+shift+alt+q"
-      }
-    ]
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
     "compile": "tsc -p ./",
-    "watch": "tsc -watch -p ./",
-    "pretest": "npm run compile && npm run lint",
-    "lint": "eslint src --ext ts",
-    "test": "node ./out/test/runTest.js"
+    "watch": "tsc -watch -p ./"
   },
   "devDependencies": {
-    "@types/node": "^20.10.0",
-    "@types/vscode": "^1.85.0",
-    "@typescript-eslint/eslint-plugin": "^6.13.0",
-    "@typescript-eslint/parser": "^6.13.0",
-    "eslint": "^8.54.0",
-    "typescript": "^5.3.2"
+    "@types/vscode": "^1.80.0",
+    "@types/node": "^18.x",
+    "@types/ws": "^8.5.0",
+    "typescript": "^5.0.0"
   },
   "dependencies": {
-    "ws": "^8.14.2"
+    "ws": "^8.14.0",
+    "axios": "^1.5.0"
   }
 }
