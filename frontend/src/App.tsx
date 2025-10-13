@@ -134,11 +134,14 @@ function App() {
         });
 
         wsService.sendTask({
-            id: `task-${Date.now()}`,
-            type: 'code_generation',
-            context: {
-                description: input,
-                model: selectedModel
+            type: 'task_request',
+            payload: {
+                id: `task-${Date.now()}`,
+                type: 'code_generation',
+                context: {
+                    description: input,
+                    mode: mode
+                }
             }
         });
 
