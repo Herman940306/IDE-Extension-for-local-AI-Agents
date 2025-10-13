@@ -18,16 +18,24 @@ This implementation plan breaks down the feature into discrete coding tasks that
   - Create base configuration files (tsconfig.json, .eslintrc, pytest.ini)
   - Add .gitignore to exclude venv/, node_modules/, and data/ directories
   - Create setup scripts for automated environment initialization
+
+
   - _Requirements: 13.1, 13.2, 13.3_
 
-- [ ] 2. Implement WebSocket communication layer
-  - [ ] 2.1 Create FastAPI WebSocket endpoint with connection management
+- [-] 2. Implement WebSocket communication layer
+
+
+  - [x] 2.1 Create FastAPI WebSocket endpoint with connection management
+
+
     - Write WebSocket route handler in backend/main.py
     - Implement connection lifecycle (connect, disconnect, error handling)
     - Add message validation using Pydantic models
     - _Requirements: 1.1, 13.1_
   
   - [ ] 2.2 Implement TypeScript WebSocket client in extension
+
+
     - Create WebSocketClient class with auto-reconnection logic
     - Implement exponential backoff for reconnection attempts
     - Add message queue for offline operation

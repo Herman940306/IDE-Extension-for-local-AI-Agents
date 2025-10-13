@@ -62,7 +62,8 @@
       "alwaysInclude": [
         "OMNIDEVGOD.md",
         "00_Unified_Master_Agent.md",
-        "git-workflow.md"
+        "git-workflow.md",
+        "dependency-management.md"
       ],
       "enforcementLevel": "mandatory"
     },
