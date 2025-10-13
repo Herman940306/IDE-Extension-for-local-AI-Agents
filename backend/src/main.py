@@ -18,6 +18,7 @@ from src.api.exception_handlers import register_exception_handlers
 from src.api.middleware import CorrelationIDMiddleware, RateLimitMiddleware, RequestSizeMiddleware
 from src.services.rate_limiter import RateLimiter
 from src.services.response_cache import ResponseCache
+from src.core.config import get_settings
 
 try:
     from redis.asyncio import Redis
@@ -42,6 +43,7 @@ async def lifespan(app: FastAPI):
     """Application lifespan manager"""
     global redis_client, rate_limiter, response_cache
 
+    settings = get_settings()
     logger.info("🚀 Enterprise AI Agents Backend starting...")
     logger.info("Project Creator: Herman Swanepoel")
 
@@ -49,7 +51,7 @@ async def lifespan(app: FastAPI):
     if Redis:
         try:
             redis_client = Redis.from_url(
-                "redis://localhost:6379", encoding="utf-8", decode_responses=True
+                settings.database.redis_url, encoding="utf-8", decode_responses=True
             )
             await redis_client.ping()
             logger.info("✓ Redis connected successfully")
@@ -137,7 +139,8 @@ app.add_middleware(
 app.add_middleware(CorrelationIDMiddleware)
 
 # 2. Request Size Validation (check size before processing)
-app.add_middleware(RequestSizeMiddleware, max_size=10 * 1024 * 1024)  # 10MB
+settings = get_settings()
+app.add_middleware(RequestSizeMiddleware, max_size=settings.max_request_size)
 
 
 @app.get(
