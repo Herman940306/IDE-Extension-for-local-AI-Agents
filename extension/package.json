@@ -65,8 +65,141 @@
       {
         "command": "enterpriseAI.accessibility.showHelp",
         "title": "Enterprise AI: Keyboard Shortcuts Help"
+      },
+      {
+        "command": "enterpriseAI.refreshAgentStatus",
+        "title": "Enterprise AI: Refresh Agent Status",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "enterpriseAI.showAgentDetails",
+        "title": "Enterprise AI: Show Agent Details"
+      },
+      {
+        "command": "enterpriseAI.extractFunction",
+        "title": "Enterprise AI: Extract to Function"
+      },
+      {
+        "command": "enterpriseAI.simplifyCode",
+        "title": "Enterprise AI: Simplify Code"
+      },
+      {
+        "command": "enterpriseAI.optimizeCode",
+        "title": "Enterprise AI: Optimize Performance"
+      },
+      {
+        "command": "enterpriseAI.improveNaming",
+        "title": "Enterprise AI: Improve Naming"
+      },
+      {
+        "command": "enterpriseAI.fixDiagnostics",
+        "title": "Enterprise AI: Fix Issues"
+      },
+      {
+        "command": "enterpriseAI.rollbackAction",
+        "title": "Enterprise AI: Rollback Last Action"
+      },
+      {
+        "command": "enterpriseAI.requestAlternatives",
+        "title": "Enterprise AI: Request Alternative Suggestions"
+      },
+      {
+        "command": "enterpriseAI.viewSuggestionStats",
+        "title": "Enterprise AI: View Suggestion Statistics"
+      },
+      {
+        "command": "enterpriseAI.showQuickActions",
+        "title": "Enterprise AI: Show Quick Actions"
       }
     ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "enterpriseAI",
+          "title": "Enterprise AI Agents",
+          "icon": "$(robot)"
+        }
+      ]
+    },
+    "views": {
+      "enterpriseAI": [
+        {
+          "id": "enterpriseAI.agentStatus",
+          "name": "Agent Status",
+          "icon": "$(robot)",
+          "contextualTitle": "Enterprise AI Agents"
+        }
+      ]
+    },
+    "menus": {
+      "view/title": [
+        {
+          "command": "enterpriseAI.refreshAgentStatus",
+          "when": "view == enterpriseAI.agentStatus",
+          "group": "navigation"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "enterpriseAI.refactorSelection",
+          "when": "editorHasSelection",
+          "group": "1_modification@1"
+        },
+        {
+          "command": "enterpriseAI.extractFunction",
+          "when": "editorHasSelection",
+          "group": "1_modification@2"
+        },
+        {
+          "command": "enterpriseAI.simplifyCode",
+          "when": "editorHasSelection",
+          "group": "1_modification@3"
+        },
+        {
+          "command": "enterpriseAI.optimizeCode",
+          "when": "editorHasSelection",
+          "group": "1_modification@4"
+        },
+        {
+          "command": "enterpriseAI.explainCode",
+          "when": "editorTextFocus",
+          "group": "2_ai@1"
+        },
+        {
+          "command": "enterpriseAI.generateTests",
+          "when": "editorTextFocus",
+          "group": "2_ai@2"
+        },
+        {
+          "command": "enterpriseAI.generateDocumentation",
+          "when": "editorTextFocus",
+          "group": "2_ai@3"
+        },
+        {
+          "command": "enterpriseAI.findSecurityIssues",
+          "when": "editorTextFocus",
+          "group": "3_security@1"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "enterpriseAI.extractFunction",
+          "when": "editorHasSelection"
+        },
+        {
+          "command": "enterpriseAI.simplifyCode",
+          "when": "editorHasSelection"
+        },
+        {
+          "command": "enterpriseAI.optimizeCode",
+          "when": "editorHasSelection"
+        },
+        {
+          "command": "enterpriseAI.refactorSelection",
+          "when": "editorHasSelection"
+        }
+      ]
+    },
     "configuration": {
       "title": "Enterprise AI Agents",
       "properties": {
@@ -88,7 +221,11 @@
         "enterpriseAI.llm.provider": {
           "type": "string",
           "default": "ollama",
-          "enum": ["ollama", "lmstudio", "cloud"],
+          "enum": [
+            "ollama",
+            "lmstudio",
+            "cloud"
+          ],
           "description": "LLM provider"
         },
         "enterpriseAI.llm.model": {
@@ -186,6 +323,40 @@
         "command": "enterpriseAI.accessibility.showHelp",
         "key": "ctrl+shift+alt+h",
         "mac": "cmd+shift+alt+h"
+      },
+      {
+        "command": "enterpriseAI.extractFunction",
+        "key": "ctrl+shift+alt+e",
+        "mac": "cmd+shift+alt+e",
+        "when": "editorHasSelection"
+      },
+      {
+        "command": "enterpriseAI.simplifyCode",
+        "key": "ctrl+shift+alt+s",
+        "mac": "cmd+shift+alt+s",
+        "when": "editorHasSelection"
+      },
+      {
+        "command": "enterpriseAI.optimizeCode",
+        "key": "ctrl+shift+alt+o",
+        "mac": "cmd+shift+alt+o",
+        "when": "editorHasSelection"
+      },
+      {
+        "command": "enterpriseAI.rollbackAction",
+        "key": "ctrl+shift+alt+z",
+        "mac": "cmd+shift+alt+z"
+      },
+      {
+        "command": "enterpriseAI.requestAlternatives",
+        "key": "ctrl+shift+alt+r",
+        "mac": "cmd+shift+alt+r",
+        "when": "editorTextFocus"
+      },
+      {
+        "command": "enterpriseAI.showQuickActions",
+        "key": "ctrl+shift+alt+q",
+        "mac": "cmd+shift+alt+q"
       }
     ]
   },

@@ -1,40 +1,47 @@
 /**
- * Code action provider for quick fixes and refactoring
+ * Code Action Provider for AI-powered quick fixes
  * Project Creator: Herman Swanepoel
  */
 
 import * as vscode from 'vscode';
 import { WebSocketClient } from '../services/WebSocketClient';
-import { ModeToggle } from '../services/ModeToggle';
 
 interface CodeActionRequest {
     file_path: string;
     language: string;
-    range: { start: { line: number; character: number }; end: { line: number; character: number } };
     code: string;
-    diagnostics?: vscode.Diagnostic[];
-    action_type: 'refactor' | 'quickfix' | 'security' | 'test' | 'documentation';
+    diagnostics: Array<{
+        message: string;
+        severity: string;
+        range: { start: { line: number; character: number }; end: { line: number; character: number } };
+    }>;
+    action_type: 'refactor' | 'security' | 'test' | 'fix' | 'optimize';
 }
 
-interface AgentCodeAction {
-    title: string;
-    kind: string;
-    edit?: vscode.WorkspaceEdit;
-    command?: vscode.Command;
-    isPreferred?: boolean;
-    diagnostics?: vscode.Diagnostic[];
+interface CodeActionResponse {
+    actions: Array<{
+        title: string;
+        description: string;
+        kind: string;
+        edits: Array<{
+            range: { start: { line: number; character: number }; end: { line: number; character: number } };
+            new_text: string;
+        }>;
+        confidence: number;
+        reasoning?: string;
+    }>;
 }
 
-export class CodeActionProvider implements vscode.CodeActionProvider {
+interface UndoState {
+    document: vscode.Uri;
+    edits: vscode.TextEdit[];
+    timestamp: number;
+}
+
+export class AICodeActionProvider implements vscode.CodeActionProvider {
     private wsClient: WebSocketClient;
-    private modeToggle: ModeToggle;
-    private actionCache: Map<string, vscode.CodeAction[]> = new Map();
-    private readonly CACHE_TTL = 10000; // 10 seconds
-    
-    // Statistics
-    private actionsGenerated = 0;
-    private actionsApplied = 0;
-    private actionsPreviewed = 0;
+    private undoStack: UndoState[] = [];
+    private readonly MAX_UNDO_STACK = 50;
 
     public static readonly providedCodeActionKinds = [
         vscode.CodeActionKind.QuickFix,
@@ -46,91 +53,72 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
         vscode.CodeActionKind.SourceFixAll
     ];
 
-    constructor(wsClient: WebSocketClient, modeToggle: ModeToggle) {
+    constructor(wsClient: WebSocketClient) {
         this.wsClient = wsClient;
-        this.modeToggle = modeToggle;
     }
 
     /**
-     * Provide code actions for the given range
+     * Provide code actions for the given document and range
      */
     public async provideCodeActions(
         document: vscode.TextDocument,
         range: vscode.Range | vscode.Selection,
         context: vscode.CodeActionContext,
         token: vscode.CancellationToken
-    ): Promise<vscode.CodeAction[] | undefined> {
+    ): Promise<vscode.CodeAction[]> {
         // Check if backend is connected
         if (!this.wsClient.isConnectedToBackend()) {
-            return undefined;
-        }
-
-        // Generate cache key
-        const cacheKey = this._generateCacheKey(document, range);
-        
-        // Check cache
-        const cached = this._getFromCache(cacheKey);
-        if (cached) {
-            return cached;
+            return [];
         }
 
         const actions: vscode.CodeAction[] = [];
 
         // Add refactoring actions
-        if (range.isEmpty || !range.isSingleLine) {
-            actions.push(...await this._createRefactorActions(document, range, token));
-        }
-
-        // Add quick fix actions for diagnostics
-        if (context.diagnostics && context.diagnostics.length > 0) {
-            actions.push(...await this._createQuickFixActions(document, range, context.diagnostics, token));
+        if (range.isEmpty === false) {
+            actions.push(...this._createRefactorActions(document, range));
         }
 
         // Add security fix actions
-        actions.push(...await this._createSecurityActions(document, range, token));
+        actions.push(...this._createSecurityActions(document, range, context));
 
         // Add test generation actions
-        actions.push(...await this._createTestActions(document, range, token));
+        actions.push(...this._createTestActions(document, range));
 
-        // Add documentation actions
-        actions.push(...await this._createDocumentationActions(document, range, token));
+        // Add optimization actions
+        actions.push(...this._createOptimizationActions(document, range));
 
-        // Cache the results
-        if (actions.length > 0) {
-            this._addToCache(cacheKey, actions);
-            this.actionsGenerated += actions.length;
+        // Add diagnostic fix actions
+        if (context.diagnostics.length > 0) {
+            actions.push(...await this._createDiagnosticFixActions(document, range, context));
         }
 
-        return actions.length > 0 ? actions : undefined;
+        return actions;
     }
 
     /**
      * Create refactoring actions
      */
-    private async _createRefactorActions(
+    private _createRefactorActions(
         document: vscode.TextDocument,
-        range: vscode.Range,
-        token: vscode.CancellationToken
-    ): Promise<vscode.CodeAction[]> {
+        range: vscode.Range
+    ): vscode.CodeAction[] {
         const actions: vscode.CodeAction[] = [];
 
         // Extract method/function
-        if (!range.isEmpty) {
-            const extractAction = new vscode.CodeAction(
-                '🔧 Extract to Function',
-                vscode.CodeActionKind.RefactorExtract
-            );
-            extractAction.command = {
-                command: 'enterpriseAI.extractFunction',
-                title: 'Extract Function',
-                arguments: [document, range]
-            };
-            actions.push(extractAction);
-        }
+        const extractAction = new vscode.CodeAction(
+            '🤖 AI: Extract to Function',
+            vscode.CodeActionKind.RefactorExtract
+        );
+        extractAction.command = {
+            command: 'enterpriseAI.extractFunction',
+            title: 'Extract to Function',
+            arguments: [document, range]
+        };
+        actions.push(extractAction);
 
         // Simplify code
         const simplifyAction = new vscode.CodeAction(
-            '✨ Simplify Code',
+            '🤖 AI: Simplify Code',
             vscode.CodeActionKind.RefactorRewrite
         );
         simplifyAction.command = {
@@ -140,73 +128,17 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
         };
         actions.push(simplifyAction);
 
-        // Optimize performance
-        const optimizeAction = new vscode.CodeAction(
-            '⚡ Optimize Performance',
-            vscode.CodeActionKind.RefactorRewrite
-        );
-        optimizeAction.command = {
-            command: 'enterpriseAI.optimizeCode',
-            title: 'Optimize Performance',
-            arguments: [document, range]
-        };
-        actions.push(optimizeAction);
-
-        // Add error handling
-        const errorHandlingAction = new vscode.CodeAction(
-            '🛡️ Add Error Handling',
+        // Improve naming
+        const namingAction = new vscode.CodeAction(
+            '🤖 AI: Improve Naming',
             vscode.CodeActionKind.Refactor
         );
-        errorHandlingAction.command = {
-            command: 'enterpriseAI.addErrorHandling',
-            title: 'Add Error Handling',
+        namingAction.command = {
+            command: 'enterpriseAI.improveNaming',
+            title: 'Improve Naming',
             arguments: [document, range]
         };
-        actions.push(errorHandlingAction);
-
-        return actions;
-    }
-
-    /**
-     * Create quick fix actions for diagnostics
-     */
-    private async _createQuickFixActions(
-        document: vscode.TextDocument,
-        range: vscode.Range,
-        diagnostics: readonly vscode.Diagnostic[],
-        token: vscode.CancellationToken
-    ): Promise<vscode.CodeAction[]> {
-        const actions: vscode.CodeAction[] = [];
-
-        for (const diagnostic of diagnostics) {
-            // AI-powered fix
-            const fixAction = new vscode.CodeAction(
-                `🤖 AI Fix: ${diagnostic.message}`,
-                vscode.CodeActionKind.QuickFix
-            );
-            fixAction.diagnostics = [diagnostic];
-            fixAction.isPreferred = true;
-            fixAction.command = {
-                command: 'enterpriseAI.fixDiagnostic',
-                title: 'Fix with AI',
-                arguments: [document, diagnostic]
-            };
-            actions.push(fixAction);
-        }
-
-        // Fix all issues
-        if (diagnostics.length > 1) {
-            const fixAllAction = new vscode.CodeAction(
-                `🔧 Fix All Issues (${diagnostics.length})`,
-                vscode.CodeActionKind.SourceFixAll
-            );
-            fixAllAction.command = {
-                command: 'enterpriseAI.fixAllDiagnostics',
-                title: 'Fix All',
-                arguments: [document, diagnostics]
-            };
-            actions.push(fixAllAction);
-        }
+        actions.push(namingAction);
 
         return actions;
     }
@@ -214,24 +146,32 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
     /**
      * Create security fix actions
      */
-    private async _createSecurityActions(
+    private _createSecurityActions(
         document: vscode.TextDocument,
         range: vscode.Range,
-        token: vscode.CancellationToken
-    ): Promise<vscode.CodeAction[]> {
+        context: vscode.CodeActionContext
+    ): vscode.CodeAction[] {
         const actions: vscode.CodeAction[] = [];
 
-        // Security scan
-        const scanAction = new vscode.CodeAction(
-            '🔒 Scan for Security Issues',
-            vscode.CodeActionKind.Source
+        // Check for security-related diagnostics
+        const hasSecurityIssues = context.diagnostics.some(d =>
+            d.message.toLowerCase().includes('security') ||
+            d.message.toLowerCase().includes('vulnerability') ||
+            d.message.toLowerCase().includes('injection')
         );
-        scanAction.command = {
-            command: 'enterpriseAI.scanSecurity',
-            title: 'Security Scan',
-            arguments: [document, range]
-        };
-        actions.push(scanAction);
+
+        if (hasSecurityIssues || range.isEmpty === false) {
+            const securityAction = new vscode.CodeAction(
+                '🛡️ AI: Find & Fix Security Issues',
+                vscode.CodeActionKind.QuickFix
+            );
+            securityAction.command = {
+                command: 'enterpriseAI.findSecurityIssues',
+                title: 'Find Security Issues',
+                arguments: [document, range]
+            };
+            actions.push(securityAction);
+        }
 
         return actions;
     }
@@ -239,16 +179,15 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
     /**
      * Create test generation actions
      */
-    private async _createTestActions(
+    private _createTestActions(
         document: vscode.TextDocument,
-        range: vscode.Range,
-        token: vscode.CancellationToken
-    ): Promise<vscode.CodeAction[]> {
+        range: vscode.Range
+    ): vscode.CodeAction[] {
         const actions: vscode.CodeAction[] = [];
 
         // Generate unit tests
         const testAction = new vscode.CodeAction(
-            '🧪 Generate Unit Tests',
+            '🧪 AI: Generate Unit Tests',
             vscode.CodeActionKind.Source
         );
         testAction.command = {
@@ -262,249 +201,349 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
     }
 
     /**
-     * Create documentation actions
+     * Create optimization actions
      */
-    private async _createDocumentationActions(
+    private _createOptimizationActions(
         document: vscode.TextDocument,
-        range: vscode.Range,
-        token: vscode.CancellationToken
-    ): Promise<vscode.CodeAction[]> {
+        range: vscode.Range
+    ): vscode.CodeAction[] {
         const actions: vscode.CodeAction[] = [];
 
-        // Generate documentation
-        const docAction = new vscode.CodeAction(
-            '📝 Generate Documentation',
-            vscode.CodeActionKind.Source
-        );
-        docAction.command = {
-            command: 'enterpriseAI.generateDocumentation',
-            title: 'Generate Documentation',
-            arguments: [document, range]
-        };
-        actions.push(docAction);
-
-        // Add JSDoc/docstring
-        const docstringAction = new vscode.CodeAction(
-            '📄 Add Docstring',
-            vscode.CodeActionKind.Source
-        );
-        docstringAction.command = {
-            command: 'enterpriseAI.addDocstring',
-            title: 'Add Docstring',
-            arguments: [document, range]
-        };
-        actions.push(docstringAction);
+        if (range.isEmpty === false) {
+            const optimizeAction = new vscode.CodeAction(
+                '⚡ AI: Optimize Performance',
+                vscode.CodeActionKind.RefactorRewrite
+            );
+            optimizeAction.command = {
+                command: 'enterpriseAI.optimizeCode',
+                title: 'Optimize Code',
+                arguments: [document, range]
+            };
+            actions.push(optimizeAction);
+        }
 
         return actions;
     }
 
     /**
-     * Execute code action with AI
+     * Create diagnostic fix actions
      */
-    public async executeAction(
+    private async _createDiagnosticFixActions(
         document: vscode.TextDocument,
         range: vscode.Range,
-        actionType: string
-    ): Promise<void> {
+        context: vscode.CodeActionContext
+    ): Promise<vscode.CodeAction[]> {
+        const actions: vscode.CodeAction[] = [];
+
+        // Group diagnostics by type
+        const errors = context.diagnostics.filter(d => d.severity === vscode.DiagnosticSeverity.Error);
+        const warnings = context.diagnostics.filter(d => d.severity === vscode.DiagnosticSeverity.Warning);
+
+        if (errors.length > 0) {
+            const fixErrorsAction = new vscode.CodeAction(
+                `🔧 AI: Fix ${errors.length} Error${errors.length > 1 ? 's' : ''}`,
+                vscode.CodeActionKind.QuickFix
+            );
+            fixErrorsAction.command = {
+                command: 'enterpriseAI.fixDiagnostics',
+                title: 'Fix Errors',
+                arguments: [document, errors, 'error']
+            };
+            fixErrorsAction.isPreferred = true;
+            actions.push(fixErrorsAction);
+        }
+
+        if (warnings.length > 0) {
+            const fixWarningsAction = new vscode.CodeAction(
+                `⚠️ AI: Fix ${warnings.length} Warning${warnings.length > 1 ? 's' : ''}`,
+                vscode.CodeActionKind.QuickFix
+            );
+            fixWarningsAction.command = {
+                command: 'enterpriseAI.fixDiagnostics',
+                title: 'Fix Warnings',
+                arguments: [document, warnings, 'warning']
+            };
+            actions.push(fixWarningsAction);
+        }
+
+        // Fix all
+        if (context.diagnostics.length > 0) {
+            const fixAllAction = new vscode.CodeAction(
+                '🔧 AI: Fix All Issues',
+                vscode.CodeActionKind.SourceFixAll
+            );
+            fixAllAction.command = {
+                command: 'enterpriseAI.fixDiagnostics',
+                title: 'Fix All',
+                arguments: [document, context.diagnostics, 'all']
+            };
+            actions.push(fixAllAction);
+        }
+
+        return actions;
+    }
+
+    /**
+     * Apply code action with preview
+     */
+    public async applyCodeAction(
+        document: vscode.TextDocument,
+        actionType: string,
+        range?: vscode.Range,
+        diagnostics?: vscode.Diagnostic[]
+    ): Promise<boolean> {
         try {
             // Show progress
-            await vscode.window.withProgress(
-                {
-                    location: vscode.ProgressLocation.Notification,
-                    title: `AI Agent: ${actionType}`,
-                    cancellable: true
-                },
-                async (progress, token) => {
-                    progress.report({ message: 'Analyzing code...' });
+            return await vscode.window.withProgress({
+                location: vscode.ProgressLocation.Notification,
+                title: 'AI Agent Processing...',
+                cancellable: true
+            }, async (progress, token) => {
+                progress.report({ message: 'Analyzing code...' });
 
-                    // Get code
-                    const code = document.getText(range);
+                // Get code to analyze
+                const code = range
+                    ? document.getText(range)
+                    : document.getText();
 
-                    // Create request
-                    const request: CodeActionRequest = {
-                        file_path: document.fileName,
-                        language: document.languageId,
+                // Create request
+                const request: CodeActionRequest = {
+                    file_path: document.fileName,
+                    language: document.languageId,
+                    code,
+                    diagnostics: diagnostics?.map(d => ({
+                        message: d.message,
+                        severity: this._getSeverityString(d.severity),
                         range: {
-                            start: { line: range.start.line, character: range.start.character },
-                            end: { line: range.end.line, character: range.end.character }
-                        },
-                        code,
-                        action_type: this._mapActionType(actionType)
-                    };
+                            start: { line: d.range.start.line, character: d.range.start.character },
+                            end: { line: d.range.end.line, character: d.range.end.character }
+                        }
+                    })) || [],
+                    action_type: this._getActionType(actionType)
+                };
 
-                    progress.report({ message: 'Generating suggestions...' });
+                progress.report({ message: 'Generating fixes...' });
 
-                    // Send to backend
-                    const response = await this.wsClient.sendWithResponse(
-                        'code_action',
-                        request,
-                        30000 // 30 second timeout for complex actions
-                    );
+                // Send request to backend
+                const response = await this.wsClient.sendWithResponse(
+                    'code_action',
+                    request,
+                    30000
+                ) as CodeActionResponse;
 
-                    if (token.isCancellationRequested) {
-                        return;
-                    }
-
-                    if (response && response.suggestions && response.suggestions.length > 0) {
-                        progress.report({ message: 'Applying changes...' });
-                        
-                        // Show preview and apply
-                        await this._showPreviewAndApply(document, range, response.suggestions);
-                        
-                        this.actionsApplied++;
-                    } else {
-                        vscode.window.showInformationMessage('No suggestions available');
-                    }
+                if (!response || !response.actions || response.actions.length === 0) {
+                    vscode.window.showInformationMessage('No AI suggestions available for this code.');
+                    return false;
                 }
-            );
-        } catch (error) {
-            vscode.window.showErrorMessage(`Failed to execute action: ${error}`);
-        }
-    }
 
-    /**
-     * Show preview and apply changes
-     */
-    private async _showPreviewAndApply(
-        document: vscode.TextDocument,
-        range: vscode.Range,
-        suggestions: any[]
-    ): Promise<void> {
-        if (suggestions.length === 1) {
-            // Single suggestion - show diff and apply
-            const suggestion = suggestions[0];
-            const applied = await this._applyEdit(document, range, suggestion.code);
-            
-            if (applied) {
-                vscode.window.showInformationMessage(
-                    `✅ Applied: ${suggestion.description}`
-                );
-            }
-        } else {
-            // Multiple suggestions - show quick pick
-            const items = suggestions.map((s, i) => ({
-                label: `$(lightbulb) ${s.description}`,
-                description: `Confidence: ${Math.round(s.confidence * 100)}%`,
-                detail: s.reasoning,
-                suggestion: s,
-                index: i
-            }));
+                progress.report({ message: 'Preparing preview...' });
 
-            const selected = await vscode.window.showQuickPick(items, {
-                placeHolder: 'Select a suggestion to apply',
-                matchOnDescription: true,
-                matchOnDetail: true
-            });
+                // Show preview and get user confirmation
+                const action = await this._showActionPreview(document, response.actions);
 
-            if (selected) {
-                this.actionsPreviewed++;
-                const applied = await this._applyEdit(document, range, selected.suggestion.code);
-                
-                if (applied) {
+                if (!action) {
+                    return false;
+                }
+
+                progress.report({ message: 'Applying changes...' });
+
+                // Apply the action
+                const success = await this._applyEdits(document, action.edits);
+
+                if (success) {
                     vscode.window.showInformationMessage(
-                        `✅ Applied: ${selected.suggestion.description}`
+                        `✅ ${action.title} applied successfully!`
                     );
                 }
-            }
+
+                return success;
+            });
+        } catch (error) {
+            vscode.window.showErrorMessage(`Failed to apply code action: ${error}`);
+            return false;
         }
     }
 
     /**
-     * Apply edit to document
+     * Show action preview and get user selection
      */
-    private async _applyEdit(
+    private async _showActionPreview(
         document: vscode.TextDocument,
-        range: vscode.Range,
-        newCode: string
+        actions: CodeActionResponse['actions']
+    ): Promise<CodeActionResponse['actions'][0] | undefined> {
+        // If only one action, show it directly
+        if (actions.length === 1) {
+            const action = actions[0];
+            const preview = this._generatePreviewText(action);
+
+            const choice = await vscode.window.showInformationMessage(
+                `${action.title}\n\nConfidence: ${Math.round(action.confidence * 100)}%\n${action.reasoning || ''}`,
+                { modal: true, detail: preview },
+                'Apply',
+                'Cancel'
+            );
+
+            return choice === 'Apply' ? action : undefined;
+        }
+
+        // Multiple actions - let user choose
+        const items = actions.map(action => ({
+            label: action.title,
+            description: `Confidence: ${Math.round(action.confidence * 100)}%`,
+            detail: action.reasoning,
+            action
+        }));
+
+        const selected = await vscode.window.showQuickPick(items, {
+            placeHolder: 'Select an AI suggestion to preview',
+            matchOnDescription: true,
+            matchOnDetail: true
+        });
+
+        if (!selected) {
+            return undefined;
+        }
+
+        // Show preview for selected action
+        const preview = this._generatePreviewText(selected.action);
+        const choice = await vscode.window.showInformationMessage(
+            `Preview: ${selected.action.title}`,
+            { modal: true, detail: preview },
+            'Apply',
+            'Cancel'
+        );
+
+        return choice === 'Apply' ? selected.action : undefined;
+    }
+
+    /**
+     * Generate preview text for action
+     */
+    private _generatePreviewText(action: CodeActionResponse['actions'][0]): string {
+        let preview = 'Changes:\n\n';
+
+        action.edits.forEach((edit, index) => {
+            preview += `${index + 1}. Line ${edit.range.start.line + 1}:\n`;
+            preview += `   ${edit.new_text}\n\n`;
+        });
+
+        return preview;
+    }
+
+    /**
+     * Apply edits to document
+     */
+    private async _applyEdits(
+        document: vscode.TextDocument,
+        edits: CodeActionResponse['actions'][0]['edits']
     ): Promise<boolean> {
-        const edit = new vscode.WorkspaceEdit();
-        edit.replace(document.uri, range, newCode);
-        
-        return await vscode.workspace.applyEdit(edit);
-    }
+        const workspaceEdit = new vscode.WorkspaceEdit();
+        const textEdits: vscode.TextEdit[] = [];
 
-    /**
-     * Map action type to backend format
-     */
-    private _mapActionType(actionType: string): 'refactor' | 'quickfix' | 'security' | 'test' | 'documentation' {
-        if (actionType.includes('refactor') || actionType.includes('extract') || actionType.includes('simplify') || actionType.includes('optimize')) {
-            return 'refactor';
-        } else if (actionType.includes('fix')) {
-            return 'quickfix';
-        } else if (actionType.includes('security')) {
-            return 'security';
-        } else if (actionType.includes('test')) {
-            return 'test';
-        } else if (actionType.includes('doc')) {
-            return 'documentation';
+        // Convert to VS Code edits
+        for (const edit of edits) {
+            const range = new vscode.Range(
+                new vscode.Position(edit.range.start.line, edit.range.start.character),
+                new vscode.Position(edit.range.end.line, edit.range.end.character)
+            );
+
+            const textEdit = vscode.TextEdit.replace(range, edit.new_text);
+            textEdits.push(textEdit);
+            workspaceEdit.replace(document.uri, range, edit.new_text);
         }
-        return 'refactor';
-    }
 
-    /**
-     * Generate cache key
-     */
-    private _generateCacheKey(document: vscode.TextDocument, range: vscode.Range): string {
-        return `${document.fileName}:${range.start.line}:${range.start.character}:${range.end.line}:${range.end.character}`;
-    }
+        // Save undo state
+        this._saveUndoState(document.uri, textEdits);
 
-    /**
-     * Get from cache
-     */
-    private _getFromCache(key: string): vscode.CodeAction[] | null {
-        const cached = this.actionCache.get(key);
-        if (!cached) {
-            return null;
+        // Apply edits
+        const success = await vscode.workspace.applyEdit(workspaceEdit);
+
+        if (success) {
+            // Save document
+            await document.save();
         }
-        return cached;
+
+        return success;
     }
 
     /**
-     * Add to cache
+     * Save undo state
      */
-    private _addToCache(key: string, actions: vscode.CodeAction[]): void {
-        this.actionCache.set(key, actions);
+    private _saveUndoState(documentUri: vscode.Uri, edits: vscode.TextEdit[]): void {
+        this.undoStack.push({
+            document: documentUri,
+            edits,
+            timestamp: Date.now()
+        });
 
-        // Auto-expire after TTL
-        setTimeout(() => {
-            this.actionCache.delete(key);
-        }, this.CACHE_TTL);
+        // Limit stack size
+        if (this.undoStack.length > this.MAX_UNDO_STACK) {
+            this.undoStack.shift();
+        }
     }
 
     /**
-     * Clear cache
+     * Rollback last action
      */
-    public clearCache(): void {
-        this.actionCache.clear();
+    public async rollbackLastAction(): Promise<boolean> {
+        if (this.undoStack.length === 0) {
+            vscode.window.showInformationMessage('No actions to rollback.');
+            return false;
+        }
+
+        const lastState = this.undoStack.pop();
+        if (!lastState) {
+            return false;
+        }
+
+        try {
+            const document = await vscode.workspace.openTextDocument(lastState.document);
+
+            // Use VS Code's built-in undo
+            const editor = await vscode.window.showTextDocument(document);
+            await vscode.commands.executeCommand('undo');
+
+            vscode.window.showInformationMessage('✅ Action rolled back successfully!');
+            return true;
+        } catch (error) {
+            vscode.window.showErrorMessage(`Failed to rollback: ${error}`);
+            return false;
+        }
     }
 
     /**
-     * Get statistics
+     * Get severity string
      */
-    public getStatistics(): {
-        generated: number;
-        applied: number;
-        previewed: number;
-        applicationRate: number;
-    } {
-        const applicationRate = this.actionsGenerated > 0 
-            ? this.actionsApplied / this.actionsGenerated 
-            : 0;
-
-        return {
-            generated: this.actionsGenerated,
-            applied: this.actionsApplied,
-            previewed: this.actionsPreviewed,
-            applicationRate: Math.round(applicationRate * 100) / 100
-        };
+    private _getSeverityString(severity: vscode.DiagnosticSeverity | undefined): string {
+        switch (severity) {
+            case vscode.DiagnosticSeverity.Error:
+                return 'error';
+            case vscode.DiagnosticSeverity.Warning:
+                return 'warning';
+            case vscode.DiagnosticSeverity.Information:
+                return 'info';
+            case vscode.DiagnosticSeverity.Hint:
+                return 'hint';
+            default:
+                return 'unknown';
+        }
     }
 
     /**
-     * Reset statistics
+     * Get action type from command
      */
-    public resetStatistics(): void {
-        this.actionsGenerated = 0;
-        this.actionsApplied = 0;
-        this.actionsPreviewed = 0;
+    private _getActionType(actionType: string): CodeActionRequest['action_type'] {
+        if (actionType.includes('security')) return 'security';
+        if (actionType.includes('test')) return 'test';
+        if (actionType.includes('optimize')) return 'optimize';
+        if (actionType.includes('refactor') || actionType.includes('extract') || actionType.includes('simplify')) return 'refactor';
+        return 'fix';
+    }
+
+    /**
+     * Dispose resources
+     */
+    public dispose(): void {
+        this.undoStack = [];
     }
 }
