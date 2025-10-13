@@ -4,7 +4,6 @@ Project Creator: Herman Swanepoel
 """
 
 import asyncio
-import logging
 from contextlib import asynccontextmanager
 from typing import Dict, Optional
 
@@ -19,17 +18,17 @@ from src.api.middleware import CorrelationIDMiddleware, RateLimitMiddleware, Req
 from src.services.rate_limiter import RateLimiter
 from src.services.response_cache import ResponseCache
 from src.core.config import get_settings
+from src.core.logging import configure_logging, get_logger
 
 try:
     from redis.asyncio import Redis
 except ImportError:
     Redis = None
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-)
-logger = logging.getLogger(__name__)
+# Configure structured logging
+settings = get_settings()
+configure_logging(settings.log_level)
+logger = get_logger(__name__)
 
 # Global services
 connection_manager = ConnectionManager()
@@ -44,8 +43,7 @@ async def lifespan(app: FastAPI):
     global redis_client, rate_limiter, response_cache
 
     settings = get_settings()
-    logger.info("🚀 Enterprise AI Agents Backend starting...")
-    logger.info("Project Creator: Herman Swanepoel")
+    logger.info("backend_starting", creator="Herman Swanepoel")
 
     # Initialize Redis (optional)
     if Redis:
@@ -54,31 +52,29 @@ async def lifespan(app: FastAPI):
                 settings.database.redis_url, encoding="utf-8", decode_responses=True
             )
             await redis_client.ping()
-            logger.info("✓ Redis connected successfully")
+            logger.info("redis_connected", url=settings.database.redis_url)
 
             # Initialize services
             rate_limiter = RateLimiter(redis_client)
             response_cache = ResponseCache(redis_client)
-            logger.info("✓ Rate limiter and response cache initialized")
+            logger.info("services_initialized", services=["rate_limiter", "response_cache"])
 
         except Exception as e:
-            logger.warning(f"⚠ Redis unavailable: {e}")
-            logger.warning("⚠ Running without caching and rate limiting")
+            logger.warning("redis_unavailable", error=str(e))
             rate_limiter = RateLimiter(None)
             response_cache = ResponseCache(None)
     else:
-        logger.warning("⚠ Redis library not installed")
-        logger.warning("⚠ Running without caching and rate limiting")
+        logger.warning("redis_library_missing")
         rate_limiter = RateLimiter(None)
         response_cache = ResponseCache(None)
 
     yield
 
     # Cleanup
-    logger.info("👋 Enterprise AI Agents Backend shutting down...")
+    logger.info("backend_shutting_down")
     if redis_client:
         await redis_client.close()
-        logger.info("✓ Redis connection closed")
+        logger.info("redis_closed")
 
 
 # Create FastAPI application
@@ -237,7 +233,7 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
                 message_type = data.get("type")
                 payload = data.get("payload", {})
 
-                logger.info(f"Received message from {client_id}: type={message_type}")
+                logger.info("message_received", client_id=client_id, message_type=message_type)
 
                 if message_type == "task_request":
                     await handle_task_request(client_id, payload)
@@ -255,7 +251,7 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
                     )
 
             except ValidationError as e:
-                logger.error(f"Validation error from {client_id}: {e}")
+                logger.error("validation_error", client_id=client_id, error=str(e))
                 await connection_manager.send_personal_message(
                     {
                         "type": "error",
@@ -264,7 +260,7 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
                     client_id,
                 )
             except Exception as e:
-                logger.error(f"Error processing message from {client_id}: {e}")
+                logger.error("message_processing_error", client_id=client_id, error=str(e))
                 await connection_manager.send_personal_message(
                     {
                         "type": "error",
@@ -274,10 +270,10 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
                 )
 
     except WebSocketDisconnect:
-        logger.info(f"Client {client_id} disconnected normally")
+        logger.info("client_disconnected", client_id=client_id)
         await connection_manager.disconnect(client_id)
     except Exception as e:
-        logger.error(f"Unexpected error for client {client_id}: {e}")
+        logger.error("websocket_error", client_id=client_id, error=str(e))
         await connection_manager.disconnect(client_id)
 
 
@@ -285,7 +281,7 @@ async def handle_task_request(client_id: str, payload: Dict):
     """Handle task request from client"""
     try:
         task = Task(**payload)
-        logger.info(f"Processing task {task.id} of type {task.type} for client {client_id}")
+        logger.info("task_processing", task_id=task.id, task_type=task.type, client_id=client_id)
 
         await connection_manager.send_personal_message(
             {
@@ -317,7 +313,7 @@ async def handle_task_request(client_id: str, payload: Dict):
         )
 
     except ValidationError as e:
-        logger.error(f"Invalid task payload from {client_id}: {e}")
+        logger.error("invalid_task_payload", client_id=client_id, error=str(e))
         await connection_manager.send_personal_message(
             {"type": "error", "payload": {"message": "Invalid task format", "details": str(e)}},
             client_id,
@@ -334,7 +330,7 @@ async def handle_ping(client_id: str):
 async def handle_mode_change(client_id: str, payload: Dict):
     """Handle mode change request (offline/online)"""
     mode = payload.get("mode", "offline")
-    logger.info(f"Client {client_id} changed mode to: {mode}")
+    logger.info("mode_changed", client_id=client_id, mode=mode)
 
     await connection_manager.send_personal_message(
         {
@@ -352,8 +348,7 @@ async def handle_mode_change(client_id: str, payload: Dict):
 if __name__ == "__main__":
     import uvicorn
 
-    logger.info("Starting Enterprise AI Agents Backend Server")
-    logger.info("Project Creator: Herman Swanepoel")
+    logger.info("server_starting", creator="Herman Swanepoel")
 
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True, log_level="info")
 
@@ -364,7 +359,7 @@ if __name__ == "__main__":
 async def configure_rate_limiting():
     """Configure rate limiting middleware after initialization"""
     if rate_limiter and rate_limiter._enabled:
-        logger.info("✓ Rate limiting middleware enabled")
+        logger.info("rate_limiting_enabled")
         app.add_middleware(RateLimitMiddleware, rate_limiter=rate_limiter, enabled=True)
     else:
-        logger.info("⚠ Rate limiting middleware disabled (Redis unavailable)")
+        logger.info("rate_limiting_disabled", reason="redis_unavailable")
