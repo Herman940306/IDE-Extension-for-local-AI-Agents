@@ -99,7 +99,10 @@ This implementation plan breaks down the feature into discrete coding tasks that
 
 
 
-- [ ] 5. Build code embeddings and context services
+- [-] 5. Build code embeddings and context services
+
+
+
   - [ ] 5.1 Implement embeddings service with Sentence Transformers
     - Create EmbeddingsService class with CodeBERT model
     - Implement codebase embedding generation with file parsing
