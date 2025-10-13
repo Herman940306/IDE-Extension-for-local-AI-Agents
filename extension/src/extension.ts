@@ -79,6 +79,11 @@ export function activate(context: vscode.ExtensionContext) {
     codeActionProvider = new AICodeActionProvider(wsClient);
     agentStatusProvider = new AgentStatusTreeProvider(wsClient);
 
+    // Initialize status bar manager
+    statusBarManager = new StatusBarManager(wsClient);
+    statusBarManager.setInlineSuggestionProvider(inlineSuggestionProvider);
+    context.subscriptions.push(statusBarManager);
+
     // Register inline suggestion provider
     const inlineProvider = vscode.languages.registerInlineCompletionItemProvider(
         { pattern: '**' },
@@ -165,6 +170,13 @@ export function activate(context: vscode.ExtensionContext) {
                     `Suggestions: ${stats.generated} generated, ${stats.accepted} accepted (${Math.round(stats.acceptanceRate * 100)}% rate), Cache: ${Math.round(stats.cacheHitRate * 100)}% hit rate`
                 );
             }
+        }
+    );
+
+    const showQuickActionsCommand = vscode.commands.registerCommand(
+        'enterpriseAI.showQuickActions',
+        () => {
+            statusBarManager?.showQuickActions();
         }
     );
 
@@ -341,6 +353,7 @@ export function activate(context: vscode.ExtensionContext) {
         suggestionRejectedCommand,
         requestAlternativesCommand,
         viewSuggestionStatsCommand,
+        showQuickActionsCommand,
         extractFunctionCommand,
         simplifyCodeCommand,
         optimizeCodeCommand,
@@ -389,6 +402,10 @@ export function deactivate() {
 
     if (modeToggle) {
         modeToggle.dispose();
+    }
+
+    if (statusBarManager) {
+        statusBarManager.dispose();
     }
 
     if (wsClient) {
