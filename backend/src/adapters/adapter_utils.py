@@ -1,293 +1,269 @@
 """
-Shared utilities for framework adapters
+Shared Adapter Utilities
 Project Creator: Herman Swanepoel
 
-This module provides common functionality used across different agent adapters
-to reduce code duplication and improve maintainability.
+Centralized utility functions for common adapter operations including
+exponential backoff, response validation, and health checks.
 """
 
-import re
-import hashlib
+from typing import Callable, Any, Optional, Dict, List
+import asyncio
+import logging
+import random
 import time
-from functools import lru_cache
-from typing import List, Dict, Any, Tuple, Optional
+from functools import wraps
+from datetime import datetime
+
+from src.utils.exceptions import ValidationException
+
+logger = logging.getLogger(__name__)
 
 
 class AdapterUtils:
-    """Shared utilities for framework adapters"""
+    """Shared utilities for agent adapters"""
 
     @staticmethod
-    def extract_code_blocks(text: str) -> List[Tuple[str, str]]:
+    async def exponential_backoff(
+        func: Callable,
+        max_retries: int = 3,
+        base_delay: float = 1.0,
+        max_delay: float = 60.0,
+        exponential_base: float = 2.0,
+        jitter: bool = True,
+        *args,
+        **kwargs,
+    ) -> Any:
         """
-        Extract code blocks with descriptions from text
-        
+        Execute function with exponential backoff retry logic.
+
         Args:
-            text: Text containing code blocks in markdown format
-            
+            func: Async function to execute
+            max_retries: Maximum number of retry attempts
+            base_delay: Initial delay in seconds
+            max_delay: Maximum delay between retries
+            exponential_base: Base for exponential calculation
+            jitter: Add random jitter to prevent thundering herd
+            *args: Positional arguments for func
+            **kwargs: Keyword arguments for func
+
         Returns:
-            List of tuples (code, description)
+            Result from successful function execution
+
+        Raises:
+            Exception: Last exception if all retries exhausted
         """
-        blocks: List[Tuple[str, str]] = []
-        code_matches = re.finditer(r'```[\w]*\n(.*?)```', text, re.DOTALL)
-        
-        for match in code_matches:
-            code = match.group(1).strip()
-            
-            # Find description before code block (look back up to 200 chars)
-            start = max(0, match.start() - 200)
-            context = text[start:match.start()]
-            desc_match = re.search(r'([^\n]+)\n```', context)
-            description = desc_match.group(1).strip() if desc_match else "Code suggestion"
-            
-            blocks.append((code, description))
-        
-        return blocks
+        last_exception = None
+
+        for attempt in range(max_retries + 1):
+            try:
+                start_time = time.time()
+                result = await func(*args, **kwargs)
+                duration_ms = (time.time() - start_time) * 1000
+
+                if attempt > 0:
+                    logger.info(
+                        f"Function succeeded after {attempt} retries",
+                        extra={
+                            "function": func.__name__,
+                            "attempt": attempt,
+                            "duration_ms": duration_ms,
+                        },
+                    )
+
+                return result
+
+            except Exception as e:
+                last_exception = e
+
+                if attempt == max_retries:
+                    logger.error(
+                        f"Function failed after {max_retries} retries",
+                        extra={
+                            "function": func.__name__,
+                            "max_retries": max_retries,
+                            "error": str(e),
+                        },
+                    )
+                    raise
+
+                # Calculate delay with exponential backoff
+                delay = min(base_delay * (exponential_base**attempt), max_delay)
+
+                # Add jitter to prevent thundering herd
+                if jitter:
+                    delay = delay * (0.5 + random.random() * 0.5)
+
+                logger.warning(
+                    f"Function failed, retrying in {delay:.2f}s",
+                    extra={
+                        "function": func.__name__,
+                        "attempt": attempt + 1,
+                        "max_retries": max_retries,
+                        "delay_seconds": delay,
+                        "error": str(e),
+                    },
+                )
+
+                await asyncio.sleep(delay)
+
+        # This should never be reached, but just in case
+        if last_exception:
+            raise last_exception
 
     @staticmethod
-    def calculate_base_confidence(
-        status: str,
-        has_suggestions: bool,
-        success_rate: float = 0.0,
-        base: float = 0.5
-    ) -> float:
+    def validate_response(
+        response: Dict[str, Any], required_fields: List[str], adapter_name: str = "unknown"
+    ) -> Dict[str, Any]:
         """
-        Calculate confidence score with consistent logic
-        
-        Args:
-            status: Execution status (e.g., "completed", "failed")
-            has_suggestions: Whether suggestions were generated
-            success_rate: Success rate of steps/actions (0.0 to 1.0)
-            base: Base confidence score
-            
-        Returns:
-            Confidence score between 0.0 and 1.0
-        """
-        confidence = base
-        
-        # Increase if execution completed successfully
-        if status == "completed":
-            confidence += 0.2
-        
-        # Increase if we have suggestions
-        if has_suggestions:
-            confidence += 0.2
-        
-        # Increase based on success rate
-        confidence += 0.1 * success_rate
-        
-        return min(confidence, 1.0)
+        Validate adapter response structure.
 
-    @staticmethod
-    def format_reasoning_steps(
-        steps: List[Dict[str, Any]],
-        max_steps: int = 5,
-        step_key: str = "thought"
-    ) -> str:
-        """
-        Format execution steps into readable reasoning text
-        
         Args:
-            steps: List of execution steps
-            max_steps: Maximum number of steps to include
-            step_key: Key to extract step description from
-            
-        Returns:
-            Formatted reasoning string
-        """
-        if not steps:
-            return "No execution steps recorded"
-        
-        reasoning = f"Executed {len(steps)} steps:\n\n"
-        
-        for i, step in enumerate(steps[:max_steps], 1):
-            # Extract step information
-            tool = step.get("tool") or step.get("name", "unknown")
-            thought = step.get(step_key, "")
-            status = step.get("status", "unknown")
-            
-            reasoning += f"{i}. [{status.upper()}] {tool}\n"
-            if thought:
-                reasoning += f"   {step_key.capitalize()}: {thought}\n"
-        
-        if len(steps) > max_steps:
-            reasoning += f"\n... and {len(steps) - max_steps} more steps\n"
-        
-        return reasoning
+            response: Response dictionary from adapter
+            required_fields: List of required field names
+            adapter_name: Name of adapter for error messages
 
-    @staticmethod
-    def truncate_output(output: str, max_length: int = 500) -> str:
-        """
-        Truncate output to maximum length with ellipsis
-        
-        Args:
-            output: Output text to truncate
-            max_length: Maximum length
-            
         Returns:
-            Truncated output
-        """
-        if len(output) <= max_length:
-            return output
-        
-        return output[:max_length] + "..."
+            Validated response dictionary
 
-    @staticmethod
-    def calculate_step_success_rate(steps: List[Dict[str, Any]]) -> float:
+        Raises:
+            ValidationException: If response is invalid
         """
-        Calculate success rate from execution steps
-        
-        Args:
-            steps: List of execution steps with status
-            
-        Returns:
-            Success rate between 0.0 and 1.0
-        """
-        if not steps:
-            return 0.0
-        
-        successful_steps = sum(
-            1 for step in steps 
-            if step.get("status") in ["success", "completed"]
+        if not isinstance(response, dict):
+            raise ValidationException(
+                message=f"Response must be a dictionary, got {type(response).__name__}",
+                field="response",
+                details={"adapter": adapter_name},
+            )
+
+        missing_fields = []
+        for field in required_fields:
+            if field not in response:
+                missing_fields.append(field)
+
+        if missing_fields:
+            raise ValidationException(
+                message=f"Response missing required fields: {', '.join(missing_fields)}",
+                field="response",
+                details={
+                    "adapter": adapter_name,
+                    "missing_fields": missing_fields,
+                    "received_fields": list(response.keys()),
+                },
+            )
+
+        logger.debug(
+            f"Response validation successful",
+            extra={"adapter": adapter_name, "fields": list(response.keys())},
         )
-        
-        return successful_steps / len(steps)
 
+        return response
 
-class ResponseCache:
-    """
-    LRU cache for LLM responses based on code context similarity
-    Reduces redundant API calls for similar code patterns
-    """
-    
-    def __init__(self, max_size: int = 100, ttl_seconds: int = 3600):
+    @staticmethod
+    async def health_check_with_timeout(
+        check_func: Callable, timeout: float = 5.0, service_name: str = "unknown"
+    ) -> bool:
         """
-        Initialize response cache
-        
+        Execute health check with timeout protection.
+
         Args:
-            max_size: Maximum number of cached responses
-            ttl_seconds: Time-to-live for cache entries in seconds
-        """
-        self.max_size = max_size
-        self.ttl_seconds = ttl_seconds
-        self.cache: Dict[str, Dict[str, Any]] = {}
-        self.access_times: Dict[str, float] = {}
-    
-    def generate_key(
-        self,
-        code: str,
-        language: str,
-        task_type: str,
-        agent_name: str
-    ) -> str:
-        """
-        Generate cache key from code context
-        
-        Args:
-            code: Source code
-            language: Programming language
-            task_type: Type of task (refactor, explain, etc.)
-            agent_name: Name of the agent
-            
+            check_func: Async health check function
+            timeout: Timeout in seconds
+            service_name: Name of service for logging
+
         Returns:
-            SHA256 hash as cache key
+            True if healthy, False otherwise
         """
-        content = f"{code}|{language}|{task_type}|{agent_name}"
-        return hashlib.sha256(content.encode()).hexdigest()
-    
-    def get(self, key: str) -> Optional[Any]:
+        try:
+            start_time = time.time()
+            result = await asyncio.wait_for(check_func(), timeout=timeout)
+            duration_ms = (time.time() - start_time) * 1000
+
+            logger.debug(
+                f"Health check passed for {service_name}",
+                extra={"service": service_name, "duration_ms": duration_ms, "result": result},
+            )
+
+            return bool(result)
+
+        except asyncio.TimeoutError:
+            logger.warning(
+                f"Health check timeout for {service_name}",
+                extra={"service": service_name, "timeout_seconds": timeout},
+            )
+            return False
+
+        except Exception as e:
+            logger.error(
+                f"Health check failed for {service_name}",
+                extra={"service": service_name, "error": str(e), "error_type": type(e).__name__},
+            )
+            return False
+
+    @staticmethod
+    def log_adapter_operation(
+        adapter_name: str,
+        operation: str,
+        duration_ms: float,
+        success: bool,
+        error: Optional[Exception] = None,
+        additional_context: Optional[Dict[str, Any]] = None,
+    ) -> None:
         """
-        Get cached response if valid
-        
+        Log adapter operation with structured logging.
+
         Args:
-            key: Cache key
-            
-        Returns:
-            Cached response or None if expired/missing
+            adapter_name: Name of the adapter
+            operation: Operation being performed
+            duration_ms: Operation duration in milliseconds
+            success: Whether operation succeeded
+            error: Exception if operation failed
+            additional_context: Additional context to log
         """
-        if key not in self.cache:
-            return None
-        
-        # Check TTL
-        age = time.time() - self.access_times.get(key, 0)
-        if age > self.ttl_seconds:
-            self.invalidate(key)
-            return None
-        
-        # Update access time
-        self.access_times[key] = time.time()
-        return self.cache[key]
-    
-    def set(self, key: str, response: Any) -> None:
-        """
-        Store response in cache
-        
-        Args:
-            key: Cache key
-            response: Response to cache
-        """
-        # Evict oldest if at capacity
-        if len(self.cache) >= self.max_size:
-            oldest_key = min(self.access_times.items(), key=lambda x: x[1])[0]
-            self.invalidate(oldest_key)
-        
-        self.cache[key] = response
-        self.access_times[key] = time.time()
-    
-    def invalidate(self, key: str) -> None:
-        """Remove entry from cache"""
-        self.cache.pop(key, None)
-        self.access_times.pop(key, None)
-    
-    def clear(self) -> None:
-        """Clear all cache entries"""
-        self.cache.clear()
-        self.access_times.clear()
-    
-    def get_stats(self) -> Dict[str, Any]:
-        """Get cache statistics"""
-        return {
-            "size": len(self.cache),
-            "max_size": self.max_size,
-            "hit_rate": self._calculate_hit_rate(),
-            "oldest_entry_age": self._get_oldest_entry_age()
+        log_data = {
+            "adapter": adapter_name,
+            "operation": operation,
+            "duration_ms": duration_ms,
+            "success": success,
+            "timestamp": datetime.utcnow().isoformat(),
         }
-    
-    def _calculate_hit_rate(self) -> float:
-        """Calculate cache hit rate (placeholder for actual tracking)"""
-        # In production, track hits/misses
-        return 0.0
-    
-    def _get_oldest_entry_age(self) -> float:
-        """Get age of oldest cache entry in seconds"""
-        if not self.access_times:
-            return 0.0
-        oldest_time = min(self.access_times.values())
-        return time.time() - oldest_time
+
+        if additional_context:
+            log_data.update(additional_context)
+
+        if success:
+            logger.info(f"Adapter operation succeeded: {adapter_name}.{operation}", extra=log_data)
+        else:
+            log_data["error"] = str(error) if error else "Unknown error"
+            log_data["error_type"] = type(error).__name__ if error else "Unknown"
+
+            logger.error(f"Adapter operation failed: {adapter_name}.{operation}", extra=log_data)
 
 
-class AdapterExceptions:
-    """Custom exceptions for adapters"""
+def with_retry(max_retries: int = 3, base_delay: float = 1.0, max_delay: float = 60.0):
+    """
+    Decorator for automatic retry with exponential backoff.
 
-    class AdapterError(Exception):
-        """Base adapter exception"""
-        pass
+    Args:
+        max_retries: Maximum number of retry attempts
+        base_delay: Initial delay in seconds
+        max_delay: Maximum delay between retries
 
-    class AdapterInitializationError(AdapterError):
-        """Failed to initialize adapter"""
-        pass
+    Returns:
+        Decorated function with retry logic
+    """
 
-    class AdapterExecutionError(AdapterError):
-        """Failed to execute task"""
-        pass
+    def decorator(func: Callable) -> Callable:
+        @wraps(func)
+        async def wrapper(*args, **kwargs):
+            return await AdapterUtils.exponential_backoff(
+                func,
+                max_retries=max_retries,
+                base_delay=base_delay,
+                max_delay=max_delay,
+                *args,
+                **kwargs,
+            )
 
-    class AdapterTimeoutError(AdapterError):
-        """Task execution timed out"""
-        pass
+        return wrapper
 
-    class AdapterConnectionError(AdapterError):
-        """Failed to connect to adapter service"""
-        pass
-
-    class AdapterAuthenticationError(AdapterError):
-        """Authentication failed"""
-        pass
+    return decorator

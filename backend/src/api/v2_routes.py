@@ -11,6 +11,8 @@ import logging
 from src.orchestrator.meta_controller import MetaController
 from src.orchestrator.task_router import TaskRouter
 from src.orchestrator.cognitive_trace import CognitiveTraceStore
+from src.orchestrator.dual_process_integration import get_dual_process_system, close_dual_process_system
+from src.orchestrator.reasoning_coordinator import ProcessingMode
 from src.verifier.ensemble import VerifierEnsemble
 from src.verifier.provenance_store import ProvenanceStore
 
@@ -24,6 +26,7 @@ task_router = TaskRouter()
 cognitive_trace_store = CognitiveTraceStore()
 verifier_ensemble = VerifierEnsemble()
 provenance_store = ProvenanceStore()
+dual_process_system = None  # Lazy initialization
 
 
 # Request/Response Models
