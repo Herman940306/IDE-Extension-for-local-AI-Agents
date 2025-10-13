@@ -42,6 +42,9 @@ class AgentAdapter(ABC):
     consistent behavior across different agent systems (CrewAI, SuperAGI, AutoGPT, etc.)
     """
 
+    # Class-level response cache shared across all adapters
+    _response_cache: Optional['ResponseCache'] = None
+
     def __init__(self, config: AgentConfig):
         """
         Initialize the adapter with configuration
@@ -51,6 +54,16 @@ class AgentAdapter(ABC):
         """
         self.config = config
         self.is_initialized = False
+        
+        # Initialize shared cache if not exists
+        if AgentAdapter._response_cache is None:
+            from src.adapters.adapter_utils import ResponseCache
+            AgentAdapter._response_cache = ResponseCache(max_size=100, ttl_seconds=3600)
+    
+    @property
+    def response_cache(self) -> 'ResponseCache':
+        """Get shared response cache"""
+        return AgentAdapter._response_cache
 
     @abstractmethod
     async def initialize(self) -> None:

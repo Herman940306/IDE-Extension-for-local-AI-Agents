@@ -6,6 +6,7 @@
 import { v4 as uuidv4 } from 'uuid';
 import * as vscode from 'vscode';
 import { AgentDiscussionPanel } from './panels/AgentDiscussionPanel';
+import { AnalyticsDashboardPanel } from './panels/AnalyticsDashboardPanel';
 import { AICodeActionProvider } from './providers/CodeActionProvider';
 import { InlineSuggestionProvider } from './providers/InlineSuggestionProvider';
 import { AccessibilityManager } from './services/AccessibilityManager';
@@ -376,28 +377,8 @@ export function activate(context: vscode.ExtensionContext) {
                 return;
             }
 
-            const summary = analyticsService.getSummary();
-            const message = `📊 Analytics Summary\n\n` +
-                `Total Suggestions: ${summary.totalSuggestions}\n` +
-                `Acceptance Rate: ${Math.round(summary.acceptanceRate * 100)}%\n` +
-                `Top Agent: ${summary.topAgent}\n` +
-                `Top Language: ${summary.topLanguage}\n` +
-                `Most Productive Hour: ${summary.mostProductiveHour}:00`;
-
-            vscode.window.showInformationMessage(message, 'Export Data', 'Clear Data', 'Disable Analytics')
-                .then(choice => {
-                    if (choice === 'Export Data') {
-                        const data = analyticsService!.exportData();
-                        vscode.workspace.openTextDocument({ content: data, language: 'json' })
-                            .then(doc => vscode.window.showTextDocument(doc));
-                    } else if (choice === 'Clear Data') {
-                        analyticsService!.clearData();
-                        vscode.window.showInformationMessage('Analytics data cleared');
-                    } else if (choice === 'Disable Analytics') {
-                        analyticsService!.setEnabled(false);
-                        vscode.window.showInformationMessage('Analytics disabled');
-                    }
-                });
+            // Show analytics dashboard
+            AnalyticsDashboardPanel.createOrShow(context.extensionUri, analyticsService);
         }
     );
 
