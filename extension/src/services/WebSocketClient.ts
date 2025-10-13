@@ -142,7 +142,7 @@ export class WebSocketClient {
         });
     }
 
-    public on(messageType: string, handler: (payload: any) => void): void {
+    public on(messageType: string, handler: (payload: unknown) => void): void {
         this.messageHandlers.set(messageType, handler);
     }
 
