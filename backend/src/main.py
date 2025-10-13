@@ -15,15 +15,9 @@ from src.models import Task
 from src.services.connection_manager import ConnectionManager
 from src.api.exception_handlers import register_exception_handlers
 from src.api.middleware import CorrelationIDMiddleware, RateLimitMiddleware, RequestSizeMiddleware
-from src.services.rate_limiter import RateLimiter
-from src.services.response_cache import ResponseCache
 from src.core.config import get_settings
 from src.core.logging import configure_logging, get_logger
-
-try:
-    from redis.asyncio import Redis
-except ImportError:
-    Redis = None
+from src.core.container import Container
 
 # Configure structured logging
 settings = get_settings()
@@ -32,49 +26,35 @@ logger = get_logger(__name__)
 
 # Global services
 connection_manager = ConnectionManager()
-redis_client: Optional[Redis] = None
-rate_limiter: Optional[RateLimiter] = None
-response_cache: Optional[ResponseCache] = None
+container: Optional[Container] = None
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan manager"""
-    global redis_client, rate_limiter, response_cache
+    global container
 
-    settings = get_settings()
     logger.info("backend_starting", creator="Herman Swanepoel")
 
-    # Initialize Redis (optional)
-    if Redis:
-        try:
-            redis_client = Redis.from_url(
-                settings.database.redis_url, encoding="utf-8", decode_responses=True
-            )
-            await redis_client.ping()
-            logger.info("redis_connected", url=settings.database.redis_url)
+    # Initialize DI container
+    container = Container()
+    logger.info("container_initialized")
 
-            # Initialize services
-            rate_limiter = RateLimiter(redis_client)
-            response_cache = ResponseCache(redis_client)
-            logger.info("services_initialized", services=["rate_limiter", "response_cache"])
-
-        except Exception as e:
-            logger.warning("redis_unavailable", error=str(e))
-            rate_limiter = RateLimiter(None)
-            response_cache = ResponseCache(None)
-    else:
-        logger.warning("redis_library_missing")
-        rate_limiter = RateLimiter(None)
-        response_cache = ResponseCache(None)
+    try:
+        redis = await container.redis_client()
+        if redis:
+            await redis.ping()
+            logger.info("redis_connected")
+    except Exception as e:
+        logger.warning("redis_unavailable", error=str(e))
 
     yield
 
-    # Cleanup
     logger.info("backend_shutting_down")
-    if redis_client:
-        await redis_client.close()
-        logger.info("redis_closed")
+    try:
+        await container.redis_pool().close()
+    except:
+        pass
 
 
 # Create FastAPI application
@@ -135,7 +115,6 @@ app.add_middleware(
 app.add_middleware(CorrelationIDMiddleware)
 
 # 2. Request Size Validation (check size before processing)
-settings = get_settings()
 app.add_middleware(RequestSizeMiddleware, max_size=settings.max_request_size)
 
 
@@ -186,21 +165,19 @@ async def health_check():
         "components": {},
     }
 
-    # Check Redis
-    if redis_client:
-        try:
-            await redis_client.ping()
+    try:
+        redis = await container.redis_client()
+        if redis:
+            await redis.ping()
             health_status["components"]["redis"] = "healthy"
-        except Exception as e:
-            health_status["components"]["redis"] = f"unhealthy: {str(e)}"
-            health_status["status"] = "degraded"
-    else:
-        health_status["components"]["redis"] = "disabled"
+        else:
+            health_status["components"]["redis"] = "disabled"
+    except Exception as e:
+        health_status["components"]["redis"] = f"unhealthy: {str(e)}"
+        health_status["status"] = "degraded"
 
-    # Add cache stats
-    if response_cache:
-        cache_stats = await response_cache.get_stats()
-        health_status["components"]["cache"] = cache_stats
+    cache_stats = await container.response_cache().get_stats()
+    health_status["components"]["cache"] = cache_stats
 
     return health_status
 
@@ -357,9 +334,6 @@ if __name__ == "__main__":
 # Note: This needs to be done after rate_limiter is initialized in lifespan
 @app.on_event("startup")
 async def configure_rate_limiting():
-    """Configure rate limiting middleware after initialization"""
-    if rate_limiter and rate_limiter._enabled:
-        logger.info("rate_limiting_enabled")
-        app.add_middleware(RateLimitMiddleware, rate_limiter=rate_limiter, enabled=True)
-    else:
-        logger.info("rate_limiting_disabled", reason="redis_unavailable")
+    limiter = container.rate_limiter()
+    if limiter._enabled:
+        app.add_middleware(RateLimitMiddleware, rate_limiter=limiter, enabled=True)
