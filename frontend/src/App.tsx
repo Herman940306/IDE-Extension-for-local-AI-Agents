@@ -107,13 +107,16 @@ function App() {
     const toggleMode = () => {
         const newMode = mode === 'local' ? 'cloud' : 'local';
         setMode(newMode);
-        wsService.sendTask({
-            id: `mode-${Date.now()}`,
-            type: 'mode_change',
-            context: {
-                mode: newMode
-            }
-        });
+        console.log('🔄 Switching mode to:', newMode);
+
+        if (wsService && connected) {
+            wsService.sendTask({
+                type: 'mode_change',
+                payload: {
+                    mode: newMode
+                }
+            });
+        }
     };
 
     const handleSend = () => {

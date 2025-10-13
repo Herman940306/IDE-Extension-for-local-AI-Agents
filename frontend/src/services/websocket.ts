@@ -66,10 +66,13 @@ export class WebSocketService {
 
     sendTask(task: any) {
         if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+            console.log('📤 Sending to backend:', task);
             this.ws.send(JSON.stringify({
-                type: 'task_request',
+                type: task.type || 'task_request',
                 payload: task
             }));
+        } else {
+            console.error('❌ WebSocket not connected');
         }
     }
 
