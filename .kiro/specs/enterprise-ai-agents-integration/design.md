@@ -25,6 +25,280 @@ Rather than building from scratch, we will:
 3. **VS Code native UI** - Develop extension UI that abstracts framework complexity
 4. **Shared context system** - Implement unified code embeddings and context management
 
+### Project Structure
+
+```
+enterprise-ai-agents/
+├── extension/                    # VS Code Extension (TypeScript)
+│   ├── src/
+│   │   ├── extension.ts
+│   │   ├── providers/
+│   │   ├── panels/
+│   │   ├── services/
+│   │   └── ui/
+│   ├── package.json
+│   ├── tsconfig.json
+│   └── node_modules/
+│
+├── backend/                      # Python Backend Service
+│   ├── venv/                     # Python Virtual Environment (isolated)
+│   ├── src/
+│   │   ├── main.py
+│   │   ├── orchestrator/
+│   │   ├── adapters/
+│   │   ├── services/
+│   │   └── models/
+│   ├── requirements.txt
+│   ├── pyproject.toml
+│   └── .env
+│
+├── frameworks/                   # Integrated Agent Frameworks
+│   ├── crewai/                   # CrewAI with own venv
+│   ├── superagi/                 # SuperAGI with own venv
+│   └── autogpt/                  # AutoGPT with own venv
+│
+├── data/                         # Local data storage
+│   ├── chroma/                   # Vector DB
+│   ├── cache/
+│   └── sessions/
+│
+├── docker-compose.yml
+├── .gitignore
+└── README.md
+```
+
+### Virtual Environment Strategy
+
+**Python Backend:**
+- Isolated virtual environment in `backend/venv/`
+- Python 3.11+ required
+- All dependencies managed via `requirements.txt` and `pyproject.toml`
+- Prevents conflicts with system Python and framework dependencies
+
+**Framework Isolation:**
+- Each framework (CrewAI, SuperAGI, AutoGPT) runs in its own venv
+- Prevents dependency conflicts between frameworks
+- Allows framework-specific Python versions if needed
+
+**Setup Commands:**
+```bash
+# Backend virtual environment
+cd backend
+python -m venv venv
+.\venv\Scripts\activate  # Windows
+source venv/bin/activate  # Linux/Mac
+pip install -r requirements.txt
+
+# Framework virtual environments (if needed)
+cd frameworks/crewai
+python -m venv venv
+.\venv\Scripts\activate
+pip install -r requirements.txt
+```
+
+### Automated Setup Scripts
+
+**Windows Setup Script (`setup.ps1`):**
+```powershell
+# Enterprise AI Agents - Windows Setup Script
+# Project Creator: Herman Swanepoel
+
+Write-Host "🚀 Setting up Enterprise AI Agents Integration..." -ForegroundColor Cyan
+
+# Check Python version
+$pythonVersion = python --version 2>&1
+if ($pythonVersion -match "Python 3\.1[1-9]") {
+    Write-Host "✓ Python $pythonVersion detected" -ForegroundColor Green
+} else {
+    Write-Host "✗ Python 3.11+ required. Please install from python.org" -ForegroundColor Red
+    exit 1
+}
+
+# Create backend virtual environment
+Write-Host "`n📦 Creating backend virtual environment..." -ForegroundColor Cyan
+Set-Location backend
+python -m venv venv
+.\venv\Scripts\Activate.ps1
+
+# Install backend dependencies
+Write-Host "📥 Installing backend dependencies..." -ForegroundColor Cyan
+pip install --upgrade pip
+pip install -r requirements.txt
+
+# Return to root
+Set-Location ..
+
+# Install extension dependencies
+Write-Host "`n📦 Installing extension dependencies..." -ForegroundColor Cyan
+Set-Location extension
+npm install
+
+# Return to root
+Set-Location ..
+
+# Create data directories
+Write-Host "`n📁 Creating data directories..." -ForegroundColor Cyan
+New-Item -ItemType Directory -Force -Path "data/chroma" | Out-Null
+New-Item -ItemType Directory -Force -Path "data/cache" | Out-Null
+New-Item -ItemType Directory -Force -Path "data/sessions" | Out-Null
+
+Write-Host "`n✅ Setup complete!" -ForegroundColor Green
+Write-Host "`nNext steps:" -ForegroundColor Yellow
+Write-Host "1. Activate backend: cd backend && .\venv\Scripts\Activate.ps1"
+Write-Host "2. Start backend: python src/main.py"
+Write-Host "3. Open extension folder in VS Code and press F5 to debug"
+```
+
+**Linux/Mac Setup Script (`setup.sh`):**
+```bash
+#!/bin/bash
+# Enterprise AI Agents - Linux/Mac Setup Script
+# Project Creator: Herman Swanepoel
+
+echo "🚀 Setting up Enterprise AI Agents Integration..."
+
+# Check Python version
+if command -v python3 &> /dev/null; then
+    PYTHON_VERSION=$(python3 --version | cut -d' ' -f2)
+    echo "✓ Python $PYTHON_VERSION detected"
+else
+    echo "✗ Python 3.11+ required. Please install Python 3.11+"
+    exit 1
+fi
+
+# Create backend virtual environment
+echo -e "\n📦 Creating backend virtual environment..."
+cd backend
+python3 -m venv venv
+source venv/bin/activate
+
+# Install backend dependencies
+echo "📥 Installing backend dependencies..."
+pip install --upgrade pip
+pip install -r requirements.txt
+
+# Return to root
+cd ..
+
+# Install extension dependencies
+echo -e "\n📦 Installing extension dependencies..."
+cd extension
+npm install
+
+# Return to root
+cd ..
+
+# Create data directories
+echo -e "\n📁 Creating data directories..."
+mkdir -p data/chroma
+mkdir -p data/cache
+mkdir -p data/sessions
+
+echo -e "\n✅ Setup complete!"
+echo -e "\nNext steps:"
+echo "1. Activate backend: cd backend && source venv/bin/activate"
+echo "2. Start backend: python src/main.py"
+echo "3. Open extension folder in VS Code and press F5 to debug"
+```
+
+**requirements.txt (Backend):**
+```txt
+# Core Framework
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+websockets==12.0
+pydantic==2.5.0
+python-multipart==0.0.6
+
+# AI/ML
+sentence-transformers==2.2.2
+chromadb==0.4.18
+langchain==0.1.0
+ollama==0.1.0
+
+# Agent Frameworks
+crewai==0.1.0
+# superagi - installed separately
+# autogpt - installed separately
+
+# Utilities
+python-dotenv==1.0.0
+gitpython==3.1.40
+redis==5.0.1
+aioredis==2.0.1
+tree-sitter==0.20.4
+
+# Testing
+pytest==7.4.3
+pytest-asyncio==0.21.1
+pytest-cov==4.1.0
+
+# Development
+black==23.12.0
+flake8==6.1.0
+mypy==1.7.1
+```
+
+**.gitignore:**
+```gitignore
+# Virtual Environments
+venv/
+env/
+ENV/
+backend/venv/
+frameworks/*/venv/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# VS Code
+.vscode/
+*.vsix
+out/
+
+# Data
+data/
+*.db
+*.sqlite
+
+# Environment
+.env
+.env.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+```
+
 
 
 ## 2. System Architecture
@@ -1057,10 +1331,189 @@ async function fetchUser(id: string): Promise<User> {
 ### 13.3 Status Bar Integration
 
 ```
-[🤖 AI: Ready] [Suggestions: 47] [Acceptance: 73%]
+[🤖 AI: Ready] [💠 LOCAL MODE] [Suggestions: 47] [Acceptance: 73%]
 ```
 
 Click to open quick actions menu.
+
+### 13.4 Offline/Online Mode Toggle
+
+**Visual Design:**
+
+The mode toggle is a prominent, illuminated button that clearly indicates the current operational mode.
+
+```
+┌─────────────────────────────────────┐
+│  Mode Toggle (Status Bar & Sidebar) │
+├─────────────────────────────────────┤
+│                                     │
+│  OFFLINE MODE (Neon Blue):          │
+│  ┌──────────────────┐               │
+│  │ 💠 LOCAL MODE    │ ◄─ Glowing    │
+│  └──────────────────┘    Blue       │
+│                                     │
+│  ONLINE MODE (Neon Green):          │
+│  ┌──────────────────┐               │
+│  │ ☁️ CLOUD MODE    │ ◄─ Glowing    │
+│  └──────────────────┘    Green      │
+│                                     │
+└─────────────────────────────────────┘
+```
+
+**CSS Styling:**
+```css
+/* Offline Mode - Neon Blue */
+.mode-toggle.offline {
+  background: linear-gradient(135deg, #0066ff, #00ccff);
+  box-shadow: 0 0 10px #00ccff, 0 0 20px #0066ff, inset 0 0 10px rgba(0, 204, 255, 0.3);
+  border: 2px solid #00ccff;
+  color: #ffffff;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  animation: pulse-blue 2s infinite;
+  transition: all 0.3s ease;
+}
+
+.mode-toggle.offline:hover {
+  box-shadow: 0 0 15px #00ccff, 0 0 30px #0066ff, inset 0 0 15px rgba(0, 204, 255, 0.5);
+  transform: scale(1.05);
+}
+
+/* Online Mode - Neon Green */
+.mode-toggle.online {
+  background: linear-gradient(135deg, #00ff66, #00ffcc);
+  box-shadow: 0 0 10px #00ffcc, 0 0 20px #00ff66, inset 0 0 10px rgba(0, 255, 204, 0.3);
+  border: 2px solid #00ffcc;
+  color: #003300;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  animation: pulse-green 2s infinite;
+  transition: all 0.3s ease;
+}
+
+.mode-toggle.online:hover {
+  box-shadow: 0 0 15px #00ffcc, 0 0 30px #00ff66, inset 0 0 15px rgba(0, 255, 204, 0.5);
+  transform: scale(1.05);
+}
+
+@keyframes pulse-blue {
+  0%, 100% { 
+    box-shadow: 0 0 10px #00ccff, 0 0 20px #0066ff, inset 0 0 10px rgba(0, 204, 255, 0.3);
+  }
+  50% { 
+    box-shadow: 0 0 20px #00ccff, 0 0 35px #0066ff, inset 0 0 15px rgba(0, 204, 255, 0.5);
+  }
+}
+
+@keyframes pulse-green {
+  0%, 100% { 
+    box-shadow: 0 0 10px #00ffcc, 0 0 20px #00ff66, inset 0 0 10px rgba(0, 255, 204, 0.3);
+  }
+  50% { 
+    box-shadow: 0 0 20px #00ffcc, 0 0 35px #00ff66, inset 0 0 15px rgba(0, 255, 204, 0.5);
+  }
+}
+```
+
+**TypeScript Implementation:**
+```typescript
+// src/ui/ModeToggle.ts
+export class ModeToggle {
+  private statusBarItem: vscode.StatusBarItem;
+  private isOnline: boolean = false;
+  
+  constructor() {
+    this.statusBarItem = vscode.window.createStatusBarItem(
+      vscode.StatusBarAlignment.Left,
+      100
+    );
+    this.updateDisplay();
+    this.statusBarItem.command = 'enterpriseAI.toggleMode';
+    this.statusBarItem.show();
+  }
+  
+  toggle(): void {
+    this.isOnline = !this.isOnline;
+    this.updateDisplay();
+    this.notifyBackend();
+    this.showNotification();
+  }
+  
+  private updateDisplay(): void {
+    if (this.isOnline) {
+      this.statusBarItem.text = '$(cloud) CLOUD MODE';
+      this.statusBarItem.tooltip = 'Online Mode: Cloud features enabled\nClick to switch to Local Mode';
+      this.statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.prominentBackground');
+    } else {
+      this.statusBarItem.text = '$(shield) LOCAL MODE';
+      this.statusBarItem.tooltip = 'Offline Mode: Fully local operation\nClick to switch to Cloud Mode';
+      this.statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.warningBackground');
+    }
+  }
+  
+  private async notifyBackend(): Promise<void> {
+    // Send mode change to backend
+    await vscode.commands.executeCommand('enterpriseAI.setMode', {
+      mode: this.isOnline ? 'online' : 'offline'
+    });
+  }
+  
+  private showNotification(): void {
+    const message = this.isOnline
+      ? '☁️ Cloud Mode Enabled: AI can use cloud services for enhanced capabilities'
+      : '💠 Local Mode Enabled: All operations running locally for maximum privacy';
+    
+    vscode.window.showInformationMessage(message);
+  }
+}
+```
+
+**Backend Mode Manager:**
+```python
+# backend/services/mode_manager.py
+class ModeManager:
+    def __init__(self):
+        self.mode = 'offline'  # Default to offline
+        self.mode_change_callbacks = []
+    
+    def set_mode(self, mode: str):
+        """Switch between offline and online modes"""
+        if mode not in ['offline', 'online']:
+            raise ValueError(f"Invalid mode: {mode}")
+        
+        old_mode = self.mode
+        self.mode = mode
+        
+        logger.info(f"Mode changed from {old_mode} to {mode}")
+        
+        # Notify all registered callbacks
+        for callback in self.mode_change_callbacks:
+            callback(mode)
+    
+    def is_online(self) -> bool:
+        """Check if cloud features are enabled"""
+        return self.mode == 'online'
+    
+    def can_use_cloud(self) -> bool:
+        """Check if cloud API calls are allowed"""
+        return self.is_online()
+    
+    def register_callback(self, callback):
+        """Register callback for mode changes"""
+        self.mode_change_callbacks.append(callback)
+```
+
+**Behavior:**
+- **Offline Mode (Default)**: All operations local, cloud APIs blocked
+- **Online Mode**: Cloud LLM fallback enabled, optional cloud enhancements active
+- **Toggle Location**: Status bar (always visible) + Sidebar panel
+- **Persistence**: Mode preference saved in VS Code settings
+- **Visual Feedback**: Neon blue (offline) / neon green (online) with pulsing glow
+- **Notifications**: Clear message when mode changes
 
 
 
@@ -1437,9 +1890,9 @@ class CustomAnalysisTool(BaseTool):
 - Error rate: <1%
 
 **Quality:**
-- Suggestion acceptance rate: >60%
+- Suggestion acceptance rate: >70%
 - Code quality improvement: Measurable reduction in bugs
-- Test coverage increase: >20% with AI-generated tests
+- Test coverage increase: >80% with AI-generated tests
 - Security issue detection: >80% of known vulnerabilities
 
 ### 19.2 User Experience Metrics
@@ -1517,10 +1970,13 @@ class CustomAnalysisTool(BaseTool):
 
 | Version | Date | Author | Changes |
 |---------|------|--------|---------|
-| 1.0 | 2025-01-13 | AURA-DEV | Initial design document |
+| 1.0 | 2025-01-13 | Herman Swanepoel | Initial design document |
+| 1.1 | 2025-01-13 | Herman Swanepoel | Added offline/online mode toggle design |
+| 1.2 | 2025-01-13 | Herman Swanepoel | Added virtual environment strategy and automated setup scripts |
 
 ---
 
+**Project Creator:** Herman Swanepoel  
 **Document Status:** Ready for Review  
 **Next Step:** Create implementation tasks.md
 

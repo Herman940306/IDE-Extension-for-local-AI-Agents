@@ -61,7 +61,8 @@
     "steering": {
       "alwaysInclude": [
         "OMNIDEVGOD.md",
-        "00_Unified_Master_Agent.md"
+        "00_Unified_Master_Agent.md",
+        "git-workflow.md"
       ],
       "enforcementLevel": "mandatory"
     },
