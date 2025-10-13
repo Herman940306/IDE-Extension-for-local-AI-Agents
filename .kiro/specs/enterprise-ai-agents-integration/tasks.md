@@ -108,6 +108,7 @@ This implementation plan breaks down the feature into discrete coding tasks that
 
 
 
+
   - [x] 5.1 Implement embeddings service with Sentence Transformers
 
     - Create EmbeddingsService class with CodeBERT model
@@ -141,14 +142,17 @@ This implementation plan breaks down the feature into discrete coding tasks that
 
     - _Requirements: 3.4, 3.5_
   
-  - [ ]* 5.4 Write tests for embeddings and context services
+  - [-]* 5.4 Write tests for embeddings and context services
+
     - Test embedding generation and storage
     - Test semantic search accuracy
     - Test incremental updates
     - _Requirements: 3.1, 3.4_
 
-- [ ] 6. Implement session memory service
-  - [ ] 6.1 Create memory service with Redis/SQLite backend
+- [x] 6. Implement session memory service
+
+  - [x] 6.1 Create memory service with Redis/SQLite backend
+
     - Write MemoryService class with storage abstraction
 
 
