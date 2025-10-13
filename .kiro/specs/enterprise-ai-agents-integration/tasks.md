@@ -463,6 +463,7 @@ This implementation plan breaks down the feature into discrete coding tasks that
   
   - [x] 15.3 Add webview-extension communication
 
+
     - Implement message passing between webview and extension
     - Add state synchronization
     - Handle webview lifecycle (show, hide, dispose)
@@ -475,14 +476,16 @@ This implementation plan breaks down the feature into discrete coding tasks that
     - _Requirements: 5.1, 5.4_
 
 - [ ] 16. Implement workspace management system
-  - [ ] 16.1 Create workspace manager for multi-workspace support
+  - [x] 16.1 Create workspace manager for multi-workspace support
+
     - Write WorkspaceManager class
     - Implement workspace configuration loading
     - Add workspace switching logic with state preservation
     - Create workspace detection and registration
     - _Requirements: 2.1, 2.3, 2.4, 2.5_
   
-  - [ ] 16.2 Add workspace-specific agent configuration
+  - [x] 16.2 Add workspace-specific agent configuration
+
     - Implement per-workspace agent settings
     - Add workspace description and strengths metadata
     - Create workspace quick-switch UI in VS Code
@@ -497,7 +500,8 @@ This implementation plan breaks down the feature into discrete coding tasks that
 
 
 - [ ] 17. Implement analytics and insights dashboard
-  - [ ] 17.1 Create analytics tracking service
+  - [x] 17.1 Create analytics tracking service
+
     - Write AnalyticsService class with privacy-respecting tracking
     - Track suggestion acceptance/rejection rates
     - Monitor agent effectiveness metrics
@@ -512,7 +516,8 @@ This implementation plan breaks down the feature into discrete coding tasks that
     - Show workflow optimization suggestions
     - _Requirements: 10.2, 10.3, 10.5_
   
-  - [ ] 17.3 Implement local data storage for analytics
+  - [x] 17.3 Implement local data storage for analytics
+
     - Store analytics data locally (SQLite)
     - Add data aggregation and reporting
     - Implement data retention policies

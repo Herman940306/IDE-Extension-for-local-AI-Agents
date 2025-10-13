@@ -9,9 +9,11 @@ import { AgentDiscussionPanel } from './panels/AgentDiscussionPanel';
 import { AICodeActionProvider } from './providers/CodeActionProvider';
 import { InlineSuggestionProvider } from './providers/InlineSuggestionProvider';
 import { AccessibilityManager } from './services/AccessibilityManager';
+import { AnalyticsService } from './services/AnalyticsService';
 import { KeyboardNavigationManager } from './services/KeyboardNavigationManager';
 import { ModeToggle, OperationMode } from './services/ModeToggle';
 import { WebSocketClient } from './services/WebSocketClient';
+import { WorkspaceManager } from './services/WorkspaceManager';
 import { AgentStatusTreeProvider } from './ui/AgentStatusTreeProvider';
 import { StatusBarManager } from './ui/StatusBarManager';
 
@@ -23,6 +25,8 @@ let inlineSuggestionProvider: InlineSuggestionProvider | null = null;
 let codeActionProvider: AICodeActionProvider | null = null;
 let agentStatusProvider: AgentStatusTreeProvider | null = null;
 let statusBarManager: StatusBarManager | null = null;
+let workspaceManager: WorkspaceManager | null = null;
+let analyticsService: AnalyticsService | null = null;
 
 export function activate(context: vscode.ExtensionContext) {
     console.log('Enterprise AI Agents extension is now active!');
@@ -84,6 +88,18 @@ export function activate(context: vscode.ExtensionContext) {
     statusBarManager.setInlineSuggestionProvider(inlineSuggestionProvider);
     context.subscriptions.push(statusBarManager);
 
+    // Initialize workspace manager
+    workspaceManager = new WorkspaceManager(context);
+    context.subscriptions.push({
+        dispose: () => workspaceManager?.dispose()
+    });
+
+    // Initialize analytics service
+    analyticsService = new AnalyticsService(context);
+    context.subscriptions.push({
+        dispose: () => analyticsService?.dispose()
+    });
+
     // Register inline suggestion provider
     const inlineProvider = vscode.languages.registerInlineCompletionItemProvider(
         { pattern: '**' },
@@ -136,6 +152,15 @@ export function activate(context: vscode.ExtensionContext) {
         (suggestion: any, index: number) => {
             inlineSuggestionProvider?.trackAcceptance(suggestion, index);
             accessibilityManager?.announceToScreenReader('Suggestion accepted', 'polite');
+
+            // Track in analytics
+            analyticsService?.trackSuggestion({
+                type: 'inline',
+                accepted: true,
+                confidence: suggestion.confidence || 0.5,
+                agentName: suggestion.agentName,
+                language: vscode.window.activeTextEditor?.document.languageId
+            });
         }
     );
 
@@ -144,6 +169,15 @@ export function activate(context: vscode.ExtensionContext) {
         (suggestion: any, index: number) => {
             inlineSuggestionProvider?.trackRejection(suggestion, index);
             accessibilityManager?.announceToScreenReader('Suggestion rejected', 'polite');
+
+            // Track in analytics
+            analyticsService?.trackSuggestion({
+                type: 'inline',
+                accepted: false,
+                confidence: suggestion.confidence || 0.5,
+                agentName: suggestion.agentName,
+                language: vscode.window.activeTextEditor?.document.languageId
+            });
         }
     );
 
@@ -337,7 +371,66 @@ export function activate(context: vscode.ExtensionContext) {
     const viewAnalyticsCommand = vscode.commands.registerCommand(
         'enterpriseAI.viewAnalytics',
         () => {
-            vscode.window.showInformationMessage('View analytics not yet implemented');
+            if (!analyticsService) {
+                vscode.window.showErrorMessage('Analytics service not initialized');
+                return;
+            }
+
+            const summary = analyticsService.getSummary();
+            const message = `📊 Analytics Summary\n\n` +
+                `Total Suggestions: ${summary.totalSuggestions}\n` +
+                `Acceptance Rate: ${Math.round(summary.acceptanceRate * 100)}%\n` +
+                `Top Agent: ${summary.topAgent}\n` +
+                `Top Language: ${summary.topLanguage}\n` +
+                `Most Productive Hour: ${summary.mostProductiveHour}:00`;
+
+            vscode.window.showInformationMessage(message, 'Export Data', 'Clear Data', 'Disable Analytics')
+                .then(choice => {
+                    if (choice === 'Export Data') {
+                        const data = analyticsService!.exportData();
+                        vscode.workspace.openTextDocument({ content: data, language: 'json' })
+                            .then(doc => vscode.window.showTextDocument(doc));
+                    } else if (choice === 'Clear Data') {
+                        analyticsService!.clearData();
+                        vscode.window.showInformationMessage('Analytics data cleared');
+                    } else if (choice === 'Disable Analytics') {
+                        analyticsService!.setEnabled(false);
+                        vscode.window.showInformationMessage('Analytics disabled');
+                    }
+                });
+        }
+    );
+
+    const switchWorkspaceCommand = vscode.commands.registerCommand(
+        'enterpriseAI.switchWorkspace',
+        () => {
+            workspaceManager?.showWorkspaceSwitcher();
+        }
+    );
+
+    const configureWorkspaceCommand = vscode.commands.registerCommand(
+        'enterpriseAI.configureWorkspace',
+        async () => {
+            const workspace = workspaceManager?.getCurrentWorkspace();
+            if (!workspace) {
+                vscode.window.showErrorMessage('No workspace detected');
+                return;
+            }
+
+            const name = await vscode.window.showInputBox({
+                prompt: 'Workspace name',
+                value: workspace.name
+            });
+
+            if (name) {
+                const description = await vscode.window.showInputBox({
+                    prompt: 'Workspace description (optional)',
+                    value: workspace.description || ''
+                });
+
+                await workspaceManager?.updateWorkspaceMetadata({ name, description });
+                vscode.window.showInformationMessage('Workspace configuration updated');
+            }
         }
     );
 
@@ -367,6 +460,8 @@ export function activate(context: vscode.ExtensionContext) {
         generateDocumentationCommand,
         startAgentDiscussionCommand,
         viewAnalyticsCommand,
+        switchWorkspaceCommand,
+        configureWorkspaceCommand,
         reindexCodebaseCommand,
         accessibilitySettingsCommand,
         refreshAgentStatusCommand,
@@ -380,7 +475,7 @@ export function activate(context: vscode.ExtensionContext) {
     }
 }
 
-export function deactivate() {
+export async function deactivate() {
     console.log('Enterprise AI Agents extension is now deactivated');
 
     if (inlineSuggestionProvider) {
@@ -406,6 +501,14 @@ export function deactivate() {
 
     if (statusBarManager) {
         statusBarManager.dispose();
+    }
+
+    if (workspaceManager) {
+        await workspaceManager.dispose();
+    }
+
+    if (analyticsService) {
+        await analyticsService.dispose();
     }
 
     if (wsClient) {
