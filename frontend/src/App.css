@@ -141,9 +141,65 @@ body {
     font-weight: 600;
 }
 
+.header-controls {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+}
+
 .status {
     font-size: 14px;
     color: #8e8e8e;
+}
+
+.mode-toggle {
+    display: flex;
+    align-items: center;
+}
+
+.toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 44px;
+    height: 24px;
+}
+
+.toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #4d4d4d;
+    transition: 0.3s;
+    border-radius: 24px;
+}
+
+.toggle-slider:before {
+    position: absolute;
+    content: "";
+    height: 18px;
+    width: 18px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    transition: 0.3s;
+    border-radius: 50%;
+}
+
+input:checked+.toggle-slider {
+    background-color: #10a37f;
+}
+
+input:checked+.toggle-slider:before {
+    transform: translateX(20px);
 }
 
 .chat-container {
@@ -220,8 +276,35 @@ body {
 
 /* Input */
 .input-container {
-    padding: 24px;
+    padding: 16px 24px 24px;
     border-top: 1px solid #2f2f2f;
+}
+
+.model-selector {
+    max-width: 800px;
+    margin: 0 auto 12px;
+}
+
+.model-dropdown {
+    background: #2f2f2f;
+    border: 1px solid #4d4d4d;
+    border-radius: 8px;
+    color: #ececec;
+    padding: 8px 12px;
+    font-size: 14px;
+    cursor: pointer;
+    outline: none;
+    width: 100%;
+    max-width: 250px;
+}
+
+.model-dropdown:hover {
+    background: #3f3f3f;
+}
+
+.model-dropdown option {
+    background: #2f2f2f;
+    color: #ececec;
 }
 
 .input-wrapper {
@@ -231,8 +314,14 @@ body {
     align-items: center;
     gap: 8px;
     background: #2f2f2f;
+    border: 1px solid #4d4d4d;
     border-radius: 24px;
     padding: 12px 16px;
+    transition: border-color 0.2s;
+}
+
+.input-wrapper:focus-within {
+    border-color: #667eea;
 }
 
 .input-wrapper input {
@@ -283,4 +372,25 @@ body {
 
 .send-btn:hover:not(:disabled) {
     background: #d9d9d9;
+}
+
+.input-footer {
+    max-width: 800px;
+    margin: 8px auto 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12px;
+    color: #8e8e8e;
+}
+
+.model-badge {
+    background: #2f2f2f;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-weight: 500;
+}
+
+.char-count {
+    opacity: 0.6;
 }

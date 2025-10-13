@@ -27,6 +27,8 @@ function App() {
     const [isLoading, setIsLoading] = useState(false);
     const [chatHistory, setChatHistory] = useState<ChatSession[]>([]);
     const [currentChatId, setCurrentChatId] = useState<string | null>(null);
+    const [mode, setMode] = useState<'local' | 'cloud'>('local');
+    const [selectedModel, setSelectedModel] = useState('auto');
 
     useEffect(() => {
         // Load chat history from localStorage
@@ -102,6 +104,18 @@ function App() {
         }
     };
 
+    const toggleMode = () => {
+        const newMode = mode === 'local' ? 'cloud' : 'local';
+        setMode(newMode);
+        wsService.sendTask({
+            id: `mode-${Date.now()}`,
+            type: 'mode_change',
+            context: {
+                mode: newMode
+            }
+        });
+    };
+
     const handleSend = () => {
         if (!input.trim() || !connected) return;
 
@@ -121,7 +135,8 @@ function App() {
             id: `task-${Date.now()}`,
             type: 'code_generation',
             context: {
-                description: input
+                description: input,
+                model: selectedModel
             }
         });
 
@@ -172,8 +187,23 @@ function App() {
             <main className="main-content">
                 <header className="header">
                     <h1>AuraIA</h1>
-                    <div className="status">
-                        {connected ? '🟢 Connected' : '🔴 Disconnected'}
+                    <div className="header-controls">
+                        <div className="status">
+                            {connected ? '🟢 Connected' : '🔴 Disconnected'}
+                        </div>
+                        <div className="mode-toggle">
+                            <span style={{ fontSize: '14px', marginRight: '8px' }}>
+                                {mode === 'local' ? '💻 Local' : '☁️ Cloud'}
+                            </span>
+                            <label className="toggle-switch">
+                                <input
+                                    type="checkbox"
+                                    checked={mode === 'cloud'}
+                                    onChange={toggleMode}
+                                />
+                                <span className="toggle-slider"></span>
+                            </label>
+                        </div>
                     </div>
                 </header>
 
