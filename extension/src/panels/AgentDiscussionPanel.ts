@@ -31,6 +31,7 @@ export class AgentDiscussionPanel {
     private _disposables: vscode.Disposable[] = [];
     private wsClient: WebSocketClient;
     private currentDiscussion: Discussion | null = null;
+    private conversationHistory: Map<string, Discussion> = new Map();
 
     public static createOrShow(extensionUri: vscode.Uri, wsClient: WebSocketClient) {
         const column = vscode.window.activeTextEditor
@@ -58,7 +59,7 @@ export class AgentDiscussionPanel {
         AgentDiscussionPanel.currentPanel = new AgentDiscussionPanel(panel, extensionUri, wsClient);
     }
 
-    private constructor(panel: vscode.WebviewPanel, extensionUri: vscode.Uri, wsClient: WebSocketClient) {
+    private constructor(panel: vscode.WebviewPanel, _extensionUri: vscode.Uri, wsClient: WebSocketClient) {
         this._panel = panel;
         this.wsClient = wsClient;
 
@@ -109,6 +110,9 @@ export class AgentDiscussionPanel {
             created_at: Date.now()
         };
 
+        // Save to history
+        this.conversationHistory.set(this.currentDiscussion.id, this.currentDiscussion);
+
         this._update();
 
         // Notify backend
@@ -117,6 +121,31 @@ export class AgentDiscussionPanel {
             task_id: taskId,
             title
         });
+    }
+
+    /**
+     * Load a previous discussion from history
+     */
+    public loadDiscussion(discussionId: string) {
+        const discussion = this.conversationHistory.get(discussionId);
+        if (discussion) {
+            this.currentDiscussion = discussion;
+            this._update();
+        }
+    }
+
+    /**
+     * Get all conversation history
+     */
+    public getConversationHistory(): Discussion[] {
+        return Array.from(this.conversationHistory.values());
+    }
+
+    /**
+     * Clear conversation history
+     */
+    public clearHistory() {
+        this.conversationHistory.clear();
     }
 
     /**
@@ -136,6 +165,10 @@ export class AgentDiscussionPanel {
         };
 
         this.currentDiscussion.messages.push(userMessage);
+
+        // Update history
+        this.conversationHistory.set(this.currentDiscussion.id, this.currentDiscussion);
+
         this._update();
 
         // Send to backend
@@ -169,6 +202,9 @@ export class AgentDiscussionPanel {
 
                 this.currentDiscussion.messages.push(agentMessage);
             }
+
+            // Update history
+            this.conversationHistory.set(this.currentDiscussion.id, this.currentDiscussion);
 
             this._update();
         }
@@ -234,7 +270,7 @@ export class AgentDiscussionPanel {
     /**
      * Get HTML content for webview
      */
-    private _getHtmlForWebview(webview: vscode.Webview) {
+    private _getHtmlForWebview(_webview: vscode.Webview) {
         const messages = this.currentDiscussion?.messages || [];
         const isActive = this.currentDiscussion?.status === 'active';
 

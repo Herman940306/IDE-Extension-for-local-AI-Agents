@@ -452,7 +452,8 @@ This implementation plan breaks down the feature into discrete coding tasks that
     - _Requirements: 5.1, 5.2, 5.3_
   
 
-  - [ ] 15.2 Implement follow-up question interface
+  - [x] 15.2 Implement follow-up question interface
+
     - Add input field for user questions
     - Implement message sending to backend
     - Display agent responses in conversation format
@@ -460,7 +461,8 @@ This implementation plan breaks down the feature into discrete coding tasks that
     - _Requirements: 5.4, 5.5_
 
   
-  - [ ] 15.3 Add webview-extension communication
+  - [x] 15.3 Add webview-extension communication
+
     - Implement message passing between webview and extension
     - Add state synchronization
     - Handle webview lifecycle (show, hide, dispose)
