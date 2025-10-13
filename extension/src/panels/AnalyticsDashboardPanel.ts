@@ -118,7 +118,6 @@ export class AnalyticsDashboardPanel {
         const summary = this.analyticsService.getSummary();
         const rates = this.analyticsService.getSuggestionRates();
         const agentMetrics = this.analyticsService.getAgentMetrics();
-        const productivity = this.analyticsService.getProductivityMetrics();
         const patterns = this.analyticsService.analyzeWorkflowPatterns();
         const timeSeriesData = this.analyticsService.getTimeSeriesData(7);
         const languageDistribution = this.analyticsService.getLanguageDistribution();
@@ -250,6 +249,7 @@ export class AnalyticsDashboardPanel {
         .agent-list {
             display: grid;
             gap: 15px;
+            role: list;
         }
 
         .agent-item {
@@ -259,6 +259,12 @@ export class AnalyticsDashboardPanel {
             display: flex;
             justify-content: space-between;
             align-items: center;
+            outline: none;
+        }
+
+        .agent-item:focus {
+            outline: 2px solid var(--vscode-focusBorder);
+            outline-offset: 2px;
         }
 
         .agent-info {
@@ -287,6 +293,7 @@ export class AnalyticsDashboardPanel {
         .pattern-list {
             display: grid;
             gap: 15px;
+            role: list;
         }
 
         .pattern-item {
@@ -294,6 +301,12 @@ export class AnalyticsDashboardPanel {
             border-radius: 8px;
             padding: 15px;
             border-left: 4px solid var(--vscode-testing-iconQueued);
+            outline: none;
+        }
+
+        .pattern-item:focus {
+            outline: 2px solid var(--vscode-focusBorder);
+            outline-offset: 2px;
         }
 
         .pattern-title {
@@ -324,9 +337,9 @@ export class AnalyticsDashboardPanel {
     <div class="header">
         <h1>📊 AI Analytics Dashboard</h1>
         <div class="actions">
-            <button class="primary" onclick="refresh()">🔄 Refresh</button>
-            <button class="secondary" onclick="exportData()">📥 Export</button>
-            <button class="secondary" onclick="clearData()">🗑️ Clear</button>
+            <button class="primary" onclick="refresh()" aria-label="Refresh analytics data">🔄 Refresh</button>
+            <button class="secondary" onclick="exportData()" aria-label="Export analytics data as JSON">📥 Export</button>
+            <button class="secondary" onclick="clearData()" aria-label="Clear all analytics data">🗑️ Clear</button>
         </div>
     </div>
 
@@ -366,7 +379,7 @@ export class AnalyticsDashboardPanel {
             <div class="section-title">📈 Suggestion Trends (7 Days)</div>
             <div class="chart-container">
                 <div class="chart-wrapper">
-                    <canvas id="timeSeriesChart"></canvas>
+                    <canvas id="timeSeriesChart" role="img" aria-label="Line chart showing accepted and rejected suggestion trends over the past 7 days"></canvas>
                 </div>
             </div>
         </div>
@@ -376,7 +389,7 @@ export class AnalyticsDashboardPanel {
             <div class="section-title">💻 Language Distribution</div>
             <div class="chart-container">
                 <div class="chart-wrapper">
-                    <canvas id="languageChart"></canvas>
+                    <canvas id="languageChart" role="img" aria-label="Doughnut chart showing distribution of programming languages used"></canvas>
                 </div>
             </div>
         </div>
@@ -387,7 +400,7 @@ export class AnalyticsDashboardPanel {
         <div class="section-title">🕐 Hourly Activity</div>
         <div class="chart-container">
             <div class="chart-wrapper">
-                <canvas id="hourlyChart"></canvas>
+                <canvas id="hourlyChart" role="img" aria-label="Bar chart showing hourly activity distribution throughout the day"></canvas>
             </div>
         </div>
     </div>
@@ -397,7 +410,7 @@ export class AnalyticsDashboardPanel {
         <div class="section-title">🤖 Agent Effectiveness</div>
         <div class="agent-list">
             ${agentMetrics.map(agent => `
-                <div class="agent-item">
+                <div class="agent-item" role="listitem" tabindex="0" aria-label="${agent.agentName} agent with ${Math.round(agent.acceptanceRate * 100)}% acceptance rate">
                     <div class="agent-info">
                         <div class="agent-name">${agent.agentName}</div>
                         <div class="agent-stats">
@@ -417,7 +430,7 @@ export class AnalyticsDashboardPanel {
         <div class="section-title">💡 Workflow Insights</div>
         <div class="pattern-list">
             ${patterns.map(pattern => `
-                <div class="pattern-item">
+                <div class="pattern-item" role="listitem" tabindex="0" aria-label="${pattern.pattern} pattern with frequency ${pattern.frequency}">
                     <div class="pattern-title">${pattern.pattern}</div>
                     <div>Frequency: ${pattern.frequency}</div>
                     ${pattern.suggestion ? `<div class="pattern-suggestion">💡 ${pattern.suggestion}</div>` : ''}
