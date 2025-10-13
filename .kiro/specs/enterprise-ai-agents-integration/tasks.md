@@ -106,7 +106,10 @@ This implementation plan breaks down the feature into discrete coding tasks that
 
 
 
-  - [ ] 5.1 Implement embeddings service with Sentence Transformers
+
+
+  - [x] 5.1 Implement embeddings service with Sentence Transformers
+
     - Create EmbeddingsService class with CodeBERT model
     - Implement codebase embedding generation with file parsing
     - Add incremental embedding updates for changed files
@@ -115,12 +118,16 @@ This implementation plan breaks down the feature into discrete coding tasks that
     - Integrate ChromaDB for vector storage
     - _Requirements: 3.1, 3.4, 3.5_
   
+
+
   - [ ] 5.2 Create context manager for code analysis
     - Write ContextManager class with file system monitoring
 
     - Implement Git history analysis using GitPython
     - Add AST parsing with tree-sitter for multi-language support
     - Build dependency graph construction logic
+
+
     - _Requirements: 3.2, 3.3, 9.2_
   
   - [ ] 5.3 Implement semantic code search
