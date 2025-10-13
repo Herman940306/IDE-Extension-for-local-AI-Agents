@@ -1,438 +1,447 @@
 """
-Bug Agent with security analysis and vulnerability detection
+Bug Detection Agent with security analysis
 Project Creator: Herman Swanepoel
 """
 
-import logging
 import asyncio
-from typing import List, Dict, Any, Optional
 import re
+from typing import List, Dict, Any, Optional
+from enum import Enum
 
-from models import Task, AgentResponse, Suggestion, TaskType
-from adapters.base_adapter import AgentAdapter
-from services.llm_manager import LLMManager
-from services.code_smell_detector import CodeSmellDetector
-
-logger = logging.getLogger(__name__)
+from src.models import Task, AgentResponse, Suggestion, CodeContext
+from src.services.llm_manager import LLMManager
 
 
-class BugAgent(AgentAdapter):
+class Severity(str, Enum):
+    """Bug severity levels"""
+    CRITICAL = "critical"
+    HIGH = "high"
+    MEDIUM = "medium"
+    LOW = "low"
+    INFO = "info"
+
+
+class BugCategory(str, Enum):
+    """Bug categories"""
+    SECURITY = "security"
+    PERFORMANCE = "performance"
+    LOGIC = "logic"
+    STYLE = "style"
+    MAINTAINABILITY = "maintainability"
+
+
+class BugAgent:
     """
-    Specialized agent for bug detection, security analysis, and code quality
-    """
+    Bug detection agent with security analysis
     
+    Detects bugs, security vulnerabilities, and code quality issues
+    using static analysis and LLM-powered detection.
+    """
+
     def __init__(self, llm_manager: LLMManager):
         """
         Initialize Bug Agent
         
         Args:
-            llm_manager: LLM manager instance
+            llm_manager: LLM manager for AI-powered analysis
         """
-        super().__init__(
-            name="bug_agent",
-            capabilities=["bug_detection", "security_analysis", "code_quality", "linting"]
-        )
         self.llm_manager = llm_manager
-        self.code_smell_detector = CodeSmellDetector()
-        
-        # Security patterns
-        self.security_patterns = self._initialize_security_patterns()
-        
-        logger.info("✓ BugAgent initialized")
-    
-    def _initialize_security_patterns(self) -> Dict[str, List[Dict[str, Any]]]:
-        """Initialize security vulnerability patterns"""
-        return {
-            "python": [
-                {
-                    "pattern": r"eval\s*\(",
-                    "severity": "critical",
-                    "message": "Use of eval() is dangerous - arbitrary code execution",
-                    "cwe": "CWE-95"
-                },
-                {
-                    "pattern": r"exec\s*\(",
-                    "severity": "critical",
-                    "message": "Use of exec() is dangerous - arbitrary code execution",
-                    "cwe": "CWE-95"
-                },
-                {
-                    "pattern": r"pickle\.loads?\s*\(",
-                    "severity": "high",
-                    "message": "Pickle deserialization can execute arbitrary code",
-                    "cwe": "CWE-502"
-                },
-                {
-                    "pattern": r"os\.system\s*\(",
-                    "severity": "high",
-                    "message": "os.system() vulnerable to command injection",
-                    "cwe": "CWE-78"
-                },
-                {
-                    "pattern": r"subprocess\.(call|run|Popen).*shell\s*=\s*True",
-                    "severity": "high",
-                    "message": "Shell=True in subprocess is vulnerable to injection",
-                    "cwe": "CWE-78"
-                },
-                {
-                    "pattern": r"password\s*=\s*['\"].*['\"]",
-                    "severity": "critical",
-                    "message": "Hardcoded password detected",
-                    "cwe": "CWE-259"
-                },
-                {
-                    "pattern": r"api[_-]?key\s*=\s*['\"].*['\"]",
-                    "severity": "critical",
-                    "message": "Hardcoded API key detected",
-                    "cwe": "CWE-798"
-                },
-                {
-                    "pattern": r"secret\s*=\s*['\"].*['\"]",
-                    "severity": "critical",
-                    "message": "Hardcoded secret detected",
-                    "cwe": "CWE-798"
-                }
-            ],
-            "javascript": [
-                {
-                    "pattern": r"eval\s*\(",
-                    "severity": "critical",
-                    "message": "Use of eval() is dangerous - arbitrary code execution",
-                    "cwe": "CWE-95"
-                },
-                {
-                    "pattern": r"innerHTML\s*=",
-                    "severity": "medium",
-                    "message": "innerHTML can lead to XSS vulnerabilities",
-                    "cwe": "CWE-79"
-                },
-                {
-                    "pattern": r"document\.write\s*\(",
-                    "severity": "medium",
-                    "message": "document.write() can lead to XSS vulnerabilities",
-                    "cwe": "CWE-79"
-                },
-                {
-                    "pattern": r"dangerouslySetInnerHTML",
-                    "severity": "high",
-                    "message": "dangerouslySetInnerHTML can lead to XSS",
-                    "cwe": "CWE-79"
-                },
-                {
-                    "pattern": r"password\s*[:=]\s*['\"].*['\"]",
-                    "severity": "critical",
-                    "message": "Hardcoded password detected",
-                    "cwe": "CWE-259"
-                },
-                {
-                    "pattern": r"apiKey\s*[:=]\s*['\"].*['\"]",
-                    "severity": "critical",
-                    "message": "Hardcoded API key detected",
-                    "cwe": "CWE-798"
-                }
-            ],
-            "typescript": [
-                {
-                    "pattern": r"eval\s*\(",
-                    "severity": "critical",
-                    "message": "Use of eval() is dangerous - arbitrary code execution",
-                    "cwe": "CWE-95"
-                },
-                {
-                    "pattern": r"dangerouslySetInnerHTML",
-                    "severity": "high",
-                    "message": "dangerouslySetInnerHTML can lead to XSS",
-                    "cwe": "CWE-79"
-                },
-                {
-                    "pattern": r"password\s*[:=]\s*['\"].*['\"]",
-                    "severity": "critical",
-                    "message": "Hardcoded password detected",
-                    "cwe": "CWE-259"
-                },
-                {
-                    "pattern": r"any\s+as\s+",
-                    "severity": "low",
-                    "message": "Type assertion bypasses type safety",
-                    "cwe": "CWE-704"
-                }
-            ]
+        self.name = "Bug Agent"
+
+        # Security patterns to detect
+        self.security_patterns = {
+            "sql_injection": r"(execute|query|cursor\.execute)\s*\(\s*['\"].*%s.*['\"]",
+            "command_injection": r"(os\.system|subprocess\.call|eval|exec)\s*\(",
+            "hardcoded_secret": r"(password|secret|api_key|token)\s*=\s*['\"][^'\"]+['\"]",
+            "xss_vulnerability": r"innerHTML\s*=|document\.write\s*\(",
+            "path_traversal": r"open\s*\([^)]*\+[^)]*\)",
+            "insecure_random": r"random\.random\(\)|Math\.random\(\)",
         }
-    
-    async def execute_task(self, task: Task) -> AgentResponse:
-        """
-        Execute bug detection and security analysis task
-        
-        Args:
-            task: Task to execute
-            
-        Returns:
-            AgentResponse with bug fixes and security recommendations
-        """
-        try:
-            logger.info(f"BugAgent executing task: {task.id}")
-            
-            # Get code context
-            code = task.code_context.get("code", "") if task.code_context else ""
-            language = task.code_context.get("language", "unknown") if task.code_context else "unknown"
-            
-            if not code:
-                return self._create_empty_response(task)
-            
-            # Perform analysis
-            issues = await self._analyze_code(code, language)
-            
-            # Generate suggestions
-            suggestions = await self._generate_suggestions(code, language, issues)
-            
-            # Create response
-            return AgentResponse(
-                task_id=task.id,
-                agent_name=self.name,
-                suggestions=suggestions,
-                metadata={
-                    "issues_found": len(issues),
-                    "critical_issues": sum(1 for i in issues if i["severity"] == "critical"),
-                    "high_issues": sum(1 for i in issues if i["severity"] == "high"),
-                    "medium_issues": sum(1 for i in issues if i["severity"] == "medium"),
-                    "low_issues": sum(1 for i in issues if i["severity"] == "low"),
-                    "analysis_type": "security_and_quality"
-                }
-            )
-            
-        except Exception as e:
-            logger.error(f"BugAgent task execution failed: {e}")
-            return self._create_error_response(task, str(e))
-    
-    async def _analyze_code(self, code: str, language: str) -> List[Dict[str, Any]]:
+
+        # Performance anti-patterns
+        self.performance_patterns = {
+            "nested_loops": r"for\s+.*:\s*\n\s+for\s+",
+            "inefficient_string_concat": r"\+\s*=\s*['\"]",
+            "global_variable": r"global\s+\w+",
+        }
+
+    async def analyze_code(self, task: Task, context: CodeContext) -> AgentResponse:
         """
         Analyze code for bugs and security issues
         
         Args:
-            code: Code to analyze
-            language: Programming language
+            task: Task to execute
+            context: Code context
             
         Returns:
-            List of issues found
+            AgentResponse with bug findings and fixes
         """
-        issues = []
-        
-        # Security pattern matching
-        security_issues = self._detect_security_issues(code, language)
-        issues.extend(security_issues)
-        
-        # Code smell detection
-        code_smells = await self.code_smell_detector.detect(code, language)
-        issues.extend(code_smells)
-        
-        # Sort by severity
-        severity_order = {"critical": 0, "high": 1, "medium": 2, "low": 3}
-        issues.sort(key=lambda x: severity_order.get(x["severity"], 4))
-        
-        return issues
-    
-    def _detect_security_issues(self, code: str, language: str) -> List[Dict[str, Any]]:
+        try:
+            # Run static analysis
+            static_issues = await self._static_analysis(context)
+
+            # Run LLM-powered analysis
+            llm_issues = await self._llm_analysis(context)
+
+            # Combine and deduplicate issues
+            all_issues = self._merge_issues(static_issues, llm_issues)
+
+            # Generate fix suggestions
+            suggestions = await self._generate_fixes(all_issues, context)
+
+            # Calculate overall confidence
+            confidence = self._calculate_confidence(all_issues, suggestions)
+
+            return AgentResponse(
+                task_id=task.id,
+                agent_name=self.name,
+                suggestions=suggestions,
+                confidence=confidence,
+                reasoning=self._generate_reasoning(all_issues)
+            )
+
+        except Exception as e:
+            return AgentResponse(
+                task_id=task.id,
+                agent_name=self.name,
+                suggestions=[],
+                confidence=0.0,
+                reasoning=f"Analysis failed: {str(e)}"
+            )
+
+    async def _static_analysis(self, context: CodeContext) -> List[Dict[str, Any]]:
         """
-        Detect security vulnerabilities using pattern matching
+        Perform static code analysis
         
         Args:
-            code: Code to analyze
-            language: Programming language
+            context: Code context
             
         Returns:
-            List of security issues
+            List of detected issues
         """
         issues = []
-        patterns = self.security_patterns.get(language, [])
-        
-        for pattern_info in patterns:
-            pattern = pattern_info["pattern"]
-            matches = re.finditer(pattern, code, re.IGNORECASE | re.MULTILINE)
-            
+
+        # Check security patterns
+        for pattern_name, pattern in self.security_patterns.items():
+            matches = re.finditer(pattern, context.code, re.MULTILINE)
             for match in matches:
-                # Find line number
-                line_num = code[:match.start()].count('\n') + 1
-                
+                line_num = context.code[:match.start()].count('\n') + 1
                 issues.append({
                     "type": "security",
-                    "severity": pattern_info["severity"],
-                    "message": pattern_info["message"],
-                    "cwe": pattern_info.get("cwe", ""),
+                    "category": BugCategory.SECURITY,
+                    "severity": self._get_severity(pattern_name),
+                    "pattern": pattern_name,
                     "line": line_num,
-                    "code_snippet": match.group(0),
-                    "category": "security_vulnerability"
+                    "code": match.group(0),
+                    "message": self._get_message(pattern_name)
                 })
-        
+
+        # Check performance patterns
+        for pattern_name, pattern in self.performance_patterns.items():
+            matches = re.finditer(pattern, context.code, re.MULTILINE)
+            for match in matches:
+                line_num = context.code[:match.start()].count('\n') + 1
+                issues.append({
+                    "type": "performance",
+                    "category": BugCategory.PERFORMANCE,
+                    "severity": Severity.MEDIUM,
+                    "pattern": pattern_name,
+                    "line": line_num,
+                    "code": match.group(0),
+                    "message": self._get_message(pattern_name)
+                })
+
+        # Language-specific checks
+        if context.language == "python":
+            issues.extend(await self._python_specific_checks(context))
+        elif context.language in ["javascript", "typescript"]:
+            issues.extend(await self._javascript_specific_checks(context))
+
         return issues
-    
-    async def _generate_suggestions(
-        self,
-        code: str,
-        language: str,
-        issues: List[Dict[str, Any]]
-    ) -> List[Suggestion]:
+
+    async def _python_specific_checks(self, context: CodeContext) -> List[Dict[str, Any]]:
+        """Python-specific security and quality checks"""
+        issues = []
+
+        # Check for pickle usage (security risk)
+        if "pickle.loads" in context.code or "pickle.load" in context.code:
+            issues.append({
+                "type": "security",
+                "category": BugCategory.SECURITY,
+                "severity": Severity.HIGH,
+                "pattern": "unsafe_deserialization",
+                "line": 0,
+                "code": "pickle.loads/load",
+                "message": "Unsafe deserialization with pickle can lead to code execution"
+            })
+
+        # Check for assert in production code
+        if "assert " in context.code:
+            issues.append({
+                "type": "logic",
+                "category": BugCategory.LOGIC,
+                "severity": Severity.LOW,
+                "pattern": "assert_in_production",
+                "line": 0,
+                "code": "assert",
+                "message": "Assert statements are removed in optimized Python, use proper error handling"
+            })
+
+        return issues
+
+    async def _javascript_specific_checks(self, context: CodeContext) -> List[Dict[str, Any]]:
+        """JavaScript/TypeScript-specific checks"""
+        issues = []
+
+        # Check for == instead of ===
+        matches = re.finditer(r'[^=!]==[^=]', context.code)
+        for match in matches:
+            line_num = context.code[:match.start()].count('\n') + 1
+            issues.append({
+                "type": "logic",
+                "category": BugCategory.LOGIC,
+                "severity": Severity.LOW,
+                "pattern": "loose_equality",
+                "line": line_num,
+                "code": match.group(0),
+                "message": "Use === instead of == for strict equality comparison"
+            })
+
+        # Check for console.log in production
+        if "console.log" in context.code:
+            issues.append({
+                "type": "style",
+                "category": BugCategory.STYLE,
+                "severity": Severity.INFO,
+                "pattern": "console_log",
+                "line": 0,
+                "code": "console.log",
+                "message": "Remove console.log statements from production code"
+            })
+
+        return issues
+
+    async def _llm_analysis(self, context: CodeContext) -> List[Dict[str, Any]]:
         """
-        Generate fix suggestions for detected issues
+        Use LLM for deeper code analysis
         
         Args:
-            code: Original code
-            language: Programming language
-            issues: List of detected issues
+            context: Code context
             
         Returns:
-            List of suggestions
-        """
-        suggestions = []
-        
-        # Group issues by severity
-        critical_issues = [i for i in issues if i["severity"] == "critical"]
-        high_issues = [i for i in issues if i["severity"] == "high"]
-        
-        # Generate fixes for critical issues first
-        for issue in critical_issues[:3]:  # Limit to top 3
-            suggestion = await self._generate_fix_for_issue(code, language, issue)
-            if suggestion:
-                suggestions.append(suggestion)
-        
-        # Generate fixes for high severity issues
-        for issue in high_issues[:2]:  # Limit to top 2
-            suggestion = await self._generate_fix_for_issue(code, language, issue)
-            if suggestion:
-                suggestions.append(suggestion)
-        
-        # If no critical/high issues, provide general improvements
-        if not suggestions and issues:
-            suggestion = await self._generate_general_improvements(code, language, issues)
-            if suggestion:
-                suggestions.append(suggestion)
-        
-        return suggestions
-    
-    async def _generate_fix_for_issue(
-        self,
-        code: str,
-        language: str,
-        issue: Dict[str, Any]
-    ) -> Optional[Suggestion]:
-        """
-        Generate a fix suggestion for a specific issue
-        
-        Args:
-            code: Original code
-            language: Programming language
-            issue: Issue to fix
-            
-        Returns:
-            Suggestion or None
+            List of LLM-detected issues
         """
         try:
-            # Create prompt for LLM
-            prompt = f"""Fix this {issue['severity']} severity {language} code issue:
+            prompt = f"""Analyze the following {context.language} code for bugs, security vulnerabilities, and code quality issues.
+
+Code:
+```{context.language}
+{context.code}
+```
+
+Provide a detailed analysis in the following format:
+1. List each issue found
+2. Categorize as: security, performance, logic, style, or maintainability
+3. Assign severity: critical, high, medium, low, or info
+4. Explain the issue and potential impact
+5. Suggest a fix
+
+Format your response as:
+ISSUE: [category] - [severity]
+LINE: [line number or "multiple"]
+DESCRIPTION: [detailed description]
+FIX: [suggested fix]
+---
+"""
+
+            response = await self.llm_manager.generate(prompt, max_tokens=1000)
+
+            # Parse LLM response
+            return self._parse_llm_response(response)
+
+        except Exception as e:
+            print(f"LLM analysis failed: {e}")
+            return []
+
+    def _parse_llm_response(self, response: str) -> List[Dict[str, Any]]:
+        """Parse LLM response into structured issues"""
+        issues = []
+        
+        # Split by issue separator
+        issue_blocks = response.split("---")
+        
+        for block in issue_blocks:
+            if not block.strip():
+                continue
+
+            issue = {}
+            
+            # Extract fields
+            if match := re.search(r'ISSUE:\s*(\w+)\s*-\s*(\w+)', block):
+                issue["category"] = match.group(1).lower()
+                issue["severity"] = match.group(2).lower()
+            
+            if match := re.search(r'LINE:\s*(.+)', block):
+                line_str = match.group(1).strip()
+                issue["line"] = int(line_str) if line_str.isdigit() else 0
+            
+            if match := re.search(r'DESCRIPTION:\s*(.+?)(?=FIX:|$)', block, re.DOTALL):
+                issue["message"] = match.group(1).strip()
+            
+            if match := re.search(r'FIX:\s*(.+)', block, re.DOTALL):
+                issue["fix"] = match.group(1).strip()
+
+            if issue:
+                issue["type"] = "llm_detected"
+                issues.append(issue)
+
+        return issues
+
+    def _merge_issues(
+        self, 
+        static_issues: List[Dict[str, Any]], 
+        llm_issues: List[Dict[str, Any]]
+    ) -> List[Dict[str, Any]]:
+        """Merge and deduplicate issues from different sources"""
+        all_issues = static_issues + llm_issues
+        
+        # Sort by severity
+        severity_order = {
+            Severity.CRITICAL: 0,
+            Severity.HIGH: 1,
+            Severity.MEDIUM: 2,
+            Severity.LOW: 3,
+            Severity.INFO: 4
+        }
+        
+        all_issues.sort(key=lambda x: severity_order.get(x.get("severity", Severity.INFO), 4))
+        
+        return all_issues
+
+    async def _generate_fixes(
+        self, 
+        issues: List[Dict[str, Any]], 
+        context: CodeContext
+    ) -> List[Suggestion]:
+        """Generate fix suggestions for detected issues"""
+        suggestions = []
+
+        for issue in issues[:10]:  # Limit to top 10 issues
+            # Use LLM to generate fix if not already provided
+            if "fix" not in issue:
+                fix_code = await self._generate_fix_code(issue, context)
+            else:
+                fix_code = issue["fix"]
+
+            suggestions.append(Suggestion(
+                code=fix_code,
+                description=f"[{issue['severity'].upper()}] {issue['message']}",
+                confidence=self._get_fix_confidence(issue),
+                reasoning=f"Detected {issue['category']} issue at line {issue.get('line', 'unknown')}"
+            ))
+
+        return suggestions
+
+    async def _generate_fix_code(self, issue: Dict[str, Any], context: CodeContext) -> str:
+        """Generate fix code for an issue using LLM"""
+        try:
+            prompt = f"""Generate a code fix for the following issue:
 
 Issue: {issue['message']}
-{f"CWE: {issue['cwe']}" if issue.get('cwe') else ""}
-Line: {issue.get('line', 'unknown')}
+Category: {issue.get('category', 'unknown')}
+Severity: {issue.get('severity', 'unknown')}
 
 Original code:
-```{language}
-{code}
+```{context.language}
+{context.code}
 ```
 
-Provide a fixed version of the code that resolves this issue while maintaining functionality.
-Only return the fixed code, no explanations."""
+Provide only the fixed code without explanations.
+"""
 
-            # Get fix from LLM
-            fixed_code = await self.llm_manager.generate(prompt)
-            
-            # Calculate confidence based on severity
-            confidence = 0.9 if issue["severity"] == "critical" else 0.8
-            
-            return Suggestion(
-                code=fixed_code.strip(),
-                description=f"Fix {issue['severity']} issue: {issue['message']}",
-                confidence=confidence,
-                reasoning=f"Addresses {issue.get('cwe', 'security issue')} by {issue['message'].lower()}"
-            )
-            
-        except Exception as e:
-            logger.error(f"Failed to generate fix for issue: {e}")
-            return None
-    
-    async def _generate_general_improvements(
-        self,
-        code: str,
-        language: str,
-        issues: List[Dict[str, Any]]
-    ) -> Optional[Suggestion]:
-        """
-        Generate general code quality improvements
-        
-        Args:
-            code: Original code
-            language: Programming language
-            issues: List of all issues
-            
-        Returns:
-            Suggestion or None
-        """
-        try:
-            issue_summary = "\n".join([
-                f"- {i['severity'].upper()}: {i['message']}"
-                for i in issues[:5]
-            ])
-            
-            prompt = f"""Improve this {language} code to address these quality issues:
+            fix = await self.llm_manager.generate(prompt, max_tokens=500)
+            return fix.strip()
 
-{issue_summary}
+        except Exception:
+            return f"# TODO: Fix {issue['message']}"
 
-Original code:
-```{language}
-{code}
-```
+    def _get_severity(self, pattern_name: str) -> Severity:
+        """Get severity level for a pattern"""
+        severity_map = {
+            "sql_injection": Severity.CRITICAL,
+            "command_injection": Severity.CRITICAL,
+            "hardcoded_secret": Severity.HIGH,
+            "xss_vulnerability": Severity.HIGH,
+            "path_traversal": Severity.HIGH,
+            "insecure_random": Severity.MEDIUM,
+            "nested_loops": Severity.MEDIUM,
+            "inefficient_string_concat": Severity.LOW,
+            "global_variable": Severity.LOW,
+        }
+        return severity_map.get(pattern_name, Severity.INFO)
 
-Provide an improved version that addresses these issues.
-Only return the improved code, no explanations."""
+    def _get_message(self, pattern_name: str) -> str:
+        """Get human-readable message for a pattern"""
+        messages = {
+            "sql_injection": "Potential SQL injection vulnerability detected",
+            "command_injection": "Potential command injection vulnerability detected",
+            "hardcoded_secret": "Hardcoded secret or credential detected",
+            "xss_vulnerability": "Potential XSS vulnerability detected",
+            "path_traversal": "Potential path traversal vulnerability detected",
+            "insecure_random": "Insecure random number generation for security purposes",
+            "nested_loops": "Nested loops may cause performance issues",
+            "inefficient_string_concat": "Inefficient string concatenation in loop",
+            "global_variable": "Global variable usage may cause maintainability issues",
+        }
+        return messages.get(pattern_name, f"Issue detected: {pattern_name}")
 
-            improved_code = await self.llm_manager.generate(prompt)
-            
-            return Suggestion(
-                code=improved_code.strip(),
-                description=f"Improve code quality ({len(issues)} issues addressed)",
-                confidence=0.7,
-                reasoning=f"Addresses {len(issues)} code quality and security issues"
-            )
-            
-        except Exception as e:
-            logger.error(f"Failed to generate general improvements: {e}")
-            return None
-    
-    def _create_empty_response(self, task: Task) -> AgentResponse:
-        """Create empty response when no code provided"""
-        return AgentResponse(
-            task_id=task.id,
-            agent_name=self.name,
-            suggestions=[],
-            metadata={"error": "No code provided for analysis"}
-        )
-    
-    def _create_error_response(self, task: Task, error: str) -> AgentResponse:
-        """Create error response"""
-        return AgentResponse(
-            task_id=task.id,
-            agent_name=self.name,
-            suggestions=[],
-            metadata={"error": error}
-        )
-    
-    def get_capabilities(self) -> List[str]:
-        """Get agent capabilities"""
-        return self.capabilities
-    
-    async def health_check(self) -> bool:
-        """Check if agent is healthy"""
-        try:
-            # Test LLM connection
-            await self.llm_manager.generate("test", max_tokens=10)
-            return True
-        except:
-            return False
+    def _get_fix_confidence(self, issue: Dict[str, Any]) -> float:
+        """Calculate confidence for a fix suggestion"""
+        base_confidence = 0.7
+
+        # Higher confidence for static analysis
+        if issue.get("type") != "llm_detected":
+            base_confidence += 0.1
+
+        # Higher confidence for well-known patterns
+        if issue.get("pattern") in self.security_patterns:
+            base_confidence += 0.1
+
+        return min(base_confidence, 1.0)
+
+    def _calculate_confidence(
+        self, 
+        issues: List[Dict[str, Any]], 
+        suggestions: List[Suggestion]
+    ) -> float:
+        """Calculate overall confidence in the analysis"""
+        if not issues:
+            return 0.9  # High confidence when no issues found
+
+        # Average confidence of suggestions
+        if suggestions:
+            avg_confidence = sum(s.confidence for s in suggestions) / len(suggestions)
+            return avg_confidence
+
+        return 0.7  # Default confidence
+
+    def _generate_reasoning(self, issues: List[Dict[str, Any]]) -> str:
+        """Generate reasoning text for the analysis"""
+        if not issues:
+            return "No significant bugs or security issues detected. Code appears to be clean."
+
+        # Count by severity
+        severity_counts = {}
+        for issue in issues:
+            severity = issue.get("severity", Severity.INFO)
+            severity_counts[severity] = severity_counts.get(severity, 0) + 1
+
+        reasoning = f"Found {len(issues)} issue(s):\n"
+        for severity, count in sorted(severity_counts.items(), key=lambda x: x[0].value):
+            reasoning += f"- {severity.value.upper()}: {count}\n"
+
+        reasoning += "\nTop issues:\n"
+        for i, issue in enumerate(issues[:5], 1):
+            reasoning += f"{i}. [{issue.get('severity', 'unknown').upper()}] {issue['message']}\n"
+
+        return reasoning

@@ -337,14 +337,16 @@ This implementation plan breaks down the feature into discrete coding tasks that
 
 
 - [ ] 11. Create CrewAI adapter for collaborative agents
-  - [ ] 11.1 Implement CrewAI adapter with Doc and Test agents
+  - [x] 11.1 Implement CrewAI adapter with Doc and Test agents
+
     - Create CrewAIAdapter class implementing AgentAdapter interface
     - Configure CrewAI Doc Agent for documentation generation
     - Configure CrewAI Test Agent for test generation
     - Implement task format conversion (our format ↔ CrewAI format)
     - _Requirements: 1.1, 1.2, 7.1, 7.4_
   
-  - [ ] 11.2 Integrate CrewAI crew execution
+  - [x] 11.2 Integrate CrewAI crew execution
+
     - Implement crew creation and kickoff logic
     - Add result parsing and response conversion
     - Handle CrewAI-specific errors and timeouts
@@ -403,14 +405,16 @@ This implementation plan breaks down the feature into discrete coding tasks that
     - _Requirements: 1.1, 1.2_
 
 - [ ] 14. Implement specialized agents (Bug, Doc, Test)
-  - [ ] 14.1 Create Bug Agent with security analysis
+  - [x] 14.1 Create Bug Agent with security analysis
+
     - Write BugAgent class with linting integration
     - Integrate static analysis tools (Bandit, Semgrep)
     - Implement security vulnerability detection
     - Add severity categorization (Critical/High/Medium/Low)
     - _Requirements: 6.1, 6.2, 6.4_
   
-  - [ ] 14.2 Create Doc Agent for documentation generation
+  - [x] 14.2 Create Doc Agent for documentation generation
+
     - Write DocAgent class using CrewAI adapter
     - Implement docstring generation logic
     - Add README and API documentation generation
