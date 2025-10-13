@@ -191,9 +191,10 @@ async def health_check():
 @app.websocket("/ws/{client_id}")
 async def websocket_endpoint(websocket: WebSocket, client_id: str):
     """WebSocket endpoint for real-time communication"""
-    await connection_manager.connect(websocket, client_id)
-
     try:
+        await connection_manager.connect(websocket, client_id)
+        logger.info("websocket_connected", client_id=client_id)
+
         # Send welcome message
         await connection_manager.send_personal_message(
             {
@@ -206,6 +207,11 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
             },
             client_id,
         )
+    except Exception as e:
+        logger.error("websocket_connection_failed", client_id=client_id, error=str(e))
+        return
+
+    try:
 
         # Message handling loop
         while True:
