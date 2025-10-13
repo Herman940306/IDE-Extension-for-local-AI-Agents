@@ -14,16 +14,19 @@ import logging
 import uuid
 import ast
 import re
-from typing import List, Dict, Any, Optional
+import asyncio
+import hashlib
+from typing import List, Dict, Any, Optional, Callable
 from pathlib import Path
+from functools import lru_cache
 
-from adapters.base_adapter import AgentAdapter, AgentConfig, Capability
-from models.task import Task
-from models.context import CodeContext
-from models.response import AgentResponse, Suggestion, ConfidenceLevel
-from services.llm_manager import LLMManager
-from services.code_smell_detector import CodeSmellDetector
-from services.memory_service import MemoryService, Message, MessageType
+from src.adapters.base_adapter import AgentAdapter, AgentConfig, Capability
+from src.models.task import Task
+from src.models.context import CodeContext
+from src.models.response import AgentResponse, Suggestion, ConfidenceLevel
+from src.services.llm_manager import LLMManager, LLMError
+from src.services.code_smell_detector import CodeSmellDetector
+from src.services.memory_service import MemoryService, Message, MessageType
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +38,7 @@ class RefactoringPattern:
         self,
         name: str,
         description: str,
-        detector: callable,
+        detector: Callable[[ast.AST, str, CodeContext], List[Suggestion]],
         suggestion_template: str,
         confidence: float = 0.8
     ):
@@ -61,6 +64,8 @@ class RefactorAgent(AgentAdapter):
     - AST-based analysis for fast, deterministic detection
     - LLM-powered suggestions for complex refactorings
     - Memory integration for context-aware suggestions
+    - Parallel analysis for performance
+    - AST caching for repeated analysis
     
     Usage:
         config = AgentConfig(
@@ -73,6 +78,14 @@ class RefactorAgent(AgentAdapter):
         
         response = await agent.execute_task(task, context)
     """
+    
+    # Configuration constants
+    LONG_METHOD_THRESHOLD = 30
+    VERY_LONG_METHOD_THRESHOLD = 50
+    MAGIC_NUMBER_MIN_OCCURRENCES = 2
+    COMPLEX_CONDITIONAL_THRESHOLD = 3
+    MAX_AST_NODES = 10000
+    MAX_SUGGESTIONS = 10
     
     def __init__(
         self,
@@ -95,11 +108,23 @@ class RefactorAgent(AgentAdapter):
         self.code_smell_detector = code_smell_detector
         self.memory_service = memory_service
         self.refactoring_patterns: List[RefactoringPattern] = []
+        self._ast_cache: Dict[str, ast.AST] = {}
         
-        logger.info(f"RefactorAgent initialized: {config.name}")
+        logger.info(
+            "RefactorAgent initialized",
+            extra={
+                "agent_name": config.name,
+                "capabilities": [c.value for c in config.capabilities]
+            }
+        )
     
     async def initialize(self) -> None:
-        """Initialize the agent and load refactoring patterns"""
+        """
+        Initialize the agent and load refactoring patterns
+        
+        Raises:
+            RuntimeError: If initialization fails
+        """
         if self.is_initialized:
             return
         
@@ -113,11 +138,14 @@ class RefactorAgent(AgentAdapter):
                 logger.warning("LLM health check failed, agent will use AST-only analysis")
             
             self.is_initialized = True
-            logger.info("✓ RefactorAgent initialized successfully")
+            logger.info(
+                "✓ RefactorAgent initialized successfully",
+                extra={"pattern_count": len(self.refactoring_patterns)}
+            )
             
         except Exception as e:
-            logger.error(f"Failed to initialize RefactorAgent: {e}")
-            raise
+            logger.error(f"Failed to initialize RefactorAgent: {e}", exc_info=True)
+            raise RuntimeError(f"RefactorAgent initialization failed: {e}") from e
     
     def _load_refactoring_patterns(self) -> None:
         """Load common refactoring patterns"""
@@ -164,11 +192,22 @@ class RefactorAgent(AgentAdapter):
             
         Returns:
             AgentResponse with refactoring suggestions
+            
+        Raises:
+            ValueError: If task or context is invalid
         """
         if not self.is_initialized:
             await self.initialize()
         
-        logger.info(f"Executing refactoring task: {task.id}")
+        logger.info(
+            "Executing refactoring task",
+            extra={
+                "task_id": task.id,
+                "file_path": context.file_path,
+                "language": context.language,
+                "code_length": len(task.content)
+            }
+        )
         
         try:
             # Store task in memory if available
@@ -203,19 +242,57 @@ class RefactorAgent(AgentAdapter):
             if self.memory_service:
                 await self._store_response_in_memory(task, response)
             
-            logger.info(f"✓ Refactoring analysis complete: {len(suggestions)} suggestions")
+            logger.info(
+                "✓ Refactoring analysis complete",
+                extra={
+                    "task_id": task.id,
+                    "suggestion_count": len(suggestions),
+                    "confidence": confidence
+                }
+            )
             return response
             
+        except SyntaxError as e:
+            logger.error(f"Code analysis failed - syntax error: {e}", exc_info=True)
+            return AgentResponse(
+                agent_id="refactor_agent",
+                agent_name=self.config.name,
+                suggestions=[],
+                confidence=0.0,
+                reasoning=f"Syntax error in code: {str(e)}",
+                metadata={"error": "syntax_error", "details": str(e)}
+            )
+        except ValueError as e:
+            logger.error(f"Code analysis failed - invalid input: {e}", exc_info=True)
+            return AgentResponse(
+                agent_id="refactor_agent",
+                agent_name=self.config.name,
+                suggestions=[],
+                confidence=0.0,
+                reasoning=f"Invalid input: {str(e)}",
+                metadata={"error": "value_error", "details": str(e)}
+            )
+        except LLMError as e:
+            logger.warning(f"LLM unavailable, using AST-only analysis: {e}")
+            # Continue with AST-only analysis
+            suggestions = await self._analyze_code_ast_only(task.content, context)
+            return AgentResponse(
+                agent_id="refactor_agent",
+                agent_name=self.config.name,
+                suggestions=suggestions,
+                confidence=self._calculate_confidence(suggestions),
+                reasoning=self._generate_reasoning(suggestions, context),
+                metadata={"analysis_type": "ast_only", "llm_error": str(e)}
+            )
         except Exception as e:
-            logger.error(f"Failed to execute refactoring task: {e}")
-            # Return empty response on error
+            logger.critical(f"Unexpected error in refactoring task: {e}", exc_info=True)
             return AgentResponse(
                 agent_id="refactor_agent",
                 agent_name=self.config.name,
                 suggestions=[],
                 confidence=0.0,
                 reasoning=f"Analysis failed: {str(e)}",
-                metadata={"error": str(e)}
+                metadata={"error": "unexpected_error", "details": str(e)}
             )
     
     async def _analyze_code(
@@ -224,10 +301,72 @@ class RefactorAgent(AgentAdapter):
         context: CodeContext
     ) -> List[Suggestion]:
         """
-        Analyze code and generate refactoring suggestions
+        Analyze code and generate refactoring suggestions using parallel execution
         
         Args:
-            code: Code to analyze
+            code: Source code to analyze
+            context: Code context including file path and language
+            
+        Returns:
+            List of refactoring suggestions sorted by confidence
+            
+        Raises:
+            SyntaxError: If code cannot be parsed
+            ValueError: If context is invalid
+        """
+        # Run analyses in parallel for performance
+        results = await asyncio.gather(
+            self._detect_patterns_ast(code, context),
+            self._detect_code_smells(code, context),
+            return_exceptions=True
+        )
+        
+        suggestions = []
+        
+        # Process AST analysis results
+        ast_suggestions = results[0]
+        if isinstance(ast_suggestions, Exception):
+            logger.warning(f"AST analysis failed: {ast_suggestions}")
+        else:
+            suggestions.extend(ast_suggestions)
+        
+        # Process code smell detection results
+        smell_suggestions = results[1]
+        if isinstance(smell_suggestions, Exception):
+            logger.warning(f"Code smell detection failed: {smell_suggestions}")
+        else:
+            suggestions.extend(smell_suggestions)
+        
+        # 3. LLM-powered suggestions (deep analysis) - only if issues found
+        if len(suggestions) > 0:
+            try:
+                llm_suggestions = await self._generate_llm_suggestions(code, context, suggestions)
+                suggestions.extend(llm_suggestions)
+            except LLMError as e:
+                logger.warning(f"LLM suggestions skipped: {e}")
+            except Exception as e:
+                logger.error(f"LLM suggestion generation failed: {e}")
+        
+        # Remove duplicates and rank by confidence
+        suggestions = self._deduplicate_suggestions(suggestions)
+        suggestions = sorted(
+            suggestions,
+            key=lambda s: self._confidence_to_float(s.confidence),
+            reverse=True
+        )
+        
+        return suggestions[:self.MAX_SUGGESTIONS]
+    
+    async def _analyze_code_ast_only(
+        self,
+        code: str,
+        context: CodeContext
+    ) -> List[Suggestion]:
+        """
+        Analyze code using only AST (fallback when LLM unavailable)
+        
+        Args:
+            code: Source code to analyze
             context: Code context
             
         Returns:
@@ -235,32 +374,76 @@ class RefactorAgent(AgentAdapter):
         """
         suggestions = []
         
-        # 1. AST-based pattern detection (fast, deterministic)
+        # AST-based pattern detection
         ast_suggestions = await self._detect_patterns_ast(code, context)
         suggestions.extend(ast_suggestions)
         
-        # 2. Code smell detection (semantic analysis)
+        # Code smell detection
         smell_suggestions = await self._detect_code_smells(code, context)
         suggestions.extend(smell_suggestions)
         
-        # 3. LLM-powered suggestions (deep analysis)
-        if len(suggestions) > 0:
-            # Only use LLM if we found issues
-            llm_suggestions = await self._generate_llm_suggestions(code, context, suggestions)
-            suggestions.extend(llm_suggestions)
-        
-        # Remove duplicates and rank by confidence
+        # Remove duplicates and rank
         suggestions = self._deduplicate_suggestions(suggestions)
-        suggestions = sorted(suggestions, key=lambda s: self._confidence_to_float(s.confidence), reverse=True)
+        suggestions = sorted(
+            suggestions,
+            key=lambda s: self._confidence_to_float(s.confidence),
+            reverse=True
+        )
         
-        return suggestions[:10]  # Return top 10 suggestions
+        return suggestions[:self.MAX_SUGGESTIONS]
+    
+    def _parse_code_cached(self, code: str) -> ast.AST:
+        """
+        Parse code with caching for performance
+        
+        Args:
+            code: Source code to parse
+            
+        Returns:
+            Parsed AST tree
+            
+        Raises:
+            SyntaxError: If code has syntax errors
+        """
+        # Generate cache key
+        code_hash = hashlib.md5(code.encode()).hexdigest()
+        
+        # Check cache
+        if code_hash in self._ast_cache:
+            logger.debug(f"AST cache hit for hash {code_hash[:8]}")
+            return self._ast_cache[code_hash]
+        
+        # Parse and cache
+        tree = ast.parse(code)
+        
+        # Limit cache size
+        if len(self._ast_cache) > 128:
+            # Remove oldest entry (simple FIFO)
+            self._ast_cache.pop(next(iter(self._ast_cache)))
+        
+        self._ast_cache[code_hash] = tree
+        logger.debug(f"AST cached for hash {code_hash[:8]}")
+        
+        return tree
     
     async def _detect_patterns_ast(
         self,
         code: str,
         context: CodeContext
     ) -> List[Suggestion]:
-        """Detect refactoring patterns using AST analysis"""
+        """
+        Detect refactoring patterns using AST analysis with node count limits
+        
+        Args:
+            code: Source code to analyze
+            context: Code context
+            
+        Returns:
+            List of suggestions from pattern detection
+            
+        Raises:
+            SyntaxError: If code has syntax errors
+        """
         suggestions = []
         
         if context.language != 'python':
@@ -268,17 +451,36 @@ class RefactorAgent(AgentAdapter):
             return suggestions
         
         try:
-            tree = ast.parse(code)
+            # Parse with caching
+            tree = self._parse_code_cached(code)
+            
+            # Check AST size to prevent memory issues
+            node_count = sum(1 for _ in ast.walk(tree))
+            
+            if node_count > self.MAX_AST_NODES:
+                logger.warning(
+                    f"File too large ({node_count} nodes), skipping AST analysis",
+                    extra={"file_path": context.file_path, "node_count": node_count}
+                )
+                return suggestions
             
             # Apply each refactoring pattern
             for pattern in self.refactoring_patterns:
-                pattern_suggestions = pattern.detector(tree, code, context)
-                suggestions.extend(pattern_suggestions)
+                try:
+                    pattern_suggestions = pattern.detector(tree, code, context)
+                    suggestions.extend(pattern_suggestions)
+                except Exception as e:
+                    logger.error(
+                        f"Pattern detector '{pattern.name}' failed: {e}",
+                        exc_info=True
+                    )
                 
         except SyntaxError as e:
             logger.warning(f"Syntax error in code, skipping AST analysis: {e}")
+            raise
         except Exception as e:
-            logger.error(f"AST analysis failed: {e}")
+            logger.error(f"AST analysis failed: {e}", exc_info=True)
+            raise
         
         return suggestions
     
@@ -296,7 +498,7 @@ class RefactorAgent(AgentAdapter):
             if isinstance(node, ast.FunctionDef):
                 func_lines = (node.end_lineno or node.lineno) - node.lineno
                 
-                if func_lines > 30:  # Threshold: 30 lines
+                if func_lines > self.LONG_METHOD_THRESHOLD:
                     # Extract function code
                     func_code = '\n'.join(lines[node.lineno - 1:node.end_lineno])
                     
@@ -304,7 +506,7 @@ class RefactorAgent(AgentAdapter):
                         id=f"long_method_{node.name}_{uuid.uuid4().hex[:8]}",
                         code=func_code,
                         description=f"Function '{node.name}' is {func_lines} lines long. Consider breaking it into smaller, focused functions.",
-                        confidence=ConfidenceLevel.HIGH if func_lines > 50 else ConfidenceLevel.MEDIUM,
+                        confidence=ConfidenceLevel.HIGH if func_lines > self.VERY_LONG_METHOD_THRESHOLD else ConfidenceLevel.MEDIUM,
                         diff=None,
                         applicable_range={
                             "start": {"line": node.lineno, "character": 0},
@@ -338,7 +540,7 @@ class RefactorAgent(AgentAdapter):
         
         # Suggest constants for numbers used multiple times
         for value, lines in magic_numbers.items():
-            if len(lines) >= 2:
+            if len(lines) >= self.MAGIC_NUMBER_MIN_OCCURRENCES:
                 suggestions.append(Suggestion(
                     id=f"magic_number_{value}_{uuid.uuid4().hex[:8]}",
                     code=f"# Define constant\nMAGIC_VALUE = {value}",
@@ -368,7 +570,7 @@ class RefactorAgent(AgentAdapter):
                 # Count boolean operators in condition
                 bool_ops = sum(1 for _ in ast.walk(node.test) if isinstance(_, (ast.And, ast.Or)))
                 
-                if bool_ops >= 3:  # 3+ boolean operators
+                if bool_ops >= self.COMPLEX_CONDITIONAL_THRESHOLD:
                     condition_line = lines[node.lineno - 1] if node.lineno <= len(lines) else ""
                     
                     suggestions.append(Suggestion(

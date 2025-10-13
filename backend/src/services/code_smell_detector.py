@@ -10,8 +10,8 @@ from pathlib import Path
 import ast
 import re
 
-from models import CodeSmell, Priority
-from services.embeddings_service import EmbeddingsService
+from src.models import CodeSmell, Priority
+from src.services.embeddings_service import EmbeddingsService
 
 logger = logging.getLogger(__name__)
 

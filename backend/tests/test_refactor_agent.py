@@ -7,13 +7,13 @@ import pytest
 import asyncio
 from unittest.mock import Mock, AsyncMock, patch
 
-from agents.refactor_agent import RefactorAgent, RefactoringPattern
-from adapters.base_adapter import AgentConfig, Capability
-from models.task import Task, TaskType, Priority
-from models.context import CodeContext
-from models.response import AgentResponse, ConfidenceLevel
-from services.llm_manager import LLMManager, LLMProvider
-from services.code_smell_detector import CodeSmellDetector
+from src.agents.refactor_agent import RefactorAgent, RefactoringPattern
+from src.adapters.base_adapter import AgentConfig, Capability
+from src.models.task import Task, TaskType, Priority
+from src.models.context import CodeContext
+from src.models.response import AgentResponse, ConfidenceLevel
+from src.services.llm_manager import LLMManager, LLMProvider, LLMError
+from src.services.code_smell_detector import CodeSmellDetector
 
 
 @pytest.fixture
@@ -458,7 +458,7 @@ def func1():
 @pytest.mark.asyncio
 async def test_memory_integration(agent_config, mock_llm_manager, mock_code_smell_detector):
     """Test memory service integration"""
-    from services.memory_service import MemoryService, MemoryConfig, StorageBackend
+    from src.services.memory_service import MemoryService, MemoryConfig, StorageBackend
     
     # Create memory service
     memory_config = MemoryConfig(backend=StorageBackend.SQLITE)

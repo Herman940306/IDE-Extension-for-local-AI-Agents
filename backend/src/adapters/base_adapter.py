@@ -8,7 +8,7 @@ from typing import Any, Dict, List, Optional
 from enum import Enum
 from pydantic import BaseModel, Field
 
-from models import Task, AgentResponse, CodeContext
+from src.models import Task, AgentResponse, CodeContext
 
 
 class Capability(str, Enum):

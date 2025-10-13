@@ -12,6 +12,11 @@ import ollama
 logger = logging.getLogger(__name__)
 
 
+class LLMError(Exception):
+    """Base exception for LLM-related errors"""
+    pass
+
+
 class LLMProvider(str, Enum):
     """Supported LLM providers"""
     OLLAMA = "ollama"
@@ -163,7 +168,7 @@ class LLMManager:
                 logger.info("Falling back to cloud provider")
                 return await self._generate_cloud(prompt, system_prompt, temperature, max_tokens, stop)
             else:
-                raise Exception(f"LLM generation failed: {e}")
+                raise LLMError(f"LLM generation failed: {e}") from e
 
     async def _generate_cloud(
         self,

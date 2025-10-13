@@ -12,8 +12,8 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import ValidationError
 
-from models import Task
-from services.connection_manager import ConnectionManager
+from src.models import Task
+from src.services.connection_manager import ConnectionManager
 
 # Configure logging
 logging.basicConfig(

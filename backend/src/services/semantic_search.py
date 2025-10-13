@@ -10,7 +10,7 @@ from collections import OrderedDict
 import time
 import hashlib
 
-from services.embeddings_service import EmbeddingsService
+from src.services.embeddings_service import EmbeddingsService
 
 logger = logging.getLogger(__name__)
 

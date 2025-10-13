@@ -26,7 +26,7 @@ from typing import Any, Dict, List, Optional, Tuple
 from dataclasses import dataclass, asdict
 
 try:
-    import aioredis
+    import redis.asyncio as aioredis
     REDIS_AVAILABLE = True
 except ImportError:
     REDIS_AVAILABLE = False

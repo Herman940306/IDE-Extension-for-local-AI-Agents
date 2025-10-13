@@ -5,7 +5,7 @@ Project Creator: Herman Swanepoel
 
 from pydantic import BaseModel, Field
 from typing import Optional
-from models.task import Priority
+from src.models.task import Priority
 
 
 class CodeSmell(BaseModel):

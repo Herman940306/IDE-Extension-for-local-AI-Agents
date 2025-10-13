@@ -4,7 +4,7 @@ Project Creator: Herman Swanepoel
 """
 
 from typing import Dict, Any
-from models import TaskType
+from src.models import TaskType
 
 
 class PromptTemplates:
