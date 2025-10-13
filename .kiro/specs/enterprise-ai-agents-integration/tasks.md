@@ -23,6 +23,7 @@ This implementation plan breaks down the feature into discrete coding tasks that
     - Implement connection lifecycle (connect, disconnect, error handling)
     - Add message validation using Pydantic models
     - _Requirements: 1.1, 13.1_
+
   
   - [ ] 2.2 Implement TypeScript WebSocket client in extension
     - Create WebSocketClient class with auto-reconnection logic
