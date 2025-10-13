@@ -3,17 +3,26 @@
  * Project Creator: Herman Swanepoel
  */
 
+import { v4 as uuidv4 } from 'uuid';
 import * as vscode from 'vscode';
-import { WebSocketClient } from './services/WebSocketClient';
+import { AgentDiscussionPanel } from './panels/AgentDiscussionPanel';
+import { AICodeActionProvider } from './providers/CodeActionProvider';
+import { InlineSuggestionProvider } from './providers/InlineSuggestionProvider';
 import { AccessibilityManager } from './services/AccessibilityManager';
 import { KeyboardNavigationManager } from './services/KeyboardNavigationManager';
 import { ModeToggle, OperationMode } from './services/ModeToggle';
-import { v4 as uuidv4 } from 'uuid';
+import { WebSocketClient } from './services/WebSocketClient';
+import { AgentStatusTreeProvider } from './ui/AgentStatusTreeProvider';
+import { StatusBarManager } from './ui/StatusBarManager';
 
 let wsClient: WebSocketClient | null = null;
 let accessibilityManager: AccessibilityManager | null = null;
 let keyboardNavManager: KeyboardNavigationManager | null = null;
 let modeToggle: ModeToggle | null = null;
+let inlineSuggestionProvider: InlineSuggestionProvider | null = null;
+let codeActionProvider: AICodeActionProvider | null = null;
+let agentStatusProvider: AgentStatusTreeProvider | null = null;
+let statusBarManager: StatusBarManager | null = null;
 
 export function activate(context: vscode.ExtensionContext) {
     console.log('Enterprise AI Agents extension is now active!');
@@ -21,16 +30,16 @@ export function activate(context: vscode.ExtensionContext) {
 
     // Initialize mode toggle (before other services)
     modeToggle = new ModeToggle(context, OperationMode.OFFLINE);
-    
+
     // Initialize accessibility features
     accessibilityManager = new AccessibilityManager(context);
     keyboardNavManager = new KeyboardNavigationManager(context);
-    
+
     accessibilityManager.announceToScreenReader(
         'Enterprise AI Agents extension activated. Press Ctrl+Shift+Alt+H for keyboard shortcuts.',
         'polite'
     );
-    
+
     // Announce current mode
     const modeInfo = modeToggle.getModeInfo();
     accessibilityManager.announceToScreenReader(
@@ -41,7 +50,7 @@ export function activate(context: vscode.ExtensionContext) {
     const config = vscode.workspace.getConfiguration('enterpriseAI');
     const backendUrl = config.get<string>('backend.url', 'ws://localhost:8000');
     const clientId = context.globalState.get<string>('clientId') || uuidv4();
-    
+
     context.globalState.update('clientId', clientId);
 
     wsClient = new WebSocketClient({
@@ -61,36 +70,171 @@ export function activate(context: vscode.ExtensionContext) {
         console.log('Agent response received:', payload);
     });
 
-    wsClient.on('mode_changed', (payload) => {
+    wsClient.on('mode_changed', (payload: any) => {
         vscode.window.showInformationMessage(`Mode changed to: ${payload.mode}`);
     });
+
+    // Initialize providers
+    inlineSuggestionProvider = new InlineSuggestionProvider(wsClient, modeToggle);
+    codeActionProvider = new AICodeActionProvider(wsClient);
+    agentStatusProvider = new AgentStatusTreeProvider(wsClient);
+
+    // Register inline suggestion provider
+    const inlineProvider = vscode.languages.registerInlineCompletionItemProvider(
+        { pattern: '**' },
+        inlineSuggestionProvider
+    );
+    context.subscriptions.push(inlineProvider);
+
+    // Register code action provider
+    const codeActionProviderRegistration = vscode.languages.registerCodeActionsProvider(
+        { pattern: '**' },
+        codeActionProvider,
+        {
+            providedCodeActionKinds: AICodeActionProvider.providedCodeActionKinds
+        }
+    );
+    context.subscriptions.push(codeActionProviderRegistration);
+
+    // Register agent status tree view
+    const agentStatusTreeView = vscode.window.createTreeView('enterpriseAI.agentStatus', {
+        treeDataProvider: agentStatusProvider,
+        showCollapseAll: true
+    });
+    context.subscriptions.push(agentStatusTreeView);
 
     // Mode toggle is now handled by ModeToggle class
     // Register mode change callback to notify backend
     modeToggle.onModeChange(async (event) => {
         // Notify backend of mode change
-        if (wsClient && wsClient.isConnected()) {
+        if (wsClient && wsClient.isConnectedToBackend()) {
             await wsClient.send('mode_change', {
                 mode: event.mode,
                 timestamp: event.timestamp
             });
         }
-        
+
         // Announce to screen reader
         const modeInfo = modeToggle!.getModeInfo();
         accessibilityManager?.announceToScreenReader(
             `Switched to ${event.mode} mode. ${modeInfo.description}`,
             'assertive'
         );
-        
+
         // Add to keyboard navigation history
         keyboardNavManager?.addToHistory('enterpriseAI.toggleMode');
     });
-    
+
+    // Suggestion tracking commands
+    const suggestionAcceptedCommand = vscode.commands.registerCommand(
+        'enterpriseAI.suggestionAccepted',
+        (suggestion: any, index: number) => {
+            inlineSuggestionProvider?.trackAcceptance(suggestion, index);
+            accessibilityManager?.announceToScreenReader('Suggestion accepted', 'polite');
+        }
+    );
+
+    const suggestionRejectedCommand = vscode.commands.registerCommand(
+        'enterpriseAI.suggestionRejected',
+        (suggestion: any, index: number) => {
+            inlineSuggestionProvider?.trackRejection(suggestion, index);
+            accessibilityManager?.announceToScreenReader('Suggestion rejected', 'polite');
+        }
+    );
+
+    const requestAlternativesCommand = vscode.commands.registerCommand(
+        'enterpriseAI.requestAlternatives',
+        async () => {
+            const editor = vscode.window.activeTextEditor;
+            if (editor && inlineSuggestionProvider) {
+                await inlineSuggestionProvider.requestAlternatives(
+                    editor.document,
+                    editor.selection.active
+                );
+                accessibilityManager?.announceToScreenReader('Requesting alternative suggestions', 'polite');
+            }
+        }
+    );
+
+    const viewSuggestionStatsCommand = vscode.commands.registerCommand(
+        'enterpriseAI.viewSuggestionStats',
+        () => {
+            if (inlineSuggestionProvider) {
+                const stats = inlineSuggestionProvider.getStatistics();
+                vscode.window.showInformationMessage(
+                    `Suggestions: ${stats.generated} generated, ${stats.accepted} accepted (${Math.round(stats.acceptanceRate * 100)}% rate), Cache: ${Math.round(stats.cacheHitRate * 100)}% hit rate`
+                );
+            }
+        }
+    );
+
+    // Code action commands
+    const extractFunctionCommand = vscode.commands.registerCommand(
+        'enterpriseAI.extractFunction',
+        async (document: vscode.TextDocument, range: vscode.Range) => {
+            await codeActionProvider?.applyCodeAction(document, 'extract_function', range);
+        }
+    );
+
+    const simplifyCodeCommand = vscode.commands.registerCommand(
+        'enterpriseAI.simplifyCode',
+        async (document: vscode.TextDocument, range: vscode.Range) => {
+            await codeActionProvider?.applyCodeAction(document, 'simplify', range);
+        }
+    );
+
+    const optimizeCodeCommand = vscode.commands.registerCommand(
+        'enterpriseAI.optimizeCode',
+        async (document: vscode.TextDocument, range: vscode.Range) => {
+            await codeActionProvider?.applyCodeAction(document, 'optimize', range);
+        }
+    );
+
+    const improveNamingCommand = vscode.commands.registerCommand(
+        'enterpriseAI.improveNaming',
+        async (document: vscode.TextDocument, range: vscode.Range) => {
+            await codeActionProvider?.applyCodeAction(document, 'improve_naming', range);
+        }
+    );
+
+    const fixDiagnosticsCommand = vscode.commands.registerCommand(
+        'enterpriseAI.fixDiagnostics',
+        async (document: vscode.TextDocument, diagnostics: vscode.Diagnostic[], type: string) => {
+            await codeActionProvider?.applyCodeAction(document, `fix_${type}`, undefined, diagnostics);
+        }
+    );
+
+    const rollbackActionCommand = vscode.commands.registerCommand(
+        'enterpriseAI.rollbackAction',
+        async () => {
+            const success = await codeActionProvider?.rollbackLastAction();
+            if (success) {
+                accessibilityManager?.announceToScreenReader('Action rolled back successfully', 'polite');
+            }
+        }
+    );
+
     const accessibilitySettingsCommand = vscode.commands.registerCommand(
         'enterpriseAI.accessibility.showSettings',
         () => {
             accessibilityManager?.showSettings();
+        }
+    );
+
+    const refreshAgentStatusCommand = vscode.commands.registerCommand(
+        'enterpriseAI.refreshAgentStatus',
+        () => {
+            agentStatusProvider?.refreshAgentStatus();
+            accessibilityManager?.announceToScreenReader('Refreshing agent status', 'polite');
+        }
+    );
+
+    const showAgentDetailsCommand = vscode.commands.registerCommand(
+        'enterpriseAI.showAgentDetails',
+        (agent: any) => {
+            vscode.window.showInformationMessage(
+                `${agent.name}\nStatus: ${agent.status}\nTasks: ${agent.tasksCompleted || 0}\nSuccess Rate: ${Math.round((agent.successRate || 0) * 100)}%`
+            );
         }
     );
 
@@ -117,8 +261,17 @@ export function activate(context: vscode.ExtensionContext) {
 
     const findSecurityIssuesCommand = vscode.commands.registerCommand(
         'enterpriseAI.findSecurityIssues',
-        () => {
-            vscode.window.showInformationMessage('Find security issues not yet implemented');
+        async (document?: vscode.TextDocument, range?: vscode.Range) => {
+            const editor = vscode.window.activeTextEditor;
+            if (!editor) {
+                vscode.window.showWarningMessage('No active editor');
+                return;
+            }
+
+            const doc = document || editor.document;
+            const rng = range || editor.selection;
+
+            await codeActionProvider?.applyCodeAction(doc, 'security', rng);
         }
     );
 
@@ -131,8 +284,41 @@ export function activate(context: vscode.ExtensionContext) {
 
     const startAgentDiscussionCommand = vscode.commands.registerCommand(
         'enterpriseAI.startAgentDiscussion',
-        () => {
-            vscode.window.showInformationMessage('Start agent discussion not yet implemented');
+        async () => {
+            if (!wsClient) {
+                vscode.window.showErrorMessage('Backend not connected');
+                return;
+            }
+
+            const editor = vscode.window.activeTextEditor;
+            if (!editor) {
+                vscode.window.showWarningMessage('No active editor');
+                return;
+            }
+
+            // Prompt for discussion title
+            const title = await vscode.window.showInputBox({
+                prompt: 'Enter discussion title',
+                placeHolder: 'e.g., "Refactor authentication logic"',
+                value: `Discussion about ${editor.document.fileName.split('/').pop()}`
+            });
+
+            if (!title) {
+                return;
+            }
+
+            // Create or show panel
+            AgentDiscussionPanel.createOrShow(context.extensionUri, wsClient);
+
+            // Start discussion with selected code or current file
+            const selection = editor.selection;
+            const taskId = `task-${Date.now()}`;
+
+            if (AgentDiscussionPanel.currentPanel) {
+                AgentDiscussionPanel.currentPanel.startDiscussion(taskId, title);
+            }
+
+            accessibilityManager?.announceToScreenReader(`Started agent discussion: ${title}`, 'polite');
         }
     );
 
@@ -151,7 +337,16 @@ export function activate(context: vscode.ExtensionContext) {
     );
 
     context.subscriptions.push(
-        toggleModeCommand,
+        suggestionAcceptedCommand,
+        suggestionRejectedCommand,
+        requestAlternativesCommand,
+        viewSuggestionStatsCommand,
+        extractFunctionCommand,
+        simplifyCodeCommand,
+        optimizeCodeCommand,
+        improveNamingCommand,
+        fixDiagnosticsCommand,
+        rollbackActionCommand,
         generateTestsCommand,
         refactorSelectionCommand,
         explainCodeCommand,
@@ -160,7 +355,9 @@ export function activate(context: vscode.ExtensionContext) {
         startAgentDiscussionCommand,
         viewAnalyticsCommand,
         reindexCodebaseCommand,
-        accessibilitySettingsCommand
+        accessibilitySettingsCommand,
+        refreshAgentStatusCommand,
+        showAgentDetailsCommand
     );
 
     if (wsClient) {
@@ -172,20 +369,28 @@ export function activate(context: vscode.ExtensionContext) {
 
 export function deactivate() {
     console.log('Enterprise AI Agents extension is now deactivated');
-    
+
+    if (inlineSuggestionProvider) {
+        inlineSuggestionProvider.dispose();
+    }
+
+    if (codeActionProvider) {
+        codeActionProvider.dispose();
+    }
+
     if (accessibilityManager) {
         accessibilityManager.announceToScreenReader('Enterprise AI Agents extension deactivated', 'polite');
         accessibilityManager.dispose();
     }
-    
+
     if (keyboardNavManager) {
         keyboardNavManager.dispose();
     }
-    
+
     if (modeToggle) {
         modeToggle.dispose();
     }
-    
+
     if (wsClient) {
         wsClient.disconnect();
     }

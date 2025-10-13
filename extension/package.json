@@ -65,8 +65,45 @@
       {
         "command": "enterpriseAI.accessibility.showHelp",
         "title": "Enterprise AI: Keyboard Shortcuts Help"
+      },
+      {
+        "command": "enterpriseAI.refreshAgentStatus",
+        "title": "Enterprise AI: Refresh Agent Status",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "enterpriseAI.showAgentDetails",
+        "title": "Enterprise AI: Show Agent Details"
       }
     ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "enterpriseAI",
+          "title": "Enterprise AI Agents",
+          "icon": "$(robot)"
+        }
+      ]
+    },
+    "views": {
+      "enterpriseAI": [
+        {
+          "id": "enterpriseAI.agentStatus",
+          "name": "Agent Status",
+          "icon": "$(robot)",
+          "contextualTitle": "Enterprise AI Agents"
+        }
+      ]
+    },
+    "menus": {
+      "view/title": [
+        {
+          "command": "enterpriseAI.refreshAgentStatus",
+          "when": "view == enterpriseAI.agentStatus",
+          "group": "navigation"
+        }
+      ]
+    },
     "configuration": {
       "title": "Enterprise AI Agents",
       "properties": {
