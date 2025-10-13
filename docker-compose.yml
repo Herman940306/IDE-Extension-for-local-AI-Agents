@@ -1,39 +1,33 @@
-# Enterprise AI Agents - Docker Compose Configuration
-# Project Creator: Herman Swanepoel
-
-version: '3.8'
+version: "3.8"
 
 services:
   redis:
     image: redis:7-alpine
-    container_name: enterprise-ai-redis
     ports:
       - "6379:6379"
     volumes:
-      - redis-data:/data
-    command: redis-server --appendonly yes
-    restart: unless-stopped
-    networks:
-      - enterprise-ai-network
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
 
-  chromadb:
-    image: chromadb/chroma:latest
-    container_name: enterprise-ai-chromadb
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
     ports:
-      - "8001:8000"
-    volumes:
-      - ./data/chroma:/chroma/chroma
+      - "8001:8001"
     environment:
-      - IS_PERSISTENT=TRUE
-      - ANONYMIZED_TELEMETRY=FALSE
-    restart: unless-stopped
-    networks:
-      - enterprise-ai-network
+      - DB_REDIS_URL=redis://redis:6379
+      - LOG_LEVEL=INFO
+    depends_on:
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app
+    command: uvicorn src.main:app --host 0.0.0.0 --port 8001 --reload
 
 volumes:
-  redis-data:
-    driver: local
-
-networks:
-  enterprise-ai-network:
-    driver: bridge
+  redis_data:
