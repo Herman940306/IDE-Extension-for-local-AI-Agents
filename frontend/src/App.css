@@ -59,6 +59,9 @@ body {
     font-size: 14px;
     color: #ececec;
     margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
 .chat-item:hover {
@@ -67,6 +70,24 @@ body {
 
 .chat-item.active {
     background: #2f2f2f;
+}
+
+.delete-btn {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+    opacity: 0;
+    transition: opacity 0.2s;
+    padding: 4px;
+}
+
+.chat-item:hover .delete-btn {
+    opacity: 1;
+}
+
+.delete-btn:hover {
+    opacity: 1 !important;
 }
 
 .sidebar-footer {
