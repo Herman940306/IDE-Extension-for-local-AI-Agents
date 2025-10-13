@@ -7,22 +7,34 @@ import * as vscode from 'vscode';
 import { WebSocketClient } from './services/WebSocketClient';
 import { AccessibilityManager } from './services/AccessibilityManager';
 import { KeyboardNavigationManager } from './services/KeyboardNavigationManager';
+import { ModeToggle, OperationMode } from './services/ModeToggle';
 import { v4 as uuidv4 } from 'uuid';
 
 let wsClient: WebSocketClient | null = null;
 let accessibilityManager: AccessibilityManager | null = null;
 let keyboardNavManager: KeyboardNavigationManager | null = null;
+let modeToggle: ModeToggle | null = null;
 
 export function activate(context: vscode.ExtensionContext) {
     console.log('Enterprise AI Agents extension is now active!');
     console.log('Project Creator: Herman Swanepoel');
 
+    // Initialize mode toggle (before other services)
+    modeToggle = new ModeToggle(context, OperationMode.OFFLINE);
+    
     // Initialize accessibility features
     accessibilityManager = new AccessibilityManager(context);
     keyboardNavManager = new KeyboardNavigationManager(context);
     
     accessibilityManager.announceToScreenReader(
         'Enterprise AI Agents extension activated. Press Ctrl+Shift+Alt+H for keyboard shortcuts.',
+        'polite'
+    );
+    
+    // Announce current mode
+    const modeInfo = modeToggle.getModeInfo();
+    accessibilityManager.announceToScreenReader(
+        `Current mode: ${modeInfo.mode}. ${modeInfo.description}`,
         'polite'
     );
 
@@ -53,14 +65,27 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.window.showInformationMessage(`Mode changed to: ${payload.mode}`);
     });
 
-    const toggleModeCommand = vscode.commands.registerCommand(
-        'enterpriseAI.toggleMode',
-        () => {
-            accessibilityManager?.announceToScreenReader('Toggling mode', 'polite');
-            keyboardNavManager?.addToHistory('enterpriseAI.toggleMode');
-            vscode.window.showInformationMessage('Mode toggle not yet implemented');
+    // Mode toggle is now handled by ModeToggle class
+    // Register mode change callback to notify backend
+    modeToggle.onModeChange(async (event) => {
+        // Notify backend of mode change
+        if (wsClient && wsClient.isConnected()) {
+            await wsClient.send('mode_change', {
+                mode: event.mode,
+                timestamp: event.timestamp
+            });
         }
-    );
+        
+        // Announce to screen reader
+        const modeInfo = modeToggle!.getModeInfo();
+        accessibilityManager?.announceToScreenReader(
+            `Switched to ${event.mode} mode. ${modeInfo.description}`,
+            'assertive'
+        );
+        
+        // Add to keyboard navigation history
+        keyboardNavManager?.addToHistory('enterpriseAI.toggleMode');
+    });
     
     const accessibilitySettingsCommand = vscode.commands.registerCommand(
         'enterpriseAI.accessibility.showSettings',
@@ -155,6 +180,10 @@ export function deactivate() {
     
     if (keyboardNavManager) {
         keyboardNavManager.dispose();
+    }
+    
+    if (modeToggle) {
+        modeToggle.dispose();
     }
     
     if (wsClient) {

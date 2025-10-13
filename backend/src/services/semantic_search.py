@@ -206,9 +206,141 @@ class SemanticSearchService:
         query = f"using {api_or_function} example"
         return await self.search(query, top_k=top_k, min_relevance=0.3)
     
+    async def find_similar_code(
+        self,
+        code_snippet: str,
+        top_k: int = 5,
+        exclude_file: Optional[str] = None
+    ) -> List[Dict[str, Any]]:
+        """
+        Find code similar to a given snippet
+        
+        Args:
+            code_snippet: Code snippet to find similar code for
+            top_k: Number of results
+            exclude_file: File to exclude from results
+            
+        Returns:
+            List of similar code snippets
+        """
+        results = await self.search(code_snippet, top_k=top_k * 2)
+        
+        # Filter out excluded file
+        if exclude_file:
+            results = [r for r in results if r.get('metadata', {}).get('file_path') != exclude_file]
+        
+        return results[:top_k]
+    
+    async def search_with_context(
+        self,
+        query: str,
+        context_files: List[str],
+        top_k: int = 5
+    ) -> List[Dict[str, Any]]:
+        """
+        Search with context from specific files
+        
+        Args:
+            query: Search query
+            context_files: List of file paths to prioritize
+            top_k: Number of results
+            
+        Returns:
+            List of search results with context-aware ranking
+        """
+        results = await self.search(query, top_k=top_k * 2)
+        
+        # Boost results from context files
+        for result in results:
+            file_path = result.get('metadata', {}).get('file_path', '')
+            if file_path in context_files:
+                result['relevance'] = min(1.0, result.get('relevance', 0.5) * 1.5)
+        
+        # Re-sort and limit
+        results.sort(key=lambda x: x.get('relevance', 0), reverse=True)
+        return results[:top_k]
+    
+    async def search_by_error_message(
+        self,
+        error_message: str,
+        top_k: int = 5
+    ) -> List[Dict[str, Any]]:
+        """
+        Search for code related to an error message
+        
+        Args:
+            error_message: Error message text
+            top_k: Number of results
+            
+        Returns:
+            List of relevant code that might help fix the error
+        """
+        # Extract key terms from error message
+        query = f"fix error {error_message}"
+        return await self.search(query, top_k=top_k, min_relevance=0.2)
+    
+    async def search_by_file_type(
+        self,
+        query: str,
+        file_types: List[str],
+        top_k: int = 5
+    ) -> List[Dict[str, Any]]:
+        """
+        Search within specific file types
+        
+        Args:
+            query: Search query
+            file_types: List of file extensions (e.g., ['.py', '.js'])
+            top_k: Number of results
+            
+        Returns:
+            List of search results from specified file types
+        """
+        all_results = []
+        
+        for file_type in file_types:
+            results = await self.search(query, top_k=top_k, file_extension=file_type)
+            all_results.extend(results)
+        
+        # Remove duplicates and sort by relevance
+        seen = set()
+        unique_results = []
+        for result in all_results:
+            file_path = result.get('metadata', {}).get('file_path', '')
+            if file_path not in seen:
+                seen.add(file_path)
+                unique_results.append(result)
+        
+        unique_results.sort(key=lambda x: x.get('relevance', 0), reverse=True)
+        return unique_results[:top_k]
+    
+    async def get_related_files(
+        self,
+        file_path: str,
+        top_k: int = 10
+    ) -> List[Dict[str, Any]]:
+        """
+        Find files related to a given file based on semantic similarity
+        
+        Args:
+            file_path: Path to file
+            top_k: Number of related files
+            
+        Returns:
+            List of related files with relevance scores
+        """
+        # Use file path as query to find similar files
+        query = f"file similar to {file_path}"
+        results = await self.search(query, top_k=top_k + 1)
+        
+        # Exclude the file itself
+        results = [r for r in results if r.get('metadata', {}).get('file_path') != file_path]
+        
+        return results[:top_k]
+    
     def _calculate_relevance(self, result: Dict[str, Any], query: str) -> float:
         """
-        Calculate relevance score for search result
+        Calculate relevance score for search result with advanced ranking
         
         Args:
             result: Search result from embeddings service
@@ -217,7 +349,7 @@ class SemanticSearchService:
         Returns:
             Relevance score (0-1)
         """
-        # Start with distance-based score
+        # Start with distance-based score (cosine similarity)
         distance = result.get('distance', 1.0)
         base_score = max(0.0, 1.0 - distance)
         
@@ -225,21 +357,64 @@ class SemanticSearchService:
         metadata = result.get('metadata', {})
         boost = 1.0
         
-        # Boost if query terms appear in file name
+        # 1. File name relevance (20% boost)
         file_name = metadata.get('file_name', '').lower()
+        file_path = metadata.get('file_path', '').lower()
         query_lower = query.lower()
-        if any(term in file_name for term in query_lower.split()):
+        query_terms = set(query_lower.split())
+        
+        # Exact match in filename
+        if query_lower in file_name:
+            boost *= 1.3
+        # Partial match
+        elif any(term in file_name for term in query_terms if len(term) > 2):
             boost *= 1.2
         
-        # Boost smaller files (more focused)
+        # 2. File size relevance (focused vs comprehensive)
         file_size = metadata.get('size', 10000)
-        if file_size < 1000:
+        if file_size < 500:  # Very focused
+            boost *= 1.15
+        elif file_size < 2000:  # Moderately focused
             boost *= 1.1
-        elif file_size > 10000:
+        elif file_size > 10000:  # Large file, less focused
             boost *= 0.9
+        elif file_size > 50000:  # Very large
+            boost *= 0.8
         
-        # Calculate final score
-        relevance = min(1.0, base_score * boost)
+        # 3. File type relevance
+        language = metadata.get('language', '')
+        if language in ['python', 'javascript', 'typescript']:  # Common languages
+            boost *= 1.05
+        
+        # 4. Recency boost (if timestamp available)
+        timestamp = metadata.get('timestamp', 0)
+        if timestamp > 0:
+            age_days = (time.time() - timestamp) / 86400
+            if age_days < 7:  # Recent changes
+                boost *= 1.1
+            elif age_days < 30:
+                boost *= 1.05
+        
+        # 5. Code quality indicators
+        # Boost if file has good structure (classes, functions)
+        has_classes = metadata.get('has_classes', False)
+        has_functions = metadata.get('has_functions', False)
+        if has_classes and has_functions:
+            boost *= 1.1
+        elif has_functions:
+            boost *= 1.05
+        
+        # 6. Path depth (prefer files closer to root for common utilities)
+        path_depth = file_path.count('/')
+        if path_depth <= 2:  # Root level utilities
+            boost *= 1.05
+        
+        # Calculate final score with diminishing returns on boost
+        # Use logarithmic scaling to prevent extreme boosts
+        import math
+        adjusted_boost = 1.0 + math.log(boost) if boost > 1.0 else boost
+        relevance = min(1.0, base_score * adjusted_boost)
+        
         return round(relevance, 3)
     
     def _generate_cache_key(
@@ -278,11 +453,62 @@ class SemanticSearchService:
         self.embedding_cache.clear()
         logger.info("Search caches cleared")
     
+    async def batch_search(
+        self,
+        queries: List[str],
+        top_k: int = 5
+    ) -> Dict[str, List[Dict[str, Any]]]:
+        """
+        Perform multiple searches in parallel
+        
+        Args:
+            queries: List of search queries
+            top_k: Number of results per query
+            
+        Returns:
+            Dictionary mapping queries to results
+        """
+        tasks = [self.search(query, top_k=top_k) for query in queries]
+        results = await asyncio.gather(*tasks)
+        
+        return {query: result for query, result in zip(queries, results)}
+    
+    async def rank_candidates(
+        self,
+        query: str,
+        candidates: List[Dict[str, Any]]
+    ) -> List[Dict[str, Any]]:
+        """
+        Rank a list of candidate results by relevance to query
+        
+        Args:
+            query: Search query
+            candidates: List of candidate results
+            
+        Returns:
+            Ranked list of candidates
+        """
+        # Calculate relevance for each candidate
+        for candidate in candidates:
+            relevance = self._calculate_relevance(candidate, query)
+            candidate['relevance'] = relevance
+        
+        # Sort by relevance
+        candidates.sort(key=lambda x: x.get('relevance', 0), reverse=True)
+        
+        return candidates
+    
     def get_cache_stats(self) -> Dict[str, Any]:
         """Get cache statistics"""
         return {
             "search_cache_size": len(self.search_cache.cache),
             "embedding_cache_size": len(self.embedding_cache.cache),
             "search_cache_maxsize": self.search_cache.maxsize,
-            "search_cache_ttl": self.search_cache.ttl
+            "search_cache_ttl": self.search_cache.ttl,
+            "cache_hit_rate": self._calculate_cache_hit_rate()
         }
+    
+    def _calculate_cache_hit_rate(self) -> float:
+        """Calculate cache hit rate (placeholder for future implementation)"""
+        # This would require tracking hits/misses
+        return 0.0
