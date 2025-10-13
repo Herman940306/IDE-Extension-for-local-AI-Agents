@@ -38,6 +38,9 @@ Enterprise AI Agents Integration is a VS Code extension that provides Copilot-st
 # Run automated setup
 .\setup.ps1
 
+# Start MCP Server (for Kiro integration)
+.\scripts\start-mcp-server.ps1
+
 # Activate backend
 cd backend
 .\venv\Scripts\Activate.ps1
@@ -49,6 +52,29 @@ python src/main.py
 #### Manual Setup
 
 See [PROJECT_SETUP.md](PROJECT_SETUP.md) for detailed instructions.
+
+### MCP Server Management
+
+The project includes an integrated MCP (Model Context Protocol) server for enhanced AI capabilities:
+
+```powershell
+# Start the MCP server
+.\scripts\start-mcp-server.ps1
+
+# Test MCP connection
+.\scripts\test-mcp-connection.ps1
+
+# Stop the MCP server
+.\scripts\stop-mcp-server.ps1
+```
+
+**MCP Server Features:**
+- AURA-DEV OMNIDEV GODMODE capabilities
+- ML-powered emotion detection and reasoning
+- Architecture analysis and system design
+- DevOps orchestration and security auditing
+- Real-time documentation retrieval
+- AI predictions and learning insights
 
 ## Project Structure
 
