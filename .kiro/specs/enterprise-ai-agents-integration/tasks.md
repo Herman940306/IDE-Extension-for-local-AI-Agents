@@ -105,6 +105,7 @@ This implementation plan breaks down the feature into discrete coding tasks that
 
 
 
+
   - [ ] 5.1 Implement embeddings service with Sentence Transformers
     - Create EmbeddingsService class with CodeBERT model
     - Implement codebase embedding generation with file parsing
@@ -126,6 +127,10 @@ This implementation plan breaks down the feature into discrete coding tasks that
     - Write similarity search function using vector embeddings
     - Add caching layer for frequently accessed embeddings
     - Implement relevance scoring and ranking
+
+
+
+
     - _Requirements: 3.4, 3.5_
   
   - [ ]* 5.4 Write tests for embeddings and context services
