@@ -82,7 +82,9 @@ export class WebSocketClient {
         this.updateStatusBar('disconnected');
     }
 
-    public send(message: Message): void {
+    public async send(type: string, payload: any): Promise<void> {
+        const message: Message = { type, payload };
+        
         if (this.isConnected && this.ws) {
             try {
                 this.ws.send(JSON.stringify(message));
@@ -94,6 +96,50 @@ export class WebSocketClient {
             this.messageQueue.push(message);
             console.log('Message queued (not connected)');
         }
+    }
+
+    public async sendWithResponse(type: string, payload: any, timeout: number = 5000): Promise<any> {
+        return new Promise((resolve, reject) => {
+            if (!this.isConnected || !this.ws) {
+                reject(new Error('Not connected to backend'));
+                return;
+            }
+
+            const requestId = `${type}_${Date.now()}_${Math.random()}`;
+            const message = {
+                type,
+                payload: {
+                    ...payload,
+                    request_id: requestId
+                }
+            };
+
+            // Set up response handler
+            const responseHandler = (responsePayload: any) => {
+                if (responsePayload.request_id === requestId) {
+                    clearTimeout(timeoutTimer);
+                    this.off(`${type}_response`);
+                    resolve(responsePayload);
+                }
+            };
+
+            this.on(`${type}_response`, responseHandler);
+
+            // Set timeout
+            const timeoutTimer = setTimeout(() => {
+                this.off(`${type}_response`);
+                reject(new Error(`Request timeout after ${timeout}ms`));
+            }, timeout);
+
+            // Send request
+            try {
+                this.ws.send(JSON.stringify(message));
+            } catch (error) {
+                clearTimeout(timeoutTimer);
+                this.off(`${type}_response`);
+                reject(error);
+            }
+        });
     }
 
     public on(messageType: string, handler: (payload: any) => void): void {
@@ -108,6 +154,10 @@ export class WebSocketClient {
         return this.isConnected;
     }
 
+    public isConnectedToBackend(): boolean {
+        return this.isConnected;
+    }
+
     private handleOpen(): void {
         console.log('WebSocket connected');
         this.isConnected = true;
@@ -117,7 +167,7 @@ export class WebSocketClient {
         while (this.messageQueue.length > 0) {
             const message = this.messageQueue.shift();
             if (message) {
-                this.send(message);
+                this.send(message.type, message.payload);
             }
         }
 
