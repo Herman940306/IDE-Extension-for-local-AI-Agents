@@ -168,16 +168,22 @@ async def health_check():
     try:
         redis = await container.redis_client()
         if redis:
-            await redis.ping()
-            health_status["components"]["redis"] = "healthy"
+            try:
+                await redis.ping()
+                health_status["components"]["redis"] = "healthy"
+            except:
+                health_status["components"]["redis"] = "unhealthy"
+                health_status["status"] = "degraded"
         else:
             health_status["components"]["redis"] = "disabled"
     except Exception as e:
-        health_status["components"]["redis"] = f"unhealthy: {str(e)}"
-        health_status["status"] = "degraded"
+        health_status["components"]["redis"] = "disabled"
 
-    cache_stats = await container.response_cache().get_stats()
-    health_status["components"]["cache"] = cache_stats
+    try:
+        cache_stats = await container.response_cache().get_stats()
+        health_status["components"]["cache"] = cache_stats
+    except:
+        health_status["components"]["cache"] = {"enabled": False}
 
     return health_status
 
