@@ -19,6 +19,7 @@ class CodeContext(BaseModel):
     """Context information for code analysis"""
     file_path: str = Field(..., description="Path to the file")
     language: str = Field(..., description="Programming language")
+    workspace_path: Optional[str] = Field(None, description="Workspace root path")
     cursor_position: Optional[dict] = Field(None, description="Cursor position (line, character)")
     selected_text: Optional[str] = Field(None, description="Currently selected text")
     surrounding_code: str = Field(default="", description="Code surrounding the cursor")
