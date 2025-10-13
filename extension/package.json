@@ -57,6 +57,14 @@
       {
         "command": "enterpriseAI.reindexCodebase",
         "title": "Enterprise AI: Reindex Codebase"
+      },
+      {
+        "command": "enterpriseAI.accessibility.showSettings",
+        "title": "Enterprise AI: Accessibility Settings"
+      },
+      {
+        "command": "enterpriseAI.accessibility.showHelp",
+        "title": "Enterprise AI: Keyboard Shortcuts Help"
       }
     ],
     "configuration": {
@@ -97,9 +105,89 @@
           "type": "number",
           "default": 200,
           "description": "Debounce time for suggestions (ms)"
+        },
+        "enterpriseAI.accessibility.screenReaderEnabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable screen reader announcements"
+        },
+        "enterpriseAI.accessibility.highContrastMode": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable high contrast mode"
+        },
+        "enterpriseAI.accessibility.fontSize": {
+          "type": "number",
+          "default": 14,
+          "minimum": 10,
+          "maximum": 32,
+          "description": "Font size for extension UI (px)"
+        },
+        "enterpriseAI.accessibility.keyboardNavigationEnabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable enhanced keyboard navigation"
+        },
+        "enterpriseAI.accessibility.announceActions": {
+          "type": "boolean",
+          "default": true,
+          "description": "Announce actions to screen reader"
+        },
+        "enterpriseAI.accessibility.reducedMotion": {
+          "type": "boolean",
+          "default": false,
+          "description": "Reduce animations and transitions"
         }
       }
-    }
+    },
+    "keybindings": [
+      {
+        "command": "enterpriseAI.toggleMode",
+        "key": "ctrl+shift+m",
+        "mac": "cmd+shift+m",
+        "when": "editorTextFocus"
+      },
+      {
+        "command": "enterpriseAI.generateTests",
+        "key": "ctrl+shift+t",
+        "mac": "cmd+shift+t",
+        "when": "editorTextFocus"
+      },
+      {
+        "command": "enterpriseAI.refactorSelection",
+        "key": "ctrl+shift+r",
+        "mac": "cmd+shift+r",
+        "when": "editorHasSelection"
+      },
+      {
+        "command": "enterpriseAI.explainCode",
+        "key": "ctrl+shift+e",
+        "mac": "cmd+shift+e",
+        "when": "editorTextFocus"
+      },
+      {
+        "command": "enterpriseAI.findSecurityIssues",
+        "key": "ctrl+shift+s",
+        "mac": "cmd+shift+s",
+        "when": "editorTextFocus"
+      },
+      {
+        "command": "enterpriseAI.generateDocumentation",
+        "key": "ctrl+shift+d",
+        "mac": "cmd+shift+d",
+        "when": "editorTextFocus"
+      },
+      {
+        "command": "enterpriseAI.accessibility.showSettings",
+        "key": "ctrl+shift+alt+a",
+        "mac": "cmd+shift+alt+a"
+      },
+      {
+        "command": "enterpriseAI.accessibility.showHelp",
+        "key": "ctrl+shift+alt+h",
+        "mac": "cmd+shift+alt+h"
+      }
+    ]
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",

@@ -5,13 +5,26 @@
 
 import * as vscode from 'vscode';
 import { WebSocketClient } from './services/WebSocketClient';
+import { AccessibilityManager } from './services/AccessibilityManager';
+import { KeyboardNavigationManager } from './services/KeyboardNavigationManager';
 import { v4 as uuidv4 } from 'uuid';
 
 let wsClient: WebSocketClient | null = null;
+let accessibilityManager: AccessibilityManager | null = null;
+let keyboardNavManager: KeyboardNavigationManager | null = null;
 
 export function activate(context: vscode.ExtensionContext) {
     console.log('Enterprise AI Agents extension is now active!');
     console.log('Project Creator: Herman Swanepoel');
+
+    // Initialize accessibility features
+    accessibilityManager = new AccessibilityManager(context);
+    keyboardNavManager = new KeyboardNavigationManager(context);
+    
+    accessibilityManager.announceToScreenReader(
+        'Enterprise AI Agents extension activated. Press Ctrl+Shift+Alt+H for keyboard shortcuts.',
+        'polite'
+    );
 
     const config = vscode.workspace.getConfiguration('enterpriseAI');
     const backendUrl = config.get<string>('backend.url', 'ws://localhost:8000');
@@ -43,7 +56,16 @@ export function activate(context: vscode.ExtensionContext) {
     const toggleModeCommand = vscode.commands.registerCommand(
         'enterpriseAI.toggleMode',
         () => {
+            accessibilityManager?.announceToScreenReader('Toggling mode', 'polite');
+            keyboardNavManager?.addToHistory('enterpriseAI.toggleMode');
             vscode.window.showInformationMessage('Mode toggle not yet implemented');
+        }
+    );
+    
+    const accessibilitySettingsCommand = vscode.commands.registerCommand(
+        'enterpriseAI.accessibility.showSettings',
+        () => {
+            accessibilityManager?.showSettings();
         }
     );
 
@@ -112,7 +134,8 @@ export function activate(context: vscode.ExtensionContext) {
         generateDocumentationCommand,
         startAgentDiscussionCommand,
         viewAnalyticsCommand,
-        reindexCodebaseCommand
+        reindexCodebaseCommand,
+        accessibilitySettingsCommand
     );
 
     if (wsClient) {
@@ -124,6 +147,16 @@ export function activate(context: vscode.ExtensionContext) {
 
 export function deactivate() {
     console.log('Enterprise AI Agents extension is now deactivated');
+    
+    if (accessibilityManager) {
+        accessibilityManager.announceToScreenReader('Enterprise AI Agents extension deactivated', 'polite');
+        accessibilityManager.dispose();
+    }
+    
+    if (keyboardNavManager) {
+        keyboardNavManager.dispose();
+    }
+    
     if (wsClient) {
         wsClient.disconnect();
     }
