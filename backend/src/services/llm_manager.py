@@ -3,11 +3,11 @@ LLM Manager with Ollama support and Response Caching
 Project Creator: Herman Swanepoel
 """
 
-import logging
-from typing import Optional, Dict, Any, List
-from enum import Enum
 import asyncio
-import hashlib
+import logging
+from enum import Enum
+from typing import Any, Dict, List, Optional
+
 import ollama
 
 from src.services.response_cache import ResponseCache
@@ -18,7 +18,6 @@ logger = logging.getLogger(__name__)
 class LLMError(Exception):
     """Base exception for LLM-related errors"""
 
-    pass
 
 
 class LLMProvider(str, Enum):

@@ -3,17 +3,17 @@ Bug Detection Agent with security analysis
 Project Creator: Herman Swanepoel
 """
 
-import asyncio
 import re
-from typing import List, Dict, Any, Optional
 from enum import Enum
+from typing import Any, Dict, List
 
-from src.models import Task, AgentResponse, Suggestion, CodeContext
+from src.models import AgentResponse, CodeContext, Suggestion, Task
 from src.services.llm_manager import LLMManager
 
 
 class Severity(str, Enum):
     """Bug severity levels"""
+
     CRITICAL = "critical"
     HIGH = "high"
     MEDIUM = "medium"
@@ -23,6 +23,7 @@ class Severity(str, Enum):
 
 class BugCategory(str, Enum):
     """Bug categories"""
+
     SECURITY = "security"
     PERFORMANCE = "performance"
     LOGIC = "logic"
@@ -33,7 +34,7 @@ class BugCategory(str, Enum):
 class BugAgent:
     """
     Bug detection agent with security analysis
-    
+
     Detects bugs, security vulnerabilities, and code quality issues
     using static analysis and LLM-powered detection.
     """
@@ -41,7 +42,7 @@ class BugAgent:
     def __init__(self, llm_manager: LLMManager):
         """
         Initialize Bug Agent
-        
+
         Args:
             llm_manager: LLM manager for AI-powered analysis
         """
@@ -68,11 +69,11 @@ class BugAgent:
     async def analyze_code(self, task: Task, context: CodeContext) -> AgentResponse:
         """
         Analyze code for bugs and security issues
-        
+
         Args:
             task: Task to execute
             context: Code context
-            
+
         Returns:
             AgentResponse with bug findings and fixes
         """
@@ -97,7 +98,7 @@ class BugAgent:
                 agent_name=self.name,
                 suggestions=suggestions,
                 confidence=confidence,
-                reasoning=self._generate_reasoning(all_issues)
+                reasoning=self._generate_reasoning(all_issues),
             )
 
         except Exception as e:
@@ -106,16 +107,16 @@ class BugAgent:
                 agent_name=self.name,
                 suggestions=[],
                 confidence=0.0,
-                reasoning=f"Analysis failed: {str(e)}"
+                reasoning=f"Analysis failed: {str(e)}",
             )
 
     async def _static_analysis(self, context: CodeContext) -> List[Dict[str, Any]]:
         """
         Perform static code analysis
-        
+
         Args:
             context: Code context
-            
+
         Returns:
             List of detected issues
         """
@@ -125,31 +126,35 @@ class BugAgent:
         for pattern_name, pattern in self.security_patterns.items():
             matches = re.finditer(pattern, context.code, re.MULTILINE)
             for match in matches:
-                line_num = context.code[:match.start()].count('\n') + 1
-                issues.append({
-                    "type": "security",
-                    "category": BugCategory.SECURITY,
-                    "severity": self._get_severity(pattern_name),
-                    "pattern": pattern_name,
-                    "line": line_num,
-                    "code": match.group(0),
-                    "message": self._get_message(pattern_name)
-                })
+                line_num = context.code[: match.start()].count("\n") + 1
+                issues.append(
+                    {
+                        "type": "security",
+                        "category": BugCategory.SECURITY,
+                        "severity": self._get_severity(pattern_name),
+                        "pattern": pattern_name,
+                        "line": line_num,
+                        "code": match.group(0),
+                        "message": self._get_message(pattern_name),
+                    }
+                )
 
         # Check performance patterns
         for pattern_name, pattern in self.performance_patterns.items():
             matches = re.finditer(pattern, context.code, re.MULTILINE)
             for match in matches:
-                line_num = context.code[:match.start()].count('\n') + 1
-                issues.append({
-                    "type": "performance",
-                    "category": BugCategory.PERFORMANCE,
-                    "severity": Severity.MEDIUM,
-                    "pattern": pattern_name,
-                    "line": line_num,
-                    "code": match.group(0),
-                    "message": self._get_message(pattern_name)
-                })
+                line_num = context.code[: match.start()].count("\n") + 1
+                issues.append(
+                    {
+                        "type": "performance",
+                        "category": BugCategory.PERFORMANCE,
+                        "severity": Severity.MEDIUM,
+                        "pattern": pattern_name,
+                        "line": line_num,
+                        "code": match.group(0),
+                        "message": self._get_message(pattern_name),
+                    }
+                )
 
         # Language-specific checks
         if context.language == "python":
@@ -165,27 +170,31 @@ class BugAgent:
 
         # Check for pickle usage (security risk)
         if "pickle.loads" in context.code or "pickle.load" in context.code:
-            issues.append({
-                "type": "security",
-                "category": BugCategory.SECURITY,
-                "severity": Severity.HIGH,
-                "pattern": "unsafe_deserialization",
-                "line": 0,
-                "code": "pickle.loads/load",
-                "message": "Unsafe deserialization with pickle can lead to code execution"
-            })
+            issues.append(
+                {
+                    "type": "security",
+                    "category": BugCategory.SECURITY,
+                    "severity": Severity.HIGH,
+                    "pattern": "unsafe_deserialization",
+                    "line": 0,
+                    "code": "pickle.loads/load",
+                    "message": "Unsafe deserialization with pickle can lead to code execution",
+                }
+            )
 
         # Check for assert in production code
         if "assert " in context.code:
-            issues.append({
-                "type": "logic",
-                "category": BugCategory.LOGIC,
-                "severity": Severity.LOW,
-                "pattern": "assert_in_production",
-                "line": 0,
-                "code": "assert",
-                "message": "Assert statements are removed in optimized Python, use proper error handling"
-            })
+            issues.append(
+                {
+                    "type": "logic",
+                    "category": BugCategory.LOGIC,
+                    "severity": Severity.LOW,
+                    "pattern": "assert_in_production",
+                    "line": 0,
+                    "code": "assert",
+                    "message": "Assert statements are removed in optimized Python, use proper error handling",
+                }
+            )
 
         return issues
 
@@ -194,40 +203,44 @@ class BugAgent:
         issues = []
 
         # Check for == instead of ===
-        matches = re.finditer(r'[^=!]==[^=]', context.code)
+        matches = re.finditer(r"[^=!]==[^=]", context.code)
         for match in matches:
-            line_num = context.code[:match.start()].count('\n') + 1
-            issues.append({
-                "type": "logic",
-                "category": BugCategory.LOGIC,
-                "severity": Severity.LOW,
-                "pattern": "loose_equality",
-                "line": line_num,
-                "code": match.group(0),
-                "message": "Use === instead of == for strict equality comparison"
-            })
+            line_num = context.code[: match.start()].count("\n") + 1
+            issues.append(
+                {
+                    "type": "logic",
+                    "category": BugCategory.LOGIC,
+                    "severity": Severity.LOW,
+                    "pattern": "loose_equality",
+                    "line": line_num,
+                    "code": match.group(0),
+                    "message": "Use === instead of == for strict equality comparison",
+                }
+            )
 
         # Check for console.log in production
         if "console.log" in context.code:
-            issues.append({
-                "type": "style",
-                "category": BugCategory.STYLE,
-                "severity": Severity.INFO,
-                "pattern": "console_log",
-                "line": 0,
-                "code": "console.log",
-                "message": "Remove console.log statements from production code"
-            })
+            issues.append(
+                {
+                    "type": "style",
+                    "category": BugCategory.STYLE,
+                    "severity": Severity.INFO,
+                    "pattern": "console_log",
+                    "line": 0,
+                    "code": "console.log",
+                    "message": "Remove console.log statements from production code",
+                }
+            )
 
         return issues
 
     async def _llm_analysis(self, context: CodeContext) -> List[Dict[str, Any]]:
         """
         Use LLM for deeper code analysis
-        
+
         Args:
             context: Code context
-            
+
         Returns:
             List of LLM-detected issues
         """
@@ -266,29 +279,29 @@ FIX: [suggested fix]
     def _parse_llm_response(self, response: str) -> List[Dict[str, Any]]:
         """Parse LLM response into structured issues"""
         issues = []
-        
+
         # Split by issue separator
         issue_blocks = response.split("---")
-        
+
         for block in issue_blocks:
             if not block.strip():
                 continue
 
             issue = {}
-            
+
             # Extract fields
-            if match := re.search(r'ISSUE:\s*(\w+)\s*-\s*(\w+)', block):
+            if match := re.search(r"ISSUE:\s*(\w+)\s*-\s*(\w+)", block):
                 issue["category"] = match.group(1).lower()
                 issue["severity"] = match.group(2).lower()
-            
-            if match := re.search(r'LINE:\s*(.+)', block):
+
+            if match := re.search(r"LINE:\s*(.+)", block):
                 line_str = match.group(1).strip()
                 issue["line"] = int(line_str) if line_str.isdigit() else 0
-            
-            if match := re.search(r'DESCRIPTION:\s*(.+?)(?=FIX:|$)', block, re.DOTALL):
+
+            if match := re.search(r"DESCRIPTION:\s*(.+?)(?=FIX:|$)", block, re.DOTALL):
                 issue["message"] = match.group(1).strip()
-            
-            if match := re.search(r'FIX:\s*(.+)', block, re.DOTALL):
+
+            if match := re.search(r"FIX:\s*(.+)", block, re.DOTALL):
                 issue["fix"] = match.group(1).strip()
 
             if issue:
@@ -298,30 +311,26 @@ FIX: [suggested fix]
         return issues
 
     def _merge_issues(
-        self, 
-        static_issues: List[Dict[str, Any]], 
-        llm_issues: List[Dict[str, Any]]
+        self, static_issues: List[Dict[str, Any]], llm_issues: List[Dict[str, Any]]
     ) -> List[Dict[str, Any]]:
         """Merge and deduplicate issues from different sources"""
         all_issues = static_issues + llm_issues
-        
+
         # Sort by severity
         severity_order = {
             Severity.CRITICAL: 0,
             Severity.HIGH: 1,
             Severity.MEDIUM: 2,
             Severity.LOW: 3,
-            Severity.INFO: 4
+            Severity.INFO: 4,
         }
-        
+
         all_issues.sort(key=lambda x: severity_order.get(x.get("severity", Severity.INFO), 4))
-        
+
         return all_issues
 
     async def _generate_fixes(
-        self, 
-        issues: List[Dict[str, Any]], 
-        context: CodeContext
+        self, issues: List[Dict[str, Any]], context: CodeContext
     ) -> List[Suggestion]:
         """Generate fix suggestions for detected issues"""
         suggestions = []
@@ -333,12 +342,14 @@ FIX: [suggested fix]
             else:
                 fix_code = issue["fix"]
 
-            suggestions.append(Suggestion(
-                code=fix_code,
-                description=f"[{issue['severity'].upper()}] {issue['message']}",
-                confidence=self._get_fix_confidence(issue),
-                reasoning=f"Detected {issue['category']} issue at line {issue.get('line', 'unknown')}"
-            ))
+            suggestions.append(
+                Suggestion(
+                    code=fix_code,
+                    description=f"[{issue['severity'].upper()}] {issue['message']}",
+                    confidence=self._get_fix_confidence(issue),
+                    reasoning=f"Detected {issue['category']} issue at line {issue.get('line', 'unknown')}",
+                )
+            )
 
         return suggestions
 
@@ -410,9 +421,7 @@ Provide only the fixed code without explanations.
         return min(base_confidence, 1.0)
 
     def _calculate_confidence(
-        self, 
-        issues: List[Dict[str, Any]], 
-        suggestions: List[Suggestion]
+        self, issues: List[Dict[str, Any]], suggestions: List[Suggestion]
     ) -> float:
         """Calculate overall confidence in the analysis"""
         if not issues:

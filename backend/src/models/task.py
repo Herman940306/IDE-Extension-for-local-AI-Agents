@@ -3,14 +3,16 @@ Task data models
 Project Creator: Herman Swanepoel
 """
 
+import time
 from enum import Enum
 from typing import Any, Dict
+
 from pydantic import BaseModel, Field
-import time
 
 
 class TaskType(str, Enum):
     """Types of tasks that can be executed by agents"""
+
     INLINE_SUGGESTION = "inline_suggestion"
     REFACTOR = "refactor"
     TEST_GENERATION = "test_generation"
@@ -21,6 +23,7 @@ class TaskType(str, Enum):
 
 class Priority(int, Enum):
     """Task priority levels"""
+
     LOW = 1
     MEDIUM = 2
     HIGH = 3
@@ -29,6 +32,7 @@ class Priority(int, Enum):
 
 class Task(BaseModel):
     """Task model for agent execution"""
+
     id: str = Field(..., description="Unique task identifier")
     type: TaskType = Field(..., description="Type of task to execute")
     content: str = Field(..., description="Task content or code to process")
@@ -45,9 +49,9 @@ class Task(BaseModel):
                 "context": {
                     "file_path": "/src/api/users.ts",
                     "language": "typescript",
-                    "cursor_position": {"line": 42, "character": 25}
+                    "cursor_position": {"line": 42, "character": 25},
                 },
                 "priority": 2,
-                "timestamp": 1705132800.0
+                "timestamp": 1705132800.0,
             }
         }

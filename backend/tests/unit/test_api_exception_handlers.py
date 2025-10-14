@@ -7,23 +7,24 @@ Target Coverage: 95%
 GODMODE: AUTONOMOUS EXECUTION
 """
 
+from unittest.mock import Mock, patch
+
 import pytest
 from fastapi import FastAPI, Request
 from fastapi.testclient import TestClient
-from unittest.mock import Mock, patch
 from src.api.exception_handlers import register_exception_handlers
 from src.utils.exceptions import (
     AuraIAException,
+    CircuitBreakerOpenException,
     RateLimitExceededException,
     ValidationException,
-    CircuitBreakerOpenException,
 )
 
 
 @pytest.fixture
 def app():
     """Create FastAPI app with exception handlers"""
-    app = FastAPI()
+    app = FastAPI(debug=False)
     register_exception_handlers(app)
 
     # Add test routes that raise exceptions
@@ -53,7 +54,7 @@ def app():
 @pytest.fixture
 def client(app):
     """Create test client"""
-    return TestClient(app)
+    return TestClient(app, raise_server_exceptions=False)
 
 
 class TestRateLimitExceptionHandler:
@@ -281,8 +282,8 @@ class TestExceptionHandlerLogging:
         """Test generic exception is logged"""
         client.get("/test/generic-exception")
 
-        # Verify exception was logged
-        assert mock_logger.exception.called
+        # Verify error was logged (using logger.error, not logger.exception)
+        assert mock_logger.error.called
 
 
 class TestExceptionHandlerEdgeCases:

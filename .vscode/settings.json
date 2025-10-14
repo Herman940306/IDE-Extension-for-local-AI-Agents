@@ -7,6 +7,9 @@
         "source.fixAll": "explicit"
     },
     "diffEditor.codeLens": true,
+    // Use local venv
+    "python.defaultInterpreterPath": ".venv_new/Scripts/python.exe",
+    "python.pythonPath": ".venv_new/Scripts/python.exe",
     // Python Configuration
     "[python]": {
         "editor.defaultFormatter": "ms-python.black-formatter",
@@ -28,8 +31,8 @@
     "python.linting.flake8Enabled": true,
     // Python Testing (Pytest)
     "python.testing.pytestArgs": [
-        "backend",
-        "-v"
+        "backend/tests",
+        "-q"
     ],
     "python.testing.unittestEnabled": false,
     "python.testing.pytestEnabled": true,
@@ -71,5 +74,112 @@
         "**/*.pyc": true,
         "**/.pytest_cache": true,
         "**/node_modules": true
+    },
+    // ═══════════════════════════════════════════════════════════════
+    // 🚀 OMNIDEVGOD HYPERDRIVE MODE - ALL SYSTEMS ACTIVE
+    // ═══════════════════════════════════════════════════════════════
+    "aiAgent.omnidevgod": {
+        "mode": "HYPERDRIVE",
+        "status": "FULLY_ACTIVATED",
+        "intelligence": "MAXIMUM",
+        "automation": "AGGRESSIVE",
+        "quality": "ZERO_TOLERANCE",
+        "communication": {
+            "briefingMode": "CONCISE_REALTIME",
+            "format": "ACTION_ORIENTED",
+            "frequency": "EVERY_OPERATION",
+            "style": "1-2 sentences max per action, focus on WHAT + WHY"
+        }
+    },
+    "aiAgent.systemPrompts": {
+        "priority": "CRITICAL_OVERRIDE",
+        "adherence": "ABSOLUTE_MANDATORY",
+        "executionMode": "PARALLEL_HYPERDRIVE",
+        "master": {
+            "description": "Master architectural and behavioral guidelines",
+            "files": [
+                ".kiro/steering/OMNIDEVGOD.md",
+                ".kiro/steering/UNIFIED_MASTER_FRAMEWORK_v3.md",
+                ".kiro/steering/git-workflow.md"
+            ],
+            "enforcement": "ALWAYS_ACTIVE",
+            "priority": 1
+        },
+        "hooks": {
+            "description": "Execution hooks - ALL ENABLED IN HYPERDRIVE",
+            "files": [
+                ".kiro/hooks/00-unified-master-hook.kiro.hook",
+                ".kiro/hooks/aura-dev-master-godmode.kiro.hook",
+                ".kiro/hooks/enterprise-quality-checks.kiro.hook",
+                ".kiro/hooks/hook-config-manager.kiro.hook"
+            ],
+            "enforcement": "REALTIME_CONTINUOUS",
+            "triggers": ["on-save", "on-type", "on-change", "on-focus", "on-lint"],
+            "allHooksEnabled": true,
+            "priority": 2
+        },
+        "documentation": {
+            "description": "Supporting documentation - ACTIVE REFERENCE",
+            "files": [
+                ".kiro/hooks/unified-quality-gate.md",
+                ".kiro/hooks/HOOKS_MIGRATION_GUIDE.md",
+                ".kiro/hooks/INNOVATION_FEATURES.md"
+            ],
+            "enforcement": "CONTINUOUS_INTEGRATION",
+            "priority": 3
+        }
+    },
+    // 🔥 HYPERDRIVE: GitHub Copilot Ultra Configuration
+    "github.copilot.advanced": {
+        "inlineSuggestCount": 5,
+        "debug.overrideEngine": "gpt-4-turbo",
+        "customInstructions": "⚡ OMNIDEVGOD HYPERDRIVE ACTIVATED ⚡\n\nYou are AURA-DEV operating in GODMODE HYPERDRIVE. Execute with MAXIMUM intelligence and ZERO tolerance for technical debt.\n\n🎯 MASTER DIRECTIVES (ABSOLUTE):\n• Follow ALL principles from .kiro/steering/OMNIDEVGOD.md\n• Execute UNIFIED_MASTER_FRAMEWORK_v3.md Core Development Rules\n• Trigger ALL hooks from .kiro/hooks/ on EVERY operation\n• Enforce git-workflow.md standards on ALL commits\n\n🚀 HYPERDRIVE PROTOCOLS:\n1. ERROR DETECTION: Instant, comprehensive, zero-miss scanning\n2. CODE QUALITY: Enterprise-grade, production-ready only\n3. SECURITY: Zero Trust, OWASP Top 10, all vectors covered\n4. TESTING: Automated, comprehensive, 85%+ coverage mandatory\n5. DOCUMENTATION: Real-time, inline, always current\n6. OPTIMIZATION: Performance-first, scalable architecture\n7. ACCESSIBILITY: WCAG AAA compliance automatic\n8. DEVOPS: CI/CD, IaC, observability integrated\n9. AI ORCHESTRATION: MCP-guided, LLM-augmented decisions\n10. SPRINT ALIGNMENT: All changes mapped to current tasks\n\n🛡️ ZERO TOLERANCE ENFORCEMENT:\n• No broken code commits\n• No security vulnerabilities\n• No missing tests\n• No accessibility violations\n• No performance regressions\n• No incomplete documentation\n\n💡 INTELLIGENCE MODE: Multi-dimensional analysis, predictive suggestions, proactive refactoring, architectural insights, dependency optimization.\n\nExecute with EXTREME precision and MAXIMUM automation. Think like an entire engineering department operating in perfect synchronization."
+    },
+    // ═══════════════════════════════════════════════════════════════
+    // 📝 PROJECT DOCUMENTATION & ATTRIBUTION
+    // ═══════════════════════════════════════════════════════════════
+    "project.metadata": {
+        "projectName": "AuraIA - Enterprise AI Agents Integration System",
+        "owner": "Herman Swanepoel",
+        "creator": "Herman Swanepoel",
+        "architect": "Herman Swanepoel",
+        "copyright": "© 2025 Herman Swanepoel. All Rights Reserved.",
+        "license": "Proprietary",
+        "repository": "IDE-Extension-for-local-AI-Agents"
+    },
+    "documentation.attribution": {
+        "enabled": true,
+        "author": "Herman Swanepoel",
+        "autoSign": true,
+        "templates": {
+            "header": "/**\n * @project AuraIA - Enterprise AI Agents Integration\n * @author Herman Swanepoel\n * @created {date}\n * @copyright © 2025 Herman Swanepoel\n */",
+            "markdown": "---\nauthor: Herman Swanepoel\nproject: AuraIA Enterprise AI Agents Integration\ncreated: {date}\nupdated: {date}\ncopyright: © 2025 Herman Swanepoel\n---",
+            "python": "\"\"\"\nProject: AuraIA - Enterprise AI Agents Integration\nAuthor: Herman Swanepoel\nCreated: {date}\nCopyright: © 2025 Herman Swanepoel\n\"\"\""
+        }
+    },
+    "git.defaultCommitMessage": "feat: ${input} | Author: Herman Swanepoel",
+    // File Associations for Hooks and Prompts
+    "files.associations": {
+        "*.kiro.hook": "json",
+        ".kiro/steering/*.md": "markdown",
+        ".kiro/hooks/*.md": "markdown"
+    },
+    // Protect core prompt files from accidental modification
+    "files.readonlyInclude": {
+        ".kiro/steering/OMNIDEVGOD.md": true,
+        ".kiro/steering/UNIFIED_MASTER_FRAMEWORK_v3.md": true
+    },
+    // Markdown configuration for prompt files
+    "[markdown]": {
+        "editor.wordWrap": "on",
+        "editor.quickSuggestions": {
+            "comments": "on",
+            "strings": "on",
+            "other": "on"
+        }
+    },
+    // JSON configuration for hook files
+    "[json]": {
+        "editor.defaultFormatter": "vscode.json-language-features"
     }
 }

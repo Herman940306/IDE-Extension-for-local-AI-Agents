@@ -3,7 +3,8 @@ Prompt templates for different agent tasks
 Project Creator: Herman Swanepoel
 """
 
-from typing import Dict, Any
+from typing import Any, Dict
+
 from src.models import TaskType
 
 
@@ -14,10 +15,10 @@ class PromptTemplates:
     def get_system_prompt(task_type: TaskType) -> str:
         """
         Get system prompt for a specific task type
-        
+
         Args:
             task_type: Type of task
-            
+
         Returns:
             System prompt string
         """
@@ -31,7 +32,6 @@ Focus on:
 - Clear and maintainable code
 
 Provide concise, accurate suggestions with brief explanations.""",
-
             TaskType.REFACTOR: """You are an expert code refactoring assistant.
 Your role is to analyze code and suggest improvements for:
 - Code quality and maintainability
@@ -40,7 +40,6 @@ Your role is to analyze code and suggest improvements for:
 - Reducing complexity and code smells
 
 Provide specific, actionable refactoring suggestions with clear reasoning.""",
-
             TaskType.TEST_GENERATION: """You are an expert test generation assistant.
 Your role is to create comprehensive test cases that:
 - Cover core functionality and edge cases
@@ -49,7 +48,6 @@ Your role is to create comprehensive test cases that:
 - Include clear test descriptions
 
 Generate well-structured, meaningful tests.""",
-
             TaskType.BUG_DETECTION: """You are an expert bug detection assistant.
 Your role is to identify potential issues including:
 - Logic errors and edge cases
@@ -58,7 +56,6 @@ Your role is to identify potential issues including:
 - Security vulnerabilities
 
 Provide clear explanations of issues and suggested fixes.""",
-
             TaskType.DOCUMENTATION: """You are an expert documentation assistant.
 Your role is to create clear, comprehensive documentation including:
 - Function/class docstrings
@@ -67,7 +64,6 @@ Your role is to create clear, comprehensive documentation including:
 - README sections
 
 Write documentation that is clear, concise, and helpful.""",
-
             TaskType.SECURITY_ANALYSIS: """You are an expert security analysis assistant.
 Your role is to identify security vulnerabilities including:
 - Injection attacks (SQL, XSS, etc.)
@@ -75,7 +71,7 @@ Your role is to identify security vulnerabilities including:
 - Data exposure and privacy concerns
 - Insecure dependencies
 
-Provide severity ratings and remediation steps."""
+Provide severity ratings and remediation steps.""",
         }
 
         return prompts.get(task_type, "You are a helpful coding assistant.")
@@ -84,17 +80,17 @@ Provide severity ratings and remediation steps."""
     def build_code_suggestion_prompt(code: str, context: Dict[str, Any]) -> str:
         """
         Build prompt for inline code suggestions
-        
+
         Args:
             code: Code snippet
             context: Additional context
-            
+
         Returns:
             Formatted prompt
         """
-        language = context.get('language', 'unknown')
-        file_path = context.get('file_path', '')
-        
+        language = context.get("language", "unknown")
+        file_path = context.get("file_path", "")
+
         return f"""Given the following {language} code:
 
 File: {file_path}
@@ -114,16 +110,16 @@ Suggest 1-3 completions with confidence levels (high/medium/low) and brief expla
     def build_refactor_prompt(code: str, context: Dict[str, Any]) -> str:
         """
         Build prompt for code refactoring
-        
+
         Args:
             code: Code to refactor
             context: Additional context
-            
+
         Returns:
             Formatted prompt
         """
-        language = context.get('language', 'unknown')
-        
+        language = context.get("language", "unknown")
+
         return f"""Analyze this {language} code and suggest refactoring improvements:
 
 ```{language}
@@ -142,16 +138,16 @@ Provide specific refactoring suggestions with before/after examples."""
     def build_test_generation_prompt(code: str, context: Dict[str, Any]) -> str:
         """
         Build prompt for test generation
-        
+
         Args:
             code: Code to test
             context: Additional context
-            
+
         Returns:
             Formatted prompt
         """
-        language = context.get('language', 'unknown')
-        
+        language = context.get("language", "unknown")
+
         return f"""Generate comprehensive tests for this {language} code:
 
 ```{language}
@@ -170,16 +166,16 @@ Provide complete, runnable test code."""
     def build_bug_detection_prompt(code: str, context: Dict[str, Any]) -> str:
         """
         Build prompt for bug detection
-        
+
         Args:
             code: Code to analyze
             context: Additional context
-            
+
         Returns:
             Formatted prompt
         """
-        language = context.get('language', 'unknown')
-        
+        language = context.get("language", "unknown")
+
         return f"""Analyze this {language} code for potential bugs and issues:
 
 ```{language}
@@ -202,16 +198,16 @@ For each issue found, provide:
     def build_documentation_prompt(code: str, context: Dict[str, Any]) -> str:
         """
         Build prompt for documentation generation
-        
+
         Args:
             code: Code to document
             context: Additional context
-            
+
         Returns:
             Formatted prompt
         """
-        language = context.get('language', 'unknown')
-        
+        language = context.get("language", "unknown")
+
         return f"""Generate comprehensive documentation for this {language} code:
 
 ```{language}
@@ -231,16 +227,16 @@ Follow {language} documentation conventions."""
     def build_security_analysis_prompt(code: str, context: Dict[str, Any]) -> str:
         """
         Build prompt for security analysis
-        
+
         Args:
             code: Code to analyze
             context: Additional context
-            
+
         Returns:
             Formatted prompt
         """
-        language = context.get('language', 'unknown')
-        
+        language = context.get("language", "unknown")
+
         return f"""Perform security analysis on this {language} code:
 
 ```{language}

@@ -5,9 +5,9 @@ Project Creator: Herman Swanepoel
 Redis-based rate limiter using sliding window algorithm.
 """
 
-from typing import Optional, Tuple
-import time
 import logging
+import time
+from typing import Optional, Tuple
 
 try:
     from redis.asyncio import Redis

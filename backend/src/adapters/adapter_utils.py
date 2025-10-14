@@ -6,21 +6,206 @@ Centralized utility functions for common adapter operations including
 exponential backoff, response validation, and health checks.
 """
 
-from typing import Callable, Any, Optional, Dict, List
 import asyncio
 import logging
 import random
 import time
-from functools import wraps
 from datetime import datetime
+from functools import wraps
+from typing import Any, Callable, Dict, List, Optional
 
 from src.utils.exceptions import ValidationException
 
 logger = logging.getLogger(__name__)
 
 
+class AdapterExceptions:
+    """Centralized exception hierarchy for adapters"""
+
+    class AdapterError(Exception):
+        """Base exception for all adapter errors"""
+
+
+    class AdapterInitializationError(AdapterError):
+        """Raised when adapter initialization fails"""
+
+
+    class AdapterExecutionError(AdapterError):
+        """Raised when adapter execution fails"""
+
+
+    class AdapterTimeoutError(AdapterError):
+        """Raised when adapter operation times out"""
+
+
+    class AdapterConnectionError(AdapterError):
+        """Raised when adapter connection fails"""
+
+
+    class AdapterAuthenticationError(AdapterError):
+        """Raised when adapter authentication fails"""
+
+
+
 class AdapterUtils:
     """Shared utilities for agent adapters"""
+
+    @staticmethod
+    def extract_code_blocks(text: str) -> List[tuple[str, str]]:
+        """
+        Extract code blocks from markdown-formatted text.
+
+        Args:
+            text: Text containing code blocks in markdown format
+
+        Returns:
+            List of tuples (code, description) where description is text before the code block
+        """
+        import re
+
+        blocks = []
+        # Match markdown code blocks with optional language identifier
+        pattern = r"```(?:\w+)?\n(.*?)```"
+        matches = re.finditer(pattern, text, re.DOTALL)
+
+        for match in matches:
+            code = match.group(1).strip()
+            # Get text before this code block as description
+            start_pos = match.start()
+            # Look backwards for description (text before code block)
+            text_before = text[:start_pos].strip()
+
+            # Get last paragraph before code block
+            paragraphs = text_before.split("\n\n")
+            description = paragraphs[-1].strip() if paragraphs else "Code suggestion"
+
+            if not description:
+                description = "Code suggestion"
+
+            blocks.append((code, description))
+
+        return blocks
+
+    @staticmethod
+    def calculate_base_confidence(status: str, has_suggestions: bool, success_rate: float) -> float:
+        """
+        Calculate base confidence score for adapter response.
+
+        Args:
+            status: Task status (completed, failed, partial, etc.)
+            has_suggestions: Whether suggestions were generated
+            success_rate: Success rate of execution steps (0.0 to 1.0)
+
+        Returns:
+            Confidence score between 0.0 and 1.0
+        """
+        # Base confidence from status
+        if status == "completed":
+            base_confidence = 1.0
+        elif status == "failed":
+            base_confidence = 0.5
+        elif status == "partial":
+            base_confidence = 0.7
+        else:
+            base_confidence = 0.6
+
+        # For completed tasks with suggestions and perfect success rate
+        if status == "completed" and has_suggestions and success_rate == 1.0:
+            return 1.0
+
+        # For failed tasks with no suggestions and zero success rate
+        if status == "failed" and not has_suggestions and success_rate == 0.0:
+            return 0.5
+
+        # For other cases, adjust by success rate
+        # For completed status, maintain high confidence even with lower success rate
+        if status == "completed":
+            final_confidence = 0.75 + (success_rate * 0.25)  # Range: 0.75-1.0
+        else:
+            # Weight the confidence: 50% from status, 50% from success rate
+            final_confidence = base_confidence * 0.5 + success_rate * 0.5
+
+        # Apply suggestion penalty/boost
+        if has_suggestions:
+            final_confidence *= 1.0  # No penalty for having suggestions
+        else:
+            final_confidence *= 0.9  # Small penalty for no suggestions
+
+        # Ensure within bounds
+        return max(0.0, min(1.0, final_confidence))
+
+    @staticmethod
+    def format_reasoning_steps(steps: List[Dict[str, Any]], max_steps: int = 10) -> str:
+        """
+        Format reasoning steps into readable text.
+
+        Args:
+            steps: List of step dictionaries with tool, thought, status
+            max_steps: Maximum number of steps to display
+
+        Returns:
+            Formatted string describing the reasoning process
+        """
+        if not steps:
+            return "No execution steps recorded"
+
+        total_steps = len(steps)
+        displayed_steps = steps[:max_steps]
+
+        lines = [f"Executed {total_steps} steps:"]
+
+        for i, step in enumerate(displayed_steps, 1):
+            tool = step.get("tool", "unknown")
+            thought = step.get("thought", "")
+            status = step.get("status", "unknown")
+
+            status_symbol = "✓" if status in ["success", "completed"] else "✗"
+            lines.append(f"{i}. [{status_symbol}] {tool}: {thought}")
+
+        if total_steps > max_steps:
+            remaining = total_steps - max_steps
+            lines.append(f"... and {remaining} more steps")
+
+        return "\n".join(lines)
+
+    @staticmethod
+    def truncate_output(output: str, max_length: int = 1000) -> str:
+        """
+        Truncate output to maximum length.
+
+        Args:
+            output: Output text to truncate
+            max_length: Maximum length in characters
+
+        Returns:
+            Truncated output with ellipsis if needed
+        """
+        if len(output) <= max_length:
+            return output
+
+        return output[:max_length] + "..."
+
+    @staticmethod
+    def calculate_step_success_rate(steps: List[Dict[str, Any]]) -> float:
+        """
+        Calculate success rate from execution steps.
+
+        Args:
+            steps: List of step dictionaries with status field
+
+        Returns:
+            Success rate between 0.0 and 1.0
+        """
+        if not steps:
+            return 0.0
+
+        success_count = 0
+        for step in steps:
+            status = step.get("status", "").lower()
+            if status in ["success", "completed"]:
+                success_count += 1
+
+        return success_count / len(steps)
 
     @staticmethod
     async def exponential_backoff(
@@ -152,7 +337,7 @@ class AdapterUtils:
             )
 
         logger.debug(
-            f"Response validation successful",
+            "Response validation successful",
             extra={"adapter": adapter_name, "fields": list(response.keys())},
         )
 

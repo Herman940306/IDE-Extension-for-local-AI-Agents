@@ -5,12 +5,12 @@ Project Creator: Herman Swanepoel
 Date: 2025-10-13
 """
 
-import pytest
 import asyncio
 from typing import AsyncGenerator, Generator
-from unittest.mock import AsyncMock, Mock, MagicMock
-import redis.asyncio as redis
+from unittest.mock import AsyncMock, MagicMock, Mock
 
+import pytest
+import redis.asyncio as redis
 
 # ============================================================================
 # Pytest Configuration
@@ -42,6 +42,7 @@ async def mock_redis_client() -> AsyncMock:
     # Mock common Redis operations
     client.get = AsyncMock(return_value=None)
     client.set = AsyncMock(return_value=True)
+    client.setex = AsyncMock(return_value=True)
     client.delete = AsyncMock(return_value=1)
     client.exists = AsyncMock(return_value=0)
     client.expire = AsyncMock(return_value=True)

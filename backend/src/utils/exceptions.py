@@ -5,9 +5,9 @@ Project Creator: Herman Swanepoel
 Standardized exception handling with context tracking and correlation IDs.
 """
 
-from typing import Optional, Dict, Any
-from datetime import datetime
 import uuid
+from datetime import datetime
+from typing import Any, Dict, Optional
 
 
 class AuraIAException(Exception):

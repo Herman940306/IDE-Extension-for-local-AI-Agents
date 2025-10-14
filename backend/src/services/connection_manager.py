@@ -6,8 +6,8 @@ Project Creator: Herman Swanepoel
 import asyncio
 import logging
 from typing import Dict, Set
-from fastapi import WebSocket, WebSocketDisconnect
-import json
+
+from fastapi import WebSocket
 
 logger = logging.getLogger(__name__)
 
@@ -28,9 +28,11 @@ class ConnectionManager:
             self.connection_metadata[client_id] = {
                 "connected_at": asyncio.get_event_loop().time(),
                 "messages_sent": 0,
-                "messages_received": 0
+                "messages_received": 0,
             }
-        logger.info(f"Client {client_id} connected. Total connections: {len(self.active_connections)}")
+        logger.info(
+            f"Client {client_id} connected. Total connections: {len(self.active_connections)}"
+        )
 
     async def disconnect(self, client_id: str) -> None:
         """Remove a WebSocket connection"""

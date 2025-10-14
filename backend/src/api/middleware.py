@@ -5,12 +5,13 @@ Project Creator: Herman Swanepoel
 Request/response processing pipeline including correlation ID, rate limiting, and size validation.
 """
 
+import logging
+import time
+import uuid
+
 from fastapi import Request
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import JSONResponse
-import uuid
-import time
-import logging
 
 from src.services.rate_limiter import RateLimiter
 

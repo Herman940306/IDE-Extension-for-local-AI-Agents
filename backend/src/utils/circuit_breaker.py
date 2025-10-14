@@ -5,10 +5,10 @@ Project Creator: Herman Swanepoel
 Prevents cascading failures when external services are unhealthy.
 """
 
-from typing import Callable, Any, Optional, Dict
-from enum import Enum
-from datetime import datetime, timedelta
 import logging
+from datetime import datetime, timedelta
+from enum import Enum
+from typing import Any, Callable, Dict, Optional
 
 from src.utils.exceptions import CircuitBreakerOpenException
 
@@ -155,8 +155,8 @@ class CircuitBreaker:
             self._transition_to_open()
 
         elif self._state == CircuitState.CLOSED:
-            # Open if threshold exceeded
-            if self._failure_count >= self.failure_threshold:
+            # Open if threshold exceeded (threshold of 0 means never open)
+            if self.failure_threshold > 0 and self._failure_count >= self.failure_threshold:
                 self._transition_to_open()
 
     def _transition_to_open(self) -> None:

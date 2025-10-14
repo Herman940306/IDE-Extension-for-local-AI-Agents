@@ -4,57 +4,58 @@ Project Creator: Herman Swanepoel
 """
 
 from functools import lru_cache
-from pydantic_settings import BaseSettings
+
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class DatabaseSettings(BaseSettings):
     """Database configuration"""
+
+    model_config = SettingsConfigDict(env_prefix="DB_", extra="allow")
 
     redis_url: str = "redis://localhost:6379"
     redis_max_connections: int = 50
     redis_min_idle: int = 10
     chroma_persist_dir: str = "./data/chroma"
 
-    class Config:
-        env_prefix = "DB_"
-
 
 class LLMSettings(BaseSettings):
     """LLM configuration"""
+
+    model_config = SettingsConfigDict(env_prefix="LLM_", extra="allow")
 
     ollama_url: str = "http://localhost:11434"
     default_model: str = "codellama:7b"
     timeout: int = 30
     max_retries: int = 3
 
-    class Config:
-        env_prefix = "LLM_"
-
 
 class CacheSettings(BaseSettings):
     """Cache configuration"""
+
+    model_config = SettingsConfigDict(env_prefix="CACHE_", extra="allow")
 
     enabled: bool = True
     default_ttl: int = 3600
     max_size: int = 1000
 
-    class Config:
-        env_prefix = "CACHE_"
-
 
 class RateLimitSettings(BaseSettings):
     """Rate limiting configuration"""
+
+    model_config = SettingsConfigDict(env_prefix="RATE_LIMIT_", extra="allow")
 
     enabled: bool = True
     requests_per_minute: int = 60
     burst_size: int = 10
 
-    class Config:
-        env_prefix = "RATE_LIMIT_"
-
 
 class AppSettings(BaseSettings):
     """Application settings"""
+
+    model_config = SettingsConfigDict(
+        env_file=".env", env_nested_delimiter="__", extra="allow"  # Allow extra fields from .env
+    )
 
     app_name: str = "Enterprise AI Agents API"
     version: str = "1.0.0"
@@ -67,10 +68,6 @@ class AppSettings(BaseSettings):
     llm: LLMSettings = LLMSettings()
     cache: CacheSettings = CacheSettings()
     rate_limit: RateLimitSettings = RateLimitSettings()
-
-    class Config:
-        env_file = ".env"
-        env_nested_delimiter = "__"
 
 
 @lru_cache()

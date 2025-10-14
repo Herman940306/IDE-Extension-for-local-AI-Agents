@@ -10,14 +10,13 @@ from typing import Dict, Optional
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import ValidationError
-
-from src.models import Task
-from src.services.connection_manager import ConnectionManager
 from src.api.exception_handlers import register_exception_handlers
 from src.api.middleware import CorrelationIDMiddleware, RateLimitMiddleware, RequestSizeMiddleware
 from src.core.config import get_settings
-from src.core.logging import configure_logging, get_logger
 from src.core.container import Container
+from src.core.logging import configure_logging, get_logger
+from src.models import Task
+from src.services.connection_manager import ConnectionManager
 
 # Configure structured logging
 settings = get_settings()
@@ -53,8 +52,8 @@ async def lifespan(app: FastAPI):
     logger.info("backend_shutting_down")
     try:
         await container.redis_pool().close()
-    except:
-        pass
+    except Exception as e:
+        logger.warning(f"Error closing redis pool: {e}")
 
 
 # Create FastAPI application
@@ -212,7 +211,6 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
         return
 
     try:
-
         # Message handling loop
         while True:
             try:

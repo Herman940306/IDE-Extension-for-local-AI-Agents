@@ -3,10 +3,11 @@ Episodic Memory using Redis LRU cache
 Project Creator: Herman Swanepoel
 """
 
-import redis
-from typing import Any, Optional
 import json
 import logging
+from typing import Any, Optional
+
+import redis
 
 logger = logging.getLogger(__name__)
 
@@ -14,21 +15,17 @@ logger = logging.getLogger(__name__)
 class EpisodicCache:
     """
     Short-term conversation state using Redis LRU cache.
-    
+
     Stores recent interactions and context with automatic expiration
     for efficient memory management.
     """
-    
+
     def __init__(
-        self,
-        host: str = "localhost",
-        port: int = 6379,
-        db: int = 0,
-        password: Optional[str] = None
+        self, host: str = "localhost", port: int = 6379, db: int = 0, password: Optional[str] = None
     ):
         """
         Initialize episodic cache.
-        
+
         Args:
             host: Redis host
             port: Redis port
@@ -42,7 +39,7 @@ class EpisodicCache:
                 db=db,
                 password=password,
                 decode_responses=True,
-                socket_connect_timeout=5
+                socket_connect_timeout=5,
             )
             # Test connection
             self.client.ping()
@@ -50,21 +47,16 @@ class EpisodicCache:
         except redis.ConnectionError as e:
             logger.error(f"Failed to connect to Redis: {e}")
             raise
-    
-    def store(
-        self,
-        key: str,
-        value: Any,
-        ttl: int = 300
-    ) -> bool:
+
+    def store(self, key: str, value: Any, ttl: int = 300) -> bool:
         """
         Store value with time-to-live.
-        
+
         Args:
             key: Cache key
             value: Value to store (will be JSON serialized)
             ttl: Time-to-live in seconds (default 5 minutes)
-            
+
         Returns:
             True if successful
         """
@@ -72,21 +64,21 @@ class EpisodicCache:
             # Serialize value
             if not isinstance(value, str):
                 value = json.dumps(value)
-            
+
             self.client.set(key, value, ex=ttl)
             logger.debug(f"Stored key: {key} with TTL: {ttl}s")
             return True
         except Exception as e:
             logger.error(f"Failed to store key {key}: {e}")
             return False
-    
+
     def retrieve(self, key: str) -> Optional[Any]:
         """
         Retrieve value from cache.
-        
+
         Args:
             key: Cache key
-            
+
         Returns:
             Cached value or None if not found/expired
         """
@@ -95,26 +87,26 @@ class EpisodicCache:
             if value is None:
                 logger.debug(f"Cache miss: {key}")
                 return None
-            
+
             # Try to deserialize JSON
             try:
                 value = json.loads(value)
             except json.JSONDecodeError:
                 pass  # Return as string
-            
+
             logger.debug(f"Cache hit: {key}")
             return value
         except Exception as e:
             logger.error(f"Failed to retrieve key {key}: {e}")
             return None
-    
+
     def delete(self, key: str) -> bool:
         """
         Remove key from cache.
-        
+
         Args:
             key: Cache key
-            
+
         Returns:
             True if key was deleted
         """
@@ -125,14 +117,14 @@ class EpisodicCache:
         except Exception as e:
             logger.error(f"Failed to delete key {key}: {e}")
             return False
-    
+
     def exists(self, key: str) -> bool:
         """
         Check if key exists in cache.
-        
+
         Args:
             key: Cache key
-            
+
         Returns:
             True if key exists
         """
@@ -141,14 +133,14 @@ class EpisodicCache:
         except Exception as e:
             logger.error(f"Failed to check key {key}: {e}")
             return False
-    
+
     def get_ttl(self, key: str) -> int:
         """
         Get remaining TTL for key.
-        
+
         Args:
             key: Cache key
-            
+
         Returns:
             Remaining TTL in seconds, -1 if no expiry, -2 if not found
         """
@@ -157,15 +149,15 @@ class EpisodicCache:
         except Exception as e:
             logger.error(f"Failed to get TTL for {key}: {e}")
             return -2
-    
+
     def extend_ttl(self, key: str, additional_seconds: int) -> bool:
         """
         Extend TTL for existing key.
-        
+
         Args:
             key: Cache key
             additional_seconds: Seconds to add to current TTL
-            
+
         Returns:
             True if successful
         """
@@ -179,13 +171,13 @@ class EpisodicCache:
         except Exception as e:
             logger.error(f"Failed to extend TTL for {key}: {e}")
             return False
-    
+
     def clear_all(self) -> bool:
         """
         Clear all keys in current database.
-        
+
         WARNING: This will delete ALL keys in the Redis database.
-        
+
         Returns:
             True if successful
         """
@@ -196,11 +188,11 @@ class EpisodicCache:
         except Exception as e:
             logger.error(f"Failed to clear database: {e}")
             return False
-    
+
     def get_stats(self) -> dict:
         """
         Get cache statistics.
-        
+
         Returns:
             Dict containing cache statistics
         """
@@ -211,14 +203,14 @@ class EpisodicCache:
                 "hits": info.get("keyspace_hits", 0),
                 "misses": info.get("keyspace_misses", 0),
                 "hit_rate": (
-                    info.get("keyspace_hits", 0) /
-                    (info.get("keyspace_hits", 0) + info.get("keyspace_misses", 1))
-                )
+                    info.get("keyspace_hits", 0)
+                    / (info.get("keyspace_hits", 0) + info.get("keyspace_misses", 1))
+                ),
             }
         except Exception as e:
             logger.error(f"Failed to get stats: {e}")
             return {}
-    
+
     def close(self) -> None:
         """Close Redis connection"""
         try:

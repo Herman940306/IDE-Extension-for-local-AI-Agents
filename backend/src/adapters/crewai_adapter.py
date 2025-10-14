@@ -4,19 +4,20 @@ Project Creator: Herman Swanepoel
 """
 
 import asyncio
-from typing import List, Dict, Any, Optional
-from crewai import Agent, Task as CrewTask, Crew, Process
+from typing import Any, List, Optional
+
+from crewai import Agent, Crew, Process
+from crewai import Task as CrewTask
 from langchain.llms import Ollama
-from langchain.tools import Tool
 
 from src.adapters.base_adapter import AgentAdapter, AgentConfig, Capability
-from src.models import Task, AgentResponse, Suggestion, CodeContext
+from src.models import AgentResponse, CodeContext, Suggestion, Task
 
 
 class CrewAIAdapter(AgentAdapter):
     """
     Adapter for CrewAI framework
-    
+
     Enables collaborative multi-agent execution using CrewAI's crew system.
     Supports Doc Agent and Test Agent for documentation and test generation.
     """
@@ -24,7 +25,7 @@ class CrewAIAdapter(AgentAdapter):
     def __init__(self, config: AgentConfig):
         """
         Initialize CrewAI adapter
-        
+
         Args:
             config: Agent configuration
         """
@@ -40,7 +41,7 @@ class CrewAIAdapter(AgentAdapter):
             # Initialize LLM
             self.llm = Ollama(
                 model=self.config.metadata.get("model", "codellama:7b"),
-                base_url=self.config.metadata.get("ollama_url", "http://localhost:11434")
+                base_url=self.config.metadata.get("ollama_url", "http://localhost:11434"),
             )
 
             # Create Doc Agent
@@ -53,7 +54,7 @@ class CrewAIAdapter(AgentAdapter):
                     README files, and API documentation that are clear, concise, and helpful.""",
                     llm=self.llm,
                     verbose=self.config.metadata.get("verbose", False),
-                    allow_delegation=False
+                    allow_delegation=False,
                 )
 
             # Create Test Agent
@@ -66,7 +67,7 @@ class CrewAIAdapter(AgentAdapter):
                     cases that cover edge cases and ensure code reliability.""",
                     llm=self.llm,
                     verbose=self.config.metadata.get("verbose", False),
-                    allow_delegation=False
+                    allow_delegation=False,
                 )
 
             self.is_initialized = True
@@ -77,11 +78,11 @@ class CrewAIAdapter(AgentAdapter):
     async def execute_task(self, task: Task, context: CodeContext) -> AgentResponse:
         """
         Execute a task using CrewAI crew
-        
+
         Args:
             task: Task to execute
             context: Code context
-            
+
         Returns:
             AgentResponse with suggestions
         """
@@ -91,17 +92,17 @@ class CrewAIAdapter(AgentAdapter):
         try:
             # Convert task to CrewAI format
             crew_task = self._convert_to_crew_task(task, context)
-            
+
             # Select appropriate agent(s)
             agents = self._select_agents(task)
-            
+
             if not agents:
                 return AgentResponse(
                     task_id=task.id,
                     agent_name=self.config.name,
                     suggestions=[],
                     confidence=0.0,
-                    reasoning="No suitable agents available for this task type"
+                    reasoning="No suitable agents available for this task type",
                 )
 
             # Create and execute crew
@@ -109,7 +110,7 @@ class CrewAIAdapter(AgentAdapter):
                 agents=agents,
                 tasks=[crew_task],
                 process=Process.sequential,
-                verbose=self.config.metadata.get("verbose", False)
+                verbose=self.config.metadata.get("verbose", False),
             )
 
             # Execute in thread pool to avoid blocking
@@ -125,17 +126,17 @@ class CrewAIAdapter(AgentAdapter):
                 agent_name=self.config.name,
                 suggestions=[],
                 confidence=0.0,
-                reasoning=f"Task execution failed: {str(e)}"
+                reasoning=f"Task execution failed: {str(e)}",
             )
 
     def _convert_to_crew_task(self, task: Task, context: CodeContext) -> CrewTask:
         """
         Convert our task format to CrewAI task format
-        
+
         Args:
             task: Our task format
             context: Code context
-            
+
         Returns:
             CrewAI task
         """
@@ -163,20 +164,22 @@ Please provide your response in the following format:
 """
 
         if context.selected_text:
-            description += f"\n\nSelected Code:\n```{context.language}\n{context.selected_text}\n```"
+            description += (
+                f"\n\nSelected Code:\n```{context.language}\n{context.selected_text}\n```"
+            )
 
         return CrewTask(
             description=description,
-            expected_output="Detailed analysis and actionable suggestions or generated content"
+            expected_output="Detailed analysis and actionable suggestions or generated content",
         )
 
     def _select_agents(self, task: Task) -> List[Agent]:
         """
         Select appropriate agents for the task
-        
+
         Args:
             task: Task to execute
-            
+
         Returns:
             List of agents to use
         """
@@ -198,21 +201,21 @@ Please provide your response in the following format:
     def _convert_crew_result(self, result: Any, task: Task) -> AgentResponse:
         """
         Convert CrewAI result to our response format
-        
+
         Args:
             result: CrewAI execution result
             task: Original task
-            
+
         Returns:
             AgentResponse
         """
         try:
             # Parse the result text
             result_text = str(result)
-            
+
             # Extract suggestions from result
             suggestions = self._parse_suggestions(result_text, task)
-            
+
             # Calculate confidence based on result quality
             confidence = self._calculate_confidence(result_text, suggestions)
 
@@ -221,7 +224,7 @@ Please provide your response in the following format:
                 agent_name=self.config.name,
                 suggestions=suggestions,
                 confidence=confidence,
-                reasoning=result_text
+                reasoning=result_text,
             )
 
         except Exception as e:
@@ -230,17 +233,17 @@ Please provide your response in the following format:
                 agent_name=self.config.name,
                 suggestions=[],
                 confidence=0.0,
-                reasoning=f"Failed to parse result: {str(e)}"
+                reasoning=f"Failed to parse result: {str(e)}",
             )
 
     def _parse_suggestions(self, result_text: str, task: Task) -> List[Suggestion]:
         """
         Parse suggestions from CrewAI result text
-        
+
         Args:
             result_text: Result text from CrewAI
             task: Original task
-            
+
         Returns:
             List of suggestions
         """
@@ -248,42 +251,48 @@ Please provide your response in the following format:
 
         # Extract code blocks from result
         import re
-        code_blocks = re.findall(r'```[\w]*\n(.*?)```', result_text, re.DOTALL)
+
+        code_blocks = re.findall(r"```[\w]*\n(.*?)```", result_text, re.DOTALL)
 
         if code_blocks:
             for i, code in enumerate(code_blocks):
                 # Extract description (text before code block)
                 description_match = re.search(
-                    r'([^\n]+)\n```', 
-                    result_text[:result_text.find(code)]
+                    r"([^\n]+)\n```", result_text[: result_text.find(code)]
                 )
-                description = description_match.group(1) if description_match else f"Suggestion {i+1}"
+                description = (
+                    description_match.group(1) if description_match else f"Suggestion {i+1}"
+                )
 
-                suggestions.append(Suggestion(
-                    code=code.strip(),
-                    description=description.strip(),
-                    confidence=0.8,  # Default confidence for CrewAI suggestions
-                    reasoning=f"Generated by {self.config.name}"
-                ))
+                suggestions.append(
+                    Suggestion(
+                        code=code.strip(),
+                        description=description.strip(),
+                        confidence=0.8,  # Default confidence for CrewAI suggestions
+                        reasoning=f"Generated by {self.config.name}",
+                    )
+                )
         else:
             # If no code blocks, treat entire result as suggestion
-            suggestions.append(Suggestion(
-                code=result_text,
-                description=f"{task.type.value} suggestion",
-                confidence=0.7,
-                reasoning=f"Generated by {self.config.name}"
-            ))
+            suggestions.append(
+                Suggestion(
+                    code=result_text,
+                    description=f"{task.type.value} suggestion",
+                    confidence=0.7,
+                    reasoning=f"Generated by {self.config.name}",
+                )
+            )
 
         return suggestions
 
     def _calculate_confidence(self, result_text: str, suggestions: List[Suggestion]) -> float:
         """
         Calculate confidence score based on result quality
-        
+
         Args:
             result_text: Result text
             suggestions: Parsed suggestions
-            
+
         Returns:
             Confidence score (0.0 to 1.0)
         """
@@ -321,8 +330,7 @@ Please provide your response in the following format:
             if self.llm:
                 # Simple test query
                 test_result = await asyncio.get_event_loop().run_in_executor(
-                    None,
-                    lambda: self.llm("Test")
+                    None, lambda: self.llm("Test")
                 )
                 return test_result is not None
 
@@ -351,10 +359,7 @@ class CrewAIDocAgent(CrewAIAdapter):
             enabled=True,
             max_concurrent=2,
             timeout=60,
-            metadata={
-                "model": "codellama:7b",
-                "verbose": False
-            }
+            metadata={"model": "codellama:7b", "verbose": False},
         )
         super().__init__(config)
 
@@ -370,9 +375,6 @@ class CrewAITestAgent(CrewAIAdapter):
             enabled=True,
             max_concurrent=2,
             timeout=60,
-            metadata={
-                "model": "codellama:7b",
-                "verbose": False
-            }
+            metadata={"model": "codellama:7b", "verbose": False},
         )
         super().__init__(config)

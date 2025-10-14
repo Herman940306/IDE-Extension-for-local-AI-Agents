@@ -3,16 +3,15 @@ API v2 Routes for Next-Gen features
 Project Creator: Herman Swanepoel
 """
 
-from fastapi import APIRouter, HTTPException, Depends
-from pydantic import BaseModel
-from typing import List, Dict, Any, Optional
 import logging
+from typing import Any, Dict, List, Optional
 
+from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel
+
+from src.orchestrator.cognitive_trace import CognitiveTraceStore
 from src.orchestrator.meta_controller import MetaController
 from src.orchestrator.task_router import TaskRouter
-from src.orchestrator.cognitive_trace import CognitiveTraceStore
-from src.orchestrator.dual_process_integration import get_dual_process_system, close_dual_process_system
-from src.orchestrator.reasoning_coordinator import ProcessingMode
 from src.verifier.ensemble import VerifierEnsemble
 from src.verifier.provenance_store import ProvenanceStore
 
@@ -74,7 +73,7 @@ class TraceResponse(BaseModel):
 async def route_task(request: RouteRequest):
     """
     Route a task through the meta-controller.
-    
+
     Analyzes task intent and complexity, then determines
     the optimal agent execution path.
     """
@@ -83,22 +82,21 @@ async def route_task(request: RouteRequest):
         analysis = task_router.analyze_task(
             description=request.description,
             code_context=request.code_context,
-            language=request.language
+            language=request.language,
         )
-        
+
         # Get routing path
         agent_path = meta_controller.route(
-            task_type=analysis["intent"],
-            complexity=analysis["complexity"]
+            task_type=analysis["intent"], complexity=analysis["complexity"]
         )
-        
+
         logger.info(f"Routed task: {analysis['intent']} -> {agent_path}")
-        
+
         return RouteResponse(
             intent=analysis["intent"],
             complexity=analysis["complexity"],
             agent_path=agent_path,
-            requires_verification=analysis["requires_verification"]
+            requires_verification=analysis["requires_verification"],
         )
     except Exception as e:
         logger.error(f"Routing failed: {e}")
@@ -109,7 +107,7 @@ async def route_task(request: RouteRequest):
 async def verify_code(request: VerifyRequest):
     """
     Verify code using the verifier ensemble.
-    
+
     Runs AST syntax checking and semantic validation
     to ensure code correctness.
     """
@@ -118,11 +116,11 @@ async def verify_code(request: VerifyRequest):
             code=request.code,
             language=request.language,
             context=request.context,
-            original_task=request.original_task
+            original_task=request.original_task,
         )
-        
+
         logger.info(f"Verification: valid={result['valid']}, conf={result['confidence']:.2f}")
-        
+
         return VerifyResponse(**result)
     except Exception as e:
         logger.error(f"Verification failed: {e}")
@@ -133,28 +131,23 @@ async def verify_code(request: VerifyRequest):
 async def get_traces(request: TraceRequest):
     """
     Retrieve cognitive traces for explainability.
-    
+
     Returns reasoning chains and thought processes
     from agent executions.
     """
     try:
         traces = cognitive_trace_store.get_traces(
-            agent=request.agent,
-            trace_id=request.trace_id,
-            limit=request.limit
+            agent=request.agent, trace_id=request.trace_id, limit=request.limit
         )
-        
+
         # Generate summary if requested
         summary = None
         if traces and request.trace_id:
             summary = cognitive_trace_store.summarize(traces)
-        
+
         logger.info(f"Retrieved {len(traces)} traces")
-        
-        return TraceResponse(
-            traces=traces,
-            summary=summary
-        )
+
+        return TraceResponse(traces=traces, summary=summary)
     except Exception as e:
         logger.error(f"Trace retrieval failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -164,7 +157,7 @@ async def get_traces(request: TraceRequest):
 async def get_graph_state():
     """
     Get current meta-controller graph state.
-    
+
     Returns nodes, edges, and performance statistics
     for visualization and debugging.
     """
@@ -181,7 +174,7 @@ async def get_graph_state():
 async def reset_graph():
     """
     Reset meta-controller graph to default state.
-    
+
     Clears all performance history and resets edge weights.
     """
     try:
@@ -197,7 +190,7 @@ async def reset_graph():
 async def get_provenance_stats():
     """
     Get provenance statistics.
-    
+
     Returns aggregate statistics about logged inferences.
     """
     try:
@@ -213,7 +206,7 @@ async def get_provenance_stats():
 async def health_check():
     """
     Health check endpoint for v2 API.
-    
+
     Returns status of all v2 components.
     """
     return {
@@ -224,6 +217,6 @@ async def health_check():
             "task_router": "operational",
             "cognitive_traces": "operational",
             "verifier": "operational",
-            "provenance": "operational"
-        }
+            "provenance": "operational",
+        },
     }

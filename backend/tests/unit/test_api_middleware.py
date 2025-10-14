@@ -7,17 +7,14 @@ Target Coverage: 90%
 GODMODE: AUTONOMOUS EXECUTION
 """
 
+from unittest.mock import AsyncMock, Mock, patch
+
 import pytest
 from fastapi import FastAPI, Request
 from fastapi.testclient import TestClient
-from unittest.mock import AsyncMock, Mock, patch
-from src.api.middleware import (
-    CorrelationIDMiddleware,
-    RateLimitMiddleware,
-    RequestSizeMiddleware,
-)
+from src.api.exception_handlers import register_exception_handlers
+from src.api.middleware import CorrelationIDMiddleware, RateLimitMiddleware, RequestSizeMiddleware
 from src.services.rate_limiter import RateLimiter
-
 
 # ============================================================================
 # CorrelationIDMiddleware Tests
@@ -409,14 +406,15 @@ class TestMiddlewareIntegration:
 
     def test_middleware_error_handling(self, mock_rate_limiter):
         """Test middleware handles errors gracefully"""
-        app = FastAPI()
+        app = FastAPI(debug=False)
         app.add_middleware(RateLimitMiddleware, rate_limiter=mock_rate_limiter, enabled=True)
+        register_exception_handlers(app)
 
         @app.get("/test")
         async def test():
             raise ValueError("Test error")
 
-        client = TestClient(app)
+        client = TestClient(app, raise_server_exceptions=False)
         mock_rate_limiter.check_rate_limit.return_value = (True, 99)
 
         # Should get 500 error, not middleware error

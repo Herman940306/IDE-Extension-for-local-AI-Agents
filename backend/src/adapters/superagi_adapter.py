@@ -4,19 +4,19 @@ Project Creator: Herman Swanepoel
 """
 
 import asyncio
-import json
-from typing import List, Dict, Any, Optional
+from typing import Any, Dict, List, Optional
+
 import httpx
 
+from src.adapters.adapter_utils import AdapterExceptions, AdapterUtils
 from src.adapters.base_adapter import AgentAdapter, AgentConfig, Capability
-from src.adapters.adapter_utils import AdapterUtils, AdapterExceptions
-from src.models import Task, AgentResponse, Suggestion, CodeContext
+from src.models import AgentResponse, CodeContext, Suggestion, Task
 
 
 class SuperAGIAdapter(AgentAdapter):
     """
     Adapter for SuperAGI framework
-    
+
     Enables autonomous goal-driven execution with tool integration.
     SuperAGI agents can use various tools to accomplish complex tasks.
     """
@@ -24,7 +24,7 @@ class SuperAGIAdapter(AgentAdapter):
     def __init__(self, config: AgentConfig):
         """
         Initialize SuperAGI adapter
-        
+
         Args:
             config: Agent configuration
         """
@@ -43,9 +43,7 @@ class SuperAGIAdapter(AgentAdapter):
                 headers["Authorization"] = f"Bearer {self.api_key}"
 
             self.http_client = httpx.AsyncClient(
-                base_url=self.base_url,
-                headers=headers,
-                timeout=30.0
+                base_url=self.base_url, headers=headers, timeout=30.0
             )
 
             # Provision agent
@@ -55,21 +53,19 @@ class SuperAGIAdapter(AgentAdapter):
                 "goals": self._get_default_goals(),
                 "tools": self._get_tools(),
                 "model": self.config.metadata.get("model", "gpt-3.5-turbo"),
-                "max_iterations": self.config.metadata.get("max_iterations", 10)
+                "max_iterations": self.config.metadata.get("max_iterations", 10),
             }
 
             response = await self.http_client.post("/agents", json=agent_config)
             response.raise_for_status()
-            
+
             result = response.json()
             self.agent_id = result.get("agent_id")
 
             self.is_initialized = True
 
         except httpx.HTTPError as e:
-            raise AdapterExceptions.AdapterConnectionError(
-                f"Failed to connect to SuperAGI: {e}"
-            )
+            raise AdapterExceptions.AdapterConnectionError(f"Failed to connect to SuperAGI: {e}")
         except Exception as e:
             raise AdapterExceptions.AdapterInitializationError(
                 f"Failed to initialize SuperAGI adapter: {e}"
@@ -78,11 +74,11 @@ class SuperAGIAdapter(AgentAdapter):
     async def execute_task(self, task: Task, context: CodeContext) -> AgentResponse:
         """
         Execute a task using SuperAGI agent
-        
+
         Args:
             task: Task to execute
             context: Code context
-            
+
         Returns:
             AgentResponse with suggestions
         """
@@ -101,19 +97,16 @@ class SuperAGIAdapter(AgentAdapter):
                     "file_path": context.file_path,
                     "language": context.language,
                     "code": context.code,
-                    "selected_text": context.selected_text
+                    "selected_text": context.selected_text,
                 },
                 "max_iterations": self.config.metadata.get("max_iterations", 10),
-                "autonomous": True
+                "autonomous": True,
             }
 
             # Start execution
-            response = await self.http_client.post(
-                "/executions",
-                json=execution_request
-            )
+            response = await self.http_client.post("/executions", json=execution_request)
             response.raise_for_status()
-            
+
             execution_result = response.json()
             execution_id = execution_result.get("execution_id")
 
@@ -129,7 +122,7 @@ class SuperAGIAdapter(AgentAdapter):
                 agent_name=self.config.name,
                 suggestions=[],
                 confidence=0.0,
-                reasoning=f"Task execution failed: {str(e)}"
+                reasoning=f"Task execution failed: {str(e)}",
             )
         except Exception as e:
             return AgentResponse(
@@ -137,7 +130,7 @@ class SuperAGIAdapter(AgentAdapter):
                 agent_name=self.config.name,
                 suggestions=[],
                 confidence=0.0,
-                reasoning=f"Unexpected error: {str(e)}"
+                reasoning=f"Unexpected error: {str(e)}",
             )
 
     def _get_default_goals(self) -> List[str]:
@@ -146,13 +139,13 @@ class SuperAGIAdapter(AgentAdapter):
 
         if Capability.CODE_GENERATION in self.config.capabilities:
             goals.append("Generate high-quality, maintainable code")
-        
+
         if Capability.REFACTORING in self.config.capabilities:
             goals.append("Improve code quality and maintainability")
-        
+
         if Capability.BUG_DETECTION in self.config.capabilities:
             goals.append("Identify and fix bugs and security issues")
-        
+
         if Capability.TESTING in self.config.capabilities:
             goals.append("Create comprehensive test coverage")
 
@@ -160,22 +153,17 @@ class SuperAGIAdapter(AgentAdapter):
 
     def _get_tools(self) -> List[str]:
         """Get tools for the agent based on capabilities"""
-        tools: List[str] = [
-            "code_analysis",
-            "file_reader",
-            "file_writer",
-            "web_search"
-        ]
+        tools: List[str] = ["code_analysis", "file_reader", "file_writer", "web_search"]
 
         if Capability.CODE_GENERATION in self.config.capabilities:
             tools.extend(["code_generator", "syntax_checker"])
-        
+
         if Capability.REFACTORING in self.config.capabilities:
             tools.extend(["refactoring_tool", "code_formatter"])
-        
+
         if Capability.BUG_DETECTION in self.config.capabilities:
             tools.extend(["linter", "security_scanner"])
-        
+
         if Capability.TESTING in self.config.capabilities:
             tools.extend(["test_generator", "test_runner"])
 
@@ -184,11 +172,11 @@ class SuperAGIAdapter(AgentAdapter):
     def _extract_goal(self, task: Task, context: CodeContext) -> str:
         """
         Extract goal from task
-        
+
         Args:
             task: Task to execute
             context: Code context
-            
+
         Returns:
             Goal string for SuperAGI
         """
@@ -197,10 +185,10 @@ class SuperAGIAdapter(AgentAdapter):
         goal += f"Description: {task.description}\n\n"
         goal += f"File: {context.file_path}\n"
         goal += f"Language: {context.language}\n\n"
-        
+
         if context.selected_text:
             goal += f"Focus on this code:\n```{context.language}\n{context.selected_text}\n```\n\n"
-        
+
         goal += "Provide actionable suggestions with code examples."
 
         return goal
@@ -208,10 +196,10 @@ class SuperAGIAdapter(AgentAdapter):
     async def _monitor_execution(self, execution_id: str) -> Dict[str, Any]:
         """
         Monitor execution progress with exponential backoff
-        
+
         Args:
             execution_id: Execution ID to monitor
-            
+
         Returns:
             Execution result
         """
@@ -225,7 +213,7 @@ class SuperAGIAdapter(AgentAdapter):
             try:
                 response = await self.http_client.get(f"/executions/{execution_id}")
                 response.raise_for_status()
-                
+
                 result = response.json()
                 status = result.get("status")
 
@@ -239,37 +227,33 @@ class SuperAGIAdapter(AgentAdapter):
                 # Wait before next poll with exponential backoff
                 await asyncio.sleep(poll_interval)
                 elapsed += poll_interval
-                
+
                 # Increase interval with exponential backoff, capped at max_interval
                 poll_interval = min(poll_interval * backoff_multiplier, max_interval)
 
             except httpx.HTTPError as e:
-                raise AdapterExceptions.AdapterConnectionError(
-                    f"Failed to monitor execution: {e}"
-                )
+                raise AdapterExceptions.AdapterConnectionError(f"Failed to monitor execution: {e}")
 
-        raise AdapterExceptions.AdapterTimeoutError(
-            f"Execution timed out after {max_wait} seconds"
-        )
+        raise AdapterExceptions.AdapterTimeoutError(f"Execution timed out after {max_wait} seconds")
 
     def _convert_result(self, result: Dict[str, Any], task: Task) -> AgentResponse:
         """
         Convert SuperAGI result to our response format
-        
+
         Args:
             result: SuperAGI execution result
             task: Original task
-            
+
         Returns:
             AgentResponse
         """
         try:
             output = result.get("output", "")
             steps = result.get("steps", [])
-            
+
             # Extract suggestions from output and steps
             suggestions = self._parse_suggestions(output, steps)
-            
+
             # Calculate confidence based on execution success
             confidence = self._calculate_confidence(result, suggestions)
 
@@ -281,7 +265,7 @@ class SuperAGIAdapter(AgentAdapter):
                 agent_name=self.config.name,
                 suggestions=suggestions,
                 confidence=confidence,
-                reasoning=reasoning
+                reasoning=reasoning,
             )
 
         except Exception as e:
@@ -290,7 +274,7 @@ class SuperAGIAdapter(AgentAdapter):
                 agent_name=self.config.name,
                 suggestions=[],
                 confidence=0.0,
-                reasoning=f"Failed to parse result: {str(e)}"
+                reasoning=f"Failed to parse result: {str(e)}",
             )
 
     def _parse_suggestions(self, output: str, steps: List[Dict[str, Any]]) -> List[Suggestion]:
@@ -299,14 +283,16 @@ class SuperAGIAdapter(AgentAdapter):
 
         # Extract code blocks from output using shared utility
         code_blocks = AdapterUtils.extract_code_blocks(output)
-        
+
         for code, description in code_blocks:
-            suggestions.append(Suggestion(
-                code=code,
-                description=description,
-                confidence=0.85,
-                reasoning=f"Generated by {self.config.name} through autonomous execution"
-            ))
+            suggestions.append(
+                Suggestion(
+                    code=code,
+                    description=description,
+                    confidence=0.85,
+                    reasoning=f"Generated by {self.config.name} through autonomous execution",
+                )
+            )
 
         # Extract suggestions from steps
         for step in steps:
@@ -315,12 +301,14 @@ class SuperAGIAdapter(AgentAdapter):
                 if tool_output and "```" in tool_output:
                     step_blocks = AdapterUtils.extract_code_blocks(tool_output)
                     for code, _ in step_blocks:
-                        suggestions.append(Suggestion(
-                            code=code,
-                            description=step.get("thought", "Generated code"),
-                            confidence=0.8,
-                            reasoning=f"Step {step.get('step_number')}: {step.get('thought')}"
-                        ))
+                        suggestions.append(
+                            Suggestion(
+                                code=code,
+                                description=step.get("thought", "Generated code"),
+                                confidence=0.8,
+                                reasoning=f"Step {step.get('step_number')}: {step.get('thought')}",
+                            )
+                        )
 
         return suggestions
 
@@ -328,23 +316,21 @@ class SuperAGIAdapter(AgentAdapter):
         """Calculate confidence score using shared utility"""
         steps = result.get("steps", [])
         success_rate = AdapterUtils.calculate_step_success_rate(steps)
-        
+
         return AdapterUtils.calculate_base_confidence(
             status=result.get("status", "unknown"),
             has_suggestions=bool(suggestions),
-            success_rate=success_rate
+            success_rate=success_rate,
         )
 
     def _build_reasoning(self, steps: List[Dict[str, Any]], output: str) -> str:
         """Build reasoning from execution steps using shared utility"""
         reasoning = "SuperAGI " + AdapterUtils.format_reasoning_steps(
-            steps=steps,
-            max_steps=5,
-            step_key="thought"
+            steps=steps, max_steps=5, step_key="thought"
         )
-        
+
         reasoning += f"\nFinal Output:\n{AdapterUtils.truncate_output(output, 500)}"
-        
+
         return reasoning
 
     async def get_capabilities(self) -> List[Capability]:
@@ -377,7 +363,7 @@ class SuperAGIAdapter(AgentAdapter):
 
         except Exception as e:
             print(f"Error during shutdown: {e}")
-        
+
         finally:
             self.http_client = None
             self.agent_id = None
@@ -391,18 +377,15 @@ class SuperAGICodeAgent(SuperAGIAdapter):
         config = AgentConfig(
             name="SuperAGI Code Agent",
             description="Autonomous code generation using SuperAGI",
-            capabilities=[
-                Capability.CODE_GENERATION,
-                Capability.REFACTORING
-            ],
+            capabilities=[Capability.CODE_GENERATION, Capability.REFACTORING],
             enabled=True,
             max_concurrent=1,
             timeout=120,
             metadata={
                 "superagi_url": "http://localhost:8001",
                 "model": "gpt-4",
-                "max_iterations": 15
-            }
+                "max_iterations": 15,
+            },
         )
         super().__init__(config)
 
@@ -414,17 +397,14 @@ class SuperAGIResearchAgent(SuperAGIAdapter):
         config = AgentConfig(
             name="SuperAGI Research Agent",
             description="Autonomous research and analysis using SuperAGI",
-            capabilities=[
-                Capability.RESEARCH,
-                Capability.CODE_GENERATION
-            ],
+            capabilities=[Capability.RESEARCH, Capability.CODE_GENERATION],
             enabled=True,
             max_concurrent=1,
             timeout=180,
             metadata={
                 "superagi_url": "http://localhost:8001",
                 "model": "gpt-4",
-                "max_iterations": 20
-            }
+                "max_iterations": 20,
+            },
         )
         super().__init__(config)

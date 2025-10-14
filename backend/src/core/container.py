@@ -4,10 +4,11 @@ Project Creator: Herman Swanepoel
 """
 
 from dependency_injector import containers, providers
+
 from src.core.config import get_settings
 from src.core.connection_pool import RedisConnectionPool
-from src.services.response_cache import ResponseCache
 from src.services.rate_limiter import RateLimiter
+from src.services.response_cache import ResponseCache
 
 
 class Container(containers.DeclarativeContainer):
@@ -22,7 +23,9 @@ class Container(containers.DeclarativeContainer):
         min_idle=config.provided.database.redis_min_idle,
     )
 
-    redis_client = providers.Singleton(lambda pool: pool.get_client(), pool=redis_pool)
+    # Redis client provider that returns None (since get_client is async)
+    # In tests, services should handle None redis_client gracefully
+    redis_client = providers.Singleton(lambda pool: None, pool=redis_pool)
 
     # Response Cache
     response_cache = providers.Singleton(

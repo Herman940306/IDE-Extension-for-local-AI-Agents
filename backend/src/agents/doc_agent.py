@@ -3,18 +3,18 @@ Documentation Generation Agent
 Project Creator: Herman Swanepoel
 """
 
-import re
-from typing import List, Dict, Any, Optional
 import ast
+import re
+from typing import List, Optional
 
-from src.models import Task, AgentResponse, Suggestion, CodeContext
 from src.adapters.crewai_adapter import CrewAIDocAgent
+from src.models import AgentResponse, CodeContext, Suggestion, Task
 
 
 class DocAgent:
     """
     Documentation generation agent
-    
+
     Generates docstrings, README files, API documentation, and code comments
     using CrewAI for collaborative documentation generation.
     """
@@ -22,25 +22,21 @@ class DocAgent:
     def __init__(self, crewai_adapter: Optional[CrewAIDocAgent] = None):
         """
         Initialize Doc Agent
-        
+
         Args:
             crewai_adapter: Optional CrewAI adapter for collaborative doc generation
         """
         self.name = "Doc Agent"
         self.crewai_adapter = crewai_adapter or CrewAIDocAgent()
 
-    async def generate_documentation(
-        self, 
-        task: Task, 
-        context: CodeContext
-    ) -> AgentResponse:
+    async def generate_documentation(self, task: Task, context: CodeContext) -> AgentResponse:
         """
         Generate documentation for code
-        
+
         Args:
             task: Task to execute
             context: Code context
-            
+
         Returns:
             AgentResponse with documentation suggestions
         """
@@ -68,7 +64,7 @@ class DocAgent:
                 agent_name=self.name,
                 suggestions=suggestions,
                 confidence=confidence,
-                reasoning=f"Generated {doc_type} documentation"
+                reasoning=f"Generated {doc_type} documentation",
             )
 
         except Exception as e:
@@ -77,7 +73,7 @@ class DocAgent:
                 agent_name=self.name,
                 suggestions=[],
                 confidence=0.0,
-                reasoning=f"Documentation generation failed: {str(e)}"
+                reasoning=f"Documentation generation failed: {str(e)}",
             )
 
     def _determine_doc_type(self, task: Task, context: CodeContext) -> str:
@@ -119,16 +115,18 @@ class DocAgent:
                 if isinstance(node, (ast.FunctionDef, ast.ClassDef)):
                     if not ast.get_docstring(node):
                         docstring = self._create_python_docstring(node, context)
-                        
+
                         # Find insertion point
-                        line_num = node.lineno
-                        
-                        suggestions.append(Suggestion(
-                            code=docstring,
-                            description=f"Add docstring for {node.name}",
-                            confidence=0.85,
-                            reasoning=f"Generated Google-style docstring for {type(node).__name__} '{node.name}'"
-                        ))
+                        node.lineno
+
+                        suggestions.append(
+                            Suggestion(
+                                code=docstring,
+                                description=f"Add docstring for {node.name}",
+                                confidence=0.85,
+                                reasoning=f"Generated Google-style docstring for {type(node).__name__} '{node.name}'",
+                            )
+                        )
 
         except SyntaxError:
             # If parsing fails, use CrewAI
@@ -165,20 +163,22 @@ class DocAgent:
         docstring += f'    {node.name.replace("_", " ").title()}\n\n'
 
         if params:
-            docstring += '    Args:\n'
+            docstring += "    Args:\n"
             for param_name, param_type in params:
-                if param_name != 'self':
-                    docstring += f'        {param_name} ({param_type}): Description of {param_name}\n'
+                if param_name != "self":
+                    docstring += (
+                        f"        {param_name} ({param_type}): Description of {param_name}\n"
+                    )
 
         if return_type != "None":
-            docstring += f'\n    Returns:\n'
-            docstring += f'        {return_type}: Description of return value\n'
+            docstring += f"\n    Returns:\n"
+            docstring += f"        {return_type}: Description of return value\n"
 
         # Check for exceptions
         has_raises = any(isinstance(n, ast.Raise) for n in ast.walk(node))
         if has_raises:
-            docstring += '\n    Raises:\n'
-            docstring += '        Exception: Description of exception\n'
+            docstring += "\n    Raises:\n"
+            docstring += "        Exception: Description of exception\n"
 
         docstring += '    """\n'
 
@@ -188,23 +188,23 @@ class DocAgent:
         """Create docstring for a class"""
         docstring = f'    """\n'
         docstring += f'    {node.name.replace("_", " ").title()}\n\n'
-        docstring += f'    Description of {node.name} class.\n\n'
+        docstring += f"    Description of {node.name} class.\n\n"
 
         # Find __init__ method
         init_method = None
         for item in node.body:
-            if isinstance(item, ast.FunctionDef) and item.name == '__init__':
+            if isinstance(item, ast.FunctionDef) and item.name == "__init__":
                 init_method = item
                 break
 
         if init_method and init_method.args.args:
-            docstring += '    Attributes:\n'
+            docstring += "    Attributes:\n"
             for arg in init_method.args.args:
-                if arg.arg != 'self':
+                if arg.arg != "self":
                     arg_type = "Any"
                     if arg.annotation:
                         arg_type = ast.unparse(arg.annotation)
-                    docstring += f'        {arg.arg} ({arg_type}): Description of {arg.arg}\n'
+                    docstring += f"        {arg.arg} ({arg_type}): Description of {arg.arg}\n"
 
         docstring += '    """\n'
 
@@ -215,48 +215,50 @@ class DocAgent:
         suggestions = []
 
         # Find functions without JSDoc
-        function_pattern = r'(?:async\s+)?(?:function\s+(\w+)|(?:const|let|var)\s+(\w+)\s*=\s*(?:async\s+)?\([^)]*\)\s*=>)'
-        
+        function_pattern = r"(?:async\s+)?(?:function\s+(\w+)|(?:const|let|var)\s+(\w+)\s*=\s*(?:async\s+)?\([^)]*\)\s*=>)"
+
         for match in re.finditer(function_pattern, context.code):
             func_name = match.group(1) or match.group(2)
-            line_num = context.code[:match.start()].count('\n') + 1
+            line_num = context.code[: match.start()].count("\n") + 1
 
             # Check if JSDoc already exists
-            lines_before = context.code[:match.start()].split('\n')
-            has_jsdoc = any('/**' in line for line in lines_before[-3:])
+            lines_before = context.code[: match.start()].split("\n")
+            has_jsdoc = any("/**" in line for line in lines_before[-3:])
 
             if not has_jsdoc:
                 jsdoc = self._create_jsdoc(func_name, match.group(0))
-                
-                suggestions.append(Suggestion(
-                    code=jsdoc,
-                    description=f"Add JSDoc for {func_name}",
-                    confidence=0.85,
-                    reasoning=f"Generated JSDoc comment for function '{func_name}'"
-                ))
+
+                suggestions.append(
+                    Suggestion(
+                        code=jsdoc,
+                        description=f"Add JSDoc for {func_name}",
+                        confidence=0.85,
+                        reasoning=f"Generated JSDoc comment for function '{func_name}'",
+                    )
+                )
 
         return suggestions
 
     def _create_jsdoc(self, func_name: str, func_signature: str) -> str:
         """Create JSDoc comment"""
         # Extract parameters
-        param_match = re.search(r'\(([^)]*)\)', func_signature)
+        param_match = re.search(r"\(([^)]*)\)", func_signature)
         params = []
         if param_match:
             param_str = param_match.group(1)
             if param_str.strip():
-                params = [p.strip().split(':')[0].strip() for p in param_str.split(',')]
+                params = [p.strip().split(":")[0].strip() for p in param_str.split(",")]
 
-        jsdoc = '/**\n'
+        jsdoc = "/**\n"
         jsdoc += f' * {func_name.replace("_", " ").title()}\n'
-        jsdoc += ' *\n'
+        jsdoc += " *\n"
 
         for param in params:
             if param:
-                jsdoc += f' * @param {{{param}}} {param} - Description of {param}\n'
+                jsdoc += f" * @param {{{param}}} {param} - Description of {param}\n"
 
-        jsdoc += ' * @returns {{*}} Description of return value\n'
-        jsdoc += ' */\n'
+        jsdoc += " * @returns {{*}} Description of return value\n"
+        jsdoc += " */\n"
 
         return jsdoc
 
@@ -268,25 +270,27 @@ class DocAgent:
                 id="readme_gen",
                 type="documentation",
                 description="Generate comprehensive README documentation",
-                priority="high"
+                priority="high",
             )
             response = await self.crewai_adapter.execute_task(task, context)
             return response.suggestions
 
         # Fallback: Generate basic README template
         readme = self._create_readme_template(context)
-        
-        return [Suggestion(
-            code=readme,
-            description="README.md template",
-            confidence=0.7,
-            reasoning="Generated basic README template"
-        )]
+
+        return [
+            Suggestion(
+                code=readme,
+                description="README.md template",
+                confidence=0.7,
+                reasoning="Generated basic README template",
+            )
+        ]
 
     def _create_readme_template(self, context: CodeContext) -> str:
         """Create basic README template"""
-        file_name = context.file_path.split('/')[-1]
-        project_name = file_name.replace('.py', '').replace('.js', '').replace('.ts', '').title()
+        file_name = context.file_path.split("/")[-1]
+        project_name = file_name.replace(".py", "").replace(".js", "").replace(".ts", "").title()
 
         readme = f"""# {project_name}
 
@@ -349,7 +353,7 @@ Project Creator: Herman Swanepoel
                 id="api_docs_gen",
                 type="documentation",
                 description="Generate comprehensive API documentation",
-                priority="high"
+                priority="high",
             )
             response = await self.crewai_adapter.execute_task(task, context)
             return response.suggestions
@@ -361,23 +365,25 @@ Project Creator: Herman Swanepoel
         suggestions = []
 
         # Find complex code blocks that need comments
-        lines = context.code.split('\n')
-        
+        lines = context.code.split("\n")
+
         for i, line in enumerate(lines):
             # Skip lines that already have comments
-            if '#' in line or '//' in line:
+            if "#" in line or "//" in line:
                 continue
 
             # Check for complex patterns
             if self._is_complex_line(line):
                 comment = f"# TODO: Add comment explaining this logic"
-                
-                suggestions.append(Suggestion(
-                    code=f"{comment}\n{line}",
-                    description=f"Add comment for line {i+1}",
-                    confidence=0.6,
-                    reasoning="Complex code detected, comment recommended"
-                ))
+
+                suggestions.append(
+                    Suggestion(
+                        code=f"{comment}\n{line}",
+                        description=f"Add comment for line {i+1}",
+                        confidence=0.6,
+                        reasoning="Complex code detected, comment recommended",
+                    )
+                )
 
         return suggestions[:10]  # Limit to top 10
 
@@ -385,11 +391,11 @@ Project Creator: Herman Swanepoel
         """Check if a line is complex and needs a comment"""
         # Check for complex patterns
         complex_patterns = [
-            r'lambda\s+',  # Lambda functions
-            r'\[.*for.*in.*\]',  # List comprehensions
-            r'\{.*for.*in.*\}',  # Dict comprehensions
-            r'.*\?.*:.*',  # Ternary operators
-            r'.*&&.*\|\|.*',  # Complex boolean logic
+            r"lambda\s+",  # Lambda functions
+            r"\[.*for.*in.*\]",  # List comprehensions
+            r"\{.*for.*in.*\}",  # Dict comprehensions
+            r".*\?.*:.*",  # Ternary operators
+            r".*&&.*\|\|.*",  # Complex boolean logic
         ]
 
         return any(re.search(pattern, line) for pattern in complex_patterns)

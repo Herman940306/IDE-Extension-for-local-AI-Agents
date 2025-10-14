@@ -4,11 +4,13 @@ Project Creator: Herman Swanepoel
 """
 
 from typing import List, Optional
+
 from pydantic import BaseModel, Field
 
 
 class GitCommit(BaseModel):
     """Git commit information"""
+
     hash: str = Field(..., description="Commit hash")
     message: str = Field(..., description="Commit message")
     author: str = Field(..., description="Commit author")
@@ -17,6 +19,7 @@ class GitCommit(BaseModel):
 
 class CodeContext(BaseModel):
     """Context information for code analysis"""
+
     file_path: str = Field(..., description="Path to the file")
     language: str = Field(..., description="Programming language")
     workspace_path: Optional[str] = Field(None, description="Workspace root path")
@@ -39,6 +42,6 @@ class CodeContext(BaseModel):
                 "imports": ["import { User } from './types'"],
                 "dependencies": ["./types", "./database"],
                 "git_branch": "feature/user-api",
-                "recent_commits": []
+                "recent_commits": [],
             }
         }

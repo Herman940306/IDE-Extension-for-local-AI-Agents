@@ -5,4 +5,4 @@ Project Creator: Herman Swanepoel
 
 from .refactor_agent import RefactorAgent
 
-__all__ = ['RefactorAgent']
+__all__ = ["RefactorAgent"]

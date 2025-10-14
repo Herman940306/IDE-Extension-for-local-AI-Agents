@@ -5,18 +5,20 @@ Project Creator: Herman Swanepoel
 Version: 1.0
 """
 
-from enum import Enum
-from typing import Optional, List, Dict, Any
 from datetime import datetime
-from pydantic import BaseModel, Field
+from enum import Enum
+from typing import Any, Dict, List, Optional
 
+from pydantic import BaseModel, Field
 
 # ============================================================================
 # TASK MODELS
 # ============================================================================
 
+
 class TaskType(str, Enum):
     """Task type classification"""
+
     CODE_GENERATION = "code_generation"
     CODE_REVIEW = "code_review"
     REFACTORING = "refactoring"
@@ -29,6 +31,7 @@ class TaskType(str, Enum):
 
 class Priority(str, Enum):
     """Task priority levels"""
+
     LOW = "low"
     MEDIUM = "medium"
     HIGH = "high"
@@ -37,6 +40,7 @@ class Priority(str, Enum):
 
 class Task(BaseModel):
     """Task representation"""
+
     id: str
     type: TaskType
     priority: Priority
@@ -51,8 +55,10 @@ class Task(BaseModel):
 # AGENT RESPONSE MODELS
 # ============================================================================
 
+
 class Suggestion(BaseModel):
     """Code suggestion from agent"""
+
     id: str
     content: str
     confidence: float = Field(ge=0.0, le=1.0)
@@ -66,6 +72,7 @@ class Suggestion(BaseModel):
 
 class AgentResponse(BaseModel):
     """Complete agent response"""
+
     task_id: str
     suggestions: List[Suggestion] = Field(default_factory=list)
     summary: Optional[str] = None
@@ -79,8 +86,10 @@ class AgentResponse(BaseModel):
 # CODE CONTEXT MODELS
 # ============================================================================
 
+
 class CodeContext(BaseModel):
     """Code context information"""
+
     file_path: str
     content: str
     language: str
@@ -94,6 +103,7 @@ class CodeContext(BaseModel):
 
 class CodeEmbedding(BaseModel):
     """Code embedding representation"""
+
     id: str
     file_path: str
     chunk_index: int
@@ -107,8 +117,10 @@ class CodeEmbedding(BaseModel):
 # GIT MODELS
 # ============================================================================
 
+
 class GitCommit(BaseModel):
     """Git commit information"""
+
     hash: str
     author: str
     email: str
@@ -123,8 +135,10 @@ class GitCommit(BaseModel):
 # TELEMETRY MODELS (Task 5.4)
 # ============================================================================
 
+
 class MetricType(str, Enum):
     """Metric type classification"""
+
     LATENCY = "latency"
     ACCURACY = "accuracy"
     CACHE_HIT = "cache_hit"
@@ -134,6 +148,7 @@ class MetricType(str, Enum):
 
 class Metric(BaseModel):
     """Telemetry metric"""
+
     name: str
     type: MetricType
     value: float
@@ -147,8 +162,10 @@ class Metric(BaseModel):
 # INNOVATION FEATURE MODELS (Task 5)
 # ============================================================================
 
+
 class CodeSmell(BaseModel):
     """Code smell detection result"""
+
     id: str
     file_path: str
     smell_type: str
@@ -163,6 +180,7 @@ class CodeSmell(BaseModel):
 
 class CachePrediction(BaseModel):
     """Predictive cache entry"""
+
     key: str
     predicted_access_time: datetime
     confidence: float = Field(ge=0.0, le=1.0)
@@ -172,6 +190,7 @@ class CachePrediction(BaseModel):
 
 class HealthStatus(str, Enum):
     """Service health status"""
+
     HEALTHY = "healthy"
     DEGRADED = "degraded"
     UNHEALTHY = "unhealthy"
@@ -180,6 +199,7 @@ class HealthStatus(str, Enum):
 
 class ServiceHealth(BaseModel):
     """Service health check result"""
+
     service_name: str
     status: HealthStatus
     latency_ms: Optional[float] = None

@@ -5,8 +5,8 @@ Project Creator: Herman Swanepoel
 
 import pytest
 from src.core.container import Container
-from src.services.response_cache import ResponseCache
 from src.services.rate_limiter import RateLimiter
+from src.services.response_cache import ResponseCache
 
 
 class TestContainer:
