@@ -4,10 +4,11 @@ Project Creator: Herman Swanepoel
 """
 
 import re
+import uuid
 from enum import Enum
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
-from src.models import AgentResponse, CodeContext, Suggestion, Task
+from src.models import AgentResponse, CodeContext, ConfidenceLevel, Suggestion, Task
 from src.services.llm_manager import LLMManager
 
 
@@ -94,20 +95,27 @@ class BugAgent:
             confidence = self._calculate_confidence(all_issues, suggestions)
 
             return AgentResponse(
-                task_id=task.id,
+                agent_id="bug_agent",
                 agent_name=self.name,
                 suggestions=suggestions,
                 confidence=confidence,
                 reasoning=self._generate_reasoning(all_issues),
+                metadata={
+                    "task_id": task.id,
+                    "issue_count": len(all_issues),
+                    "static_issues": len(static_issues),
+                    "llm_issues": len(llm_issues),
+                },
             )
 
         except Exception as e:
             return AgentResponse(
-                task_id=task.id,
+                agent_id="bug_agent",
                 agent_name=self.name,
                 suggestions=[],
                 confidence=0.0,
                 reasoning=f"Analysis failed: {str(e)}",
+                metadata={"error": str(e), "task_id": task.id},
             )
 
     async def _static_analysis(self, context: CodeContext) -> List[Dict[str, Any]]:
@@ -192,7 +200,10 @@ class BugAgent:
                     "pattern": "assert_in_production",
                     "line": 0,
                     "code": "assert",
-                    "message": "Assert statements are removed in optimized Python, use proper error handling",
+                    "message": (
+                        "Assert statements are removed in optimized Python, "
+                        "use proper error handling"
+                    ),
                 }
             )
 
@@ -245,27 +256,27 @@ class BugAgent:
             List of LLM-detected issues
         """
         try:
-            prompt = f"""Analyze the following {context.language} code for bugs, security vulnerabilities, and code quality issues.
-
-Code:
-```{context.language}
-{context.code}
-```
-
-Provide a detailed analysis in the following format:
-1. List each issue found
-2. Categorize as: security, performance, logic, style, or maintainability
-3. Assign severity: critical, high, medium, low, or info
-4. Explain the issue and potential impact
-5. Suggest a fix
-
-Format your response as:
-ISSUE: [category] - [severity]
-LINE: [line number or "multiple"]
-DESCRIPTION: [detailed description]
-FIX: [suggested fix]
----
-"""
+            prompt = (
+                "Analyze the following "
+                f"{context.language} code for bugs, security vulnerabilities, "
+                "and code quality issues.\n\n"
+                "Code:\n"
+                f"```{context.language}\n"
+                f"{context.code}\n"
+                "```\n\n"
+                "Provide a detailed analysis in the following format:\n"
+                "1. List each issue found\n"
+                "2. Categorize as: security, performance, logic, style, or maintainability\n"
+                "3. Assign severity: critical, high, medium, low, or info\n"
+                "4. Explain the issue and potential impact\n"
+                "5. Suggest a fix\n\n"
+                "Format your response as:\n"
+                "ISSUE: [category] - [severity]\n"
+                'LINE: [line number or "multiple"]\n'
+                "DESCRIPTION: [detailed description]\n"
+                "FIX: [suggested fix]\n"
+                "---\n"
+            )
 
             response = await self.llm_manager.generate(prompt, max_tokens=1000)
 
@@ -325,6 +336,9 @@ FIX: [suggested fix]
             Severity.INFO: 4,
         }
 
+        for issue in all_issues:
+            issue["severity"] = self._normalize_severity(issue.get("severity", Severity.INFO))
+
         all_issues.sort(key=lambda x: severity_order.get(x.get("severity", Severity.INFO), 4))
 
         return all_issues
@@ -336,18 +350,18 @@ FIX: [suggested fix]
         suggestions = []
 
         for issue in issues[:10]:  # Limit to top 10 issues
-            # Use LLM to generate fix if not already provided
-            if "fix" not in issue:
+            fix_code = issue.get("fix")
+            if not fix_code:
                 fix_code = await self._generate_fix_code(issue, context)
-            else:
-                fix_code = issue["fix"]
 
             suggestions.append(
                 Suggestion(
-                    code=fix_code,
-                    description=f"[{issue['severity'].upper()}] {issue['message']}",
+                    id=self._build_suggestion_id(issue),
+                    code=fix_code.strip() if isinstance(fix_code, str) else "",
+                    description=self._build_description(issue),
                     confidence=self._get_fix_confidence(issue),
-                    reasoning=f"Detected {issue['category']} issue at line {issue.get('line', 'unknown')}",
+                    diff=None,
+                    applicable_range=self._build_applicable_range(issue),
                 )
             )
 
@@ -406,19 +420,17 @@ Provide only the fixed code without explanations.
         }
         return messages.get(pattern_name, f"Issue detected: {pattern_name}")
 
-    def _get_fix_confidence(self, issue: Dict[str, Any]) -> float:
-        """Calculate confidence for a fix suggestion"""
-        base_confidence = 0.7
+    def _get_fix_confidence(self, issue: Dict[str, Any]) -> ConfidenceLevel:
+        """Calculate confidence level for a fix suggestion"""
+        score = 0.7
 
-        # Higher confidence for static analysis
         if issue.get("type") != "llm_detected":
-            base_confidence += 0.1
+            score += 0.1
 
-        # Higher confidence for well-known patterns
         if issue.get("pattern") in self.security_patterns:
-            base_confidence += 0.1
+            score += 0.1
 
-        return min(base_confidence, 1.0)
+        return self._float_to_confidence(min(score, 1.0))
 
     def _calculate_confidence(
         self, issues: List[Dict[str, Any]], suggestions: List[Suggestion]
@@ -429,8 +441,8 @@ Provide only the fixed code without explanations.
 
         # Average confidence of suggestions
         if suggestions:
-            avg_confidence = sum(s.confidence for s in suggestions) / len(suggestions)
-            return avg_confidence
+            values = [self._confidence_to_float(s.confidence) for s in suggestions]
+            return sum(values) / len(values)
 
         return 0.7  # Default confidence
 
@@ -451,6 +463,51 @@ Provide only the fixed code without explanations.
 
         reasoning += "\nTop issues:\n"
         for i, issue in enumerate(issues[:5], 1):
-            reasoning += f"{i}. [{issue.get('severity', 'unknown').upper()}] {issue['message']}\n"
+            severity = self._normalize_severity(issue.get("severity", Severity.INFO))
+            reasoning += f"{i}. [{severity.value.upper()}] {issue['message']}\n"
 
         return reasoning
+
+    def _build_suggestion_id(self, issue: Dict[str, Any]) -> str:
+        pattern = issue.get("pattern", "issue")
+        return f"bug_{pattern}_{uuid.uuid4().hex[:8]}"
+
+    def _build_description(self, issue: Dict[str, Any]) -> str:
+        severity = self._normalize_severity(issue.get("severity", Severity.INFO))
+        severity_value = severity.value
+        message = issue.get("message", "Issue detected")
+        return f"[{severity_value.upper()}] {message}"
+
+    def _build_applicable_range(self, issue: Dict[str, Any]) -> Optional[Dict[str, Dict[str, int]]]:
+        line = issue.get("line")
+        if isinstance(line, int) and line > 0:
+            return {
+                "start": {"line": line, "character": 0},
+                "end": {"line": line, "character": 0},
+            }
+        return None
+
+    def _float_to_confidence(self, value: float) -> ConfidenceLevel:
+        if value >= 0.85:
+            return ConfidenceLevel.HIGH
+        if value >= 0.6:
+            return ConfidenceLevel.MEDIUM
+        return ConfidenceLevel.LOW
+
+    def _confidence_to_float(self, level: ConfidenceLevel) -> float:
+        mapping = {
+            ConfidenceLevel.HIGH: 0.95,
+            ConfidenceLevel.MEDIUM: 0.75,
+            ConfidenceLevel.LOW: 0.45,
+        }
+        return mapping.get(level, 0.45)
+
+    def _normalize_severity(self, value: Any) -> Severity:
+        if isinstance(value, Severity):
+            return value
+        if isinstance(value, str):
+            try:
+                return Severity(value.lower())
+            except ValueError:
+                return Severity.INFO
+        return Severity.INFO

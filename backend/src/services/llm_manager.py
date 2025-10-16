@@ -6,9 +6,15 @@ Project Creator: Herman Swanepoel
 import asyncio
 import logging
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, cast
 
-import ollama
+try:  # Optional dependency: present when local Ollama support is installed
+    import ollama  # type: ignore
+except ImportError:  # pragma: no cover - exercised via missing dependency path
+    ollama = None  # type: ignore
+
+if TYPE_CHECKING:  # pragma: no cover - typing aid only
+    from types import ModuleType
 
 from src.services.response_cache import ResponseCache
 
@@ -17,7 +23,6 @@ logger = logging.getLogger(__name__)
 
 class LLMError(Exception):
     """Base exception for LLM-related errors"""
-
 
 
 class LLMProvider(str, Enum):
@@ -69,10 +74,20 @@ class LLMManager:
             f"cache_enabled: {self.enable_cache}"
         )
 
+    def _ensure_ollama_available(self) -> "ModuleType | Any":
+        """Ensure the optional Ollama dependency is installed."""
+        if ollama is None:
+            raise LLMError(
+                "Ollama integration requires optional dependencies. "
+                "Install them via `pip install -r backend/requirements-ollama.txt`."
+            )
+        return cast("ModuleType | Any", ollama)
+
     async def initialize(self) -> None:
         """Initialize the LLM provider"""
         if self.provider == LLMProvider.OLLAMA:
             try:
+                self._ensure_ollama_available()
                 # Test connection to Ollama
                 await self._test_ollama_connection()
                 logger.info("✓ Ollama connection successful")
@@ -87,10 +102,11 @@ class LLMManager:
 
     async def _test_ollama_connection(self) -> None:
         """Test connection to Ollama server"""
+        client = self._ensure_ollama_available()
         try:
             # Run in thread pool to avoid blocking
             loop = asyncio.get_event_loop()
-            await loop.run_in_executor(None, lambda: ollama.list())
+            await loop.run_in_executor(None, client.list)
         except Exception as e:
             raise Exception(f"Cannot connect to Ollama at {self.base_url}: {e}")
 
@@ -120,7 +136,7 @@ class LLMManager:
             Generated text
         """
         # Check cache first if enabled
-        if self.enable_cache and use_cache:
+        if self.enable_cache and use_cache and self.response_cache is not None:
             context_params = {
                 "system_prompt": system_prompt,
                 "temperature": temperature,
@@ -161,7 +177,7 @@ class LLMManager:
             raise ValueError(f"Unsupported provider: {self.provider}")
 
         # Cache the response if enabled
-        if self.enable_cache and use_cache and response_text:
+        if self.enable_cache and use_cache and response_text and self.response_cache is not None:
             context_params = {
                 "system_prompt": system_prompt,
                 "temperature": temperature,
@@ -197,6 +213,7 @@ class LLMManager:
         stop: Optional[List[str]],
     ) -> str:
         """Generate using Ollama"""
+        client = self._ensure_ollama_available()
         try:
             messages = []
 
@@ -205,7 +222,7 @@ class LLMManager:
 
             messages.append({"role": "user", "content": prompt})
 
-            options = {
+            options: Dict[str, Any] = {
                 "temperature": temperature,
             }
 
@@ -218,7 +235,12 @@ class LLMManager:
             # Run in thread pool to avoid blocking
             loop = asyncio.get_event_loop()
             response = await loop.run_in_executor(
-                None, lambda: ollama.chat(model=self.model, messages=messages, options=options)
+                None,
+                lambda: client.chat(
+                    model=self.model,
+                    messages=messages,
+                    options=options,
+                ),
             )
 
             return response["message"]["content"]
@@ -267,6 +289,7 @@ class LLMManager:
             Text chunks as they are generated
         """
         if self.provider == LLMProvider.OLLAMA:
+            client = self._ensure_ollama_available()
             messages = []
 
             if system_prompt:
@@ -274,7 +297,7 @@ class LLMManager:
 
             messages.append({"role": "user", "content": prompt})
 
-            options = {
+            options: Dict[str, Any] = {
                 "temperature": temperature,
             }
 
@@ -286,7 +309,7 @@ class LLMManager:
 
             try:
                 # Stream response
-                stream = ollama.chat(
+                stream = client.chat(
                     model=self.model, messages=messages, options=options, stream=True
                 )
 
@@ -308,8 +331,9 @@ class LLMManager:
             List of model names
         """
         if self.provider == LLMProvider.OLLAMA:
+            client = self._ensure_ollama_available()
             try:
-                models = ollama.list()
+                models = client.list()
                 return [model["name"] for model in models.get("models", [])]
             except Exception as e:
                 logger.error(f"Failed to list models: {e}")

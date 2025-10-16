@@ -3,11 +3,12 @@ Integration tests for SuperAGI adapter
 Project Creator: Herman Swanepoel
 """
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
-from src.adapters.superagi_adapter import SuperAGIAdapter, SuperAGICodeAgent
+
+import pytest
 from src.adapters.base_adapter import AgentConfig, Capability
-from src.models import Task, TaskType, Priority, CodeContext
+from src.adapters.superagi_adapter import SuperAGIAdapter, SuperAGICodeAgent
+from src.models import CodeContext, ConfidenceLevel, Priority, Suggestion, Task, TaskType
 
 
 @pytest.fixture
@@ -20,11 +21,7 @@ def mock_config():
         enabled=True,
         max_concurrent=1,
         timeout=60,
-        metadata={
-            "superagi_url": "http://localhost:8001",
-            "model": "gpt-4",
-            "max_iterations": 10
-        }
+        metadata={"superagi_url": "http://localhost:8001", "model": "gpt-4", "max_iterations": 10},
     )
 
 
@@ -34,8 +31,9 @@ def mock_task():
     return Task(
         id="test-task-1",
         type=TaskType.REFACTOR,
+        content="Refactor the given function",
         priority=Priority.HIGH,
-        description="Refactor this function"
+        description="Refactor this function",
     )
 
 
@@ -46,7 +44,10 @@ def mock_context():
         file_path="test.py",
         language="python",
         code="def old_function():\n    pass",
-        selected_text="def old_function():\n    pass"
+        selected_text="def old_function():\n    pass",
+        workspace_path="/tmp/workspace",
+        cursor_position={"line": 0, "character": 0},
+        git_branch="main",
     )
 
 
@@ -57,15 +58,17 @@ class TestSuperAGIAdapter:
     async def test_initialization(self, mock_config):
         """Test adapter initialization"""
         adapter = SuperAGIAdapter(mock_config)
-        
-        with patch.object(adapter, 'http_client') as mock_client:
-            mock_response = AsyncMock()
+
+        with patch("src.adapters.superagi_adapter.httpx.AsyncClient") as mock_client_cls:
+            mock_client = AsyncMock()
+            mock_response = MagicMock()
             mock_response.json.return_value = {"agent_id": "test-agent-123"}
             mock_response.raise_for_status = MagicMock()
             mock_client.post = AsyncMock(return_value=mock_response)
-            
+            mock_client_cls.return_value = mock_client
+
             await adapter.initialize()
-            
+
             assert adapter.is_initialized
             assert adapter.agent_id == "test-agent-123"
 
@@ -73,7 +76,7 @@ class TestSuperAGIAdapter:
         """Test default goals generation"""
         adapter = SuperAGIAdapter(mock_config)
         goals = adapter._get_default_goals()
-        
+
         assert len(goals) > 0
         assert any("code" in goal.lower() for goal in goals)
 
@@ -81,7 +84,7 @@ class TestSuperAGIAdapter:
         """Test tools selection based on capabilities"""
         adapter = SuperAGIAdapter(mock_config)
         tools = adapter._get_tools()
-        
+
         assert "code_analysis" in tools
         assert "code_generator" in tools
 
@@ -89,7 +92,7 @@ class TestSuperAGIAdapter:
         """Test goal extraction from task"""
         adapter = SuperAGIAdapter(mock_config)
         goal = adapter._extract_goal(mock_task, mock_context)
-        
+
         assert "Refactor" in goal
         assert "test.py" in goal
         assert "python" in goal
@@ -106,7 +109,7 @@ def new_function():
 """
         steps = []
         suggestions = adapter._parse_suggestions(output, steps)
-        
+
         assert len(suggestions) == 1
         assert "def new_function()" in suggestions[0].code
 
@@ -119,38 +122,38 @@ def new_function():
                 "tool": "code_generator",
                 "output": "```python\ngenerated_code()\n```",
                 "thought": "Generated solution",
-                "step_number": 1
+                "step_number": 1,
             }
         ]
         suggestions = adapter._parse_suggestions(output, steps)
-        
+
         assert len(suggestions) == 1
         assert "generated_code()" in suggestions[0].code
 
     def test_calculate_confidence_high(self, mock_config):
         """Test confidence calculation for successful execution"""
         adapter = SuperAGIAdapter(mock_config)
-        result = {
-            "status": "completed",
-            "steps": [
-                {"status": "success"},
-                {"status": "success"}
-            ]
-        }
-        suggestions = [MagicMock()]
-        
+        result = {"status": "completed", "steps": [{"status": "success"}, {"status": "success"}]}
+        suggestions = [
+            Suggestion(
+                id="sugg-1",
+                code="def new_function():\n    return True",
+                description="Example suggestion",
+                confidence=ConfidenceLevel.HIGH,
+                diff=None,
+                applicable_range=None,
+            )
+        ]
+
         confidence = adapter._calculate_confidence(result, suggestions)
         assert confidence >= 0.9
 
     def test_calculate_confidence_low(self, mock_config):
         """Test confidence calculation for failed execution"""
         adapter = SuperAGIAdapter(mock_config)
-        result = {
-            "status": "failed",
-            "steps": []
-        }
+        result = {"status": "failed", "steps": []}
         suggestions = []
-        
+
         confidence = adapter._calculate_confidence(result, suggestions)
         assert confidence <= 0.6
 
@@ -159,10 +162,10 @@ def new_function():
         adapter = SuperAGIAdapter(mock_config)
         steps = [
             {"tool": "analyzer", "thought": "Analyzing", "status": "success"},
-            {"tool": "generator", "thought": "Generating", "status": "success"}
+            {"tool": "generator", "thought": "Generating", "status": "success"},
         ]
         output = "Final result"
-        
+
         reasoning = adapter._build_reasoning(steps, output)
         assert "SuperAGI" in reasoning
         assert "analyzer" in reasoning
@@ -174,11 +177,11 @@ def new_function():
         adapter = SuperAGIAdapter(mock_config)
         adapter.is_initialized = True
         adapter.http_client = AsyncMock()
-        
+
         mock_response = AsyncMock()
         mock_response.status_code = 200
         adapter.http_client.get = AsyncMock(return_value=mock_response)
-        
+
         is_healthy = await adapter.health_check()
         assert is_healthy
 
@@ -187,7 +190,7 @@ def new_function():
         """Test health check when adapter is unhealthy"""
         adapter = SuperAGIAdapter(mock_config)
         adapter.is_initialized = False
-        
+
         is_healthy = await adapter.health_check()
         assert not is_healthy
 
@@ -198,7 +201,7 @@ class TestSuperAGICodeAgent:
     def test_initialization(self):
         """Test specialized code agent initialization"""
         agent = SuperAGICodeAgent()
-        
+
         assert agent.config.name == "SuperAGI Code Agent"
         assert Capability.CODE_GENERATION in agent.config.capabilities
         assert agent.config.timeout == 120
@@ -206,6 +209,6 @@ class TestSuperAGICodeAgent:
     def test_capabilities(self):
         """Test code agent has correct capabilities"""
         agent = SuperAGICodeAgent()
-        
+
         assert Capability.CODE_GENERATION in agent.config.capabilities
         assert Capability.REFACTORING in agent.config.capabilities

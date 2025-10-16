@@ -85,6 +85,15 @@ A comprehensive multi-agent AI coding assistant with privacy-first local operati
    pip install -r requirements.txt
    ```
 
+  > ℹ️ **Optional local Ollama extras:** to enable the on-device LLM stack, install the
+  > additional packages from `requirements-ollama.txt` in a separate environment or after
+  > removing the base `httpx`/`anyio` pins:
+  > ```bash
+  > pip install -r requirements-ollama.txt
+  > ```
+  > These packages raise the `httpx` and `anyio` versions that FastAPI's legacy TestClient
+  > cannot use, so keep them isolated when developing against the standard test suite.
+
 3. **Start Backend Services**
    ```bash
    # Start with Docker Compose (recommended)

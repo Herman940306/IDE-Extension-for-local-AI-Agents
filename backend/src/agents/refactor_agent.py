@@ -15,6 +15,7 @@ import asyncio
 import hashlib
 import logging
 import re
+import textwrap
 import uuid
 from typing import Callable, Dict, List, Optional
 
@@ -197,13 +198,16 @@ class RefactorAgent(AgentAdapter):
         if not self.is_initialized:
             await self.initialize()
 
+        source_code = task.content or ""
+        normalized_code = textwrap.dedent(source_code).rstrip()
+
         logger.info(
             "Executing refactoring task",
             extra={
                 "task_id": task.id,
                 "file_path": context.file_path,
                 "language": context.language,
-                "code_length": len(task.content),
+                "code_length": len(normalized_code),
             },
         )
 
@@ -213,7 +217,7 @@ class RefactorAgent(AgentAdapter):
                 await self._store_task_in_memory(task, context)
 
             # Analyze code
-            suggestions = await self._analyze_code(task.content, context)
+            suggestions = await self._analyze_code(normalized_code, context)
 
             # Calculate overall confidence
             confidence = self._calculate_confidence(suggestions)
@@ -273,7 +277,7 @@ class RefactorAgent(AgentAdapter):
         except LLMError as e:
             logger.warning(f"LLM unavailable, using AST-only analysis: {e}")
             # Continue with AST-only analysis
-            suggestions = await self._analyze_code_ast_only(task.content, context)
+            suggestions = await self._analyze_code_ast_only(normalized_code, context)
             return AgentResponse(
                 agent_id="refactor_agent",
                 agent_name=self.config.name,
@@ -315,19 +319,23 @@ class RefactorAgent(AgentAdapter):
             return_exceptions=True,
         )
 
-        suggestions = []
+        suggestions: List[Suggestion] = []
 
-        # Process AST analysis results
         ast_suggestions = results[0]
         if isinstance(ast_suggestions, Exception):
-            logger.warning(f"AST analysis failed: {ast_suggestions}")
+            logger.warning(
+                "AST analysis failed",
+                extra={"error": str(ast_suggestions), "file_path": context.file_path},
+            )
         else:
             suggestions.extend(ast_suggestions)
 
-        # Process code smell detection results
         smell_suggestions = results[1]
         if isinstance(smell_suggestions, Exception):
-            logger.warning(f"Code smell detection failed: {smell_suggestions}")
+            logger.warning(
+                "Code smell detection failed",
+                extra={"error": str(smell_suggestions), "file_path": context.file_path},
+            )
         else:
             suggestions.extend(smell_suggestions)
 
@@ -366,7 +374,6 @@ class RefactorAgent(AgentAdapter):
         ast_suggestions = await self._detect_patterns_ast(code, context)
         suggestions.extend(ast_suggestions)
 
-        # Code smell detection
         smell_suggestions = await self._detect_code_smells(code, context)
         suggestions.extend(smell_suggestions)
 
@@ -571,31 +578,85 @@ class RefactorAgent(AgentAdapter):
         """Detect potentially dead/unused code"""
         suggestions = []
 
-        # Detect unreachable code after return
+        def _statement_range(node: ast.AST) -> Dict[str, Dict[str, int]]:
+            start_line = getattr(node, "lineno", 0)
+            end_line = getattr(node, "end_lineno", start_line)
+            return {
+                "start": {"line": start_line, "character": 0},
+                "end": {"line": end_line, "character": 0},
+            }
+
+        def _is_terminal(stmt: ast.stmt) -> bool:
+            return isinstance(stmt, (ast.Return, ast.Raise, ast.Continue, ast.Break))
+
+        def _collect_blocks(stmt: ast.stmt) -> List[List[ast.stmt]]:
+            blocks: List[List[ast.stmt]] = []
+            for attr in ("body", "orelse", "finalbody"):
+                block = getattr(stmt, attr, None)
+                if block:
+                    blocks.append(block)
+            for handler in getattr(stmt, "handlers", []):
+                if handler.body:
+                    blocks.append(handler.body)
+                if handler.orelse:
+                    blocks.append(handler.orelse)
+            return blocks
+
+        def _mark_unreachable(block: List[ast.stmt], scope: str) -> None:
+            reached_terminal = False
+            for stmt in block:
+                if reached_terminal:
+                    suggestions.append(
+                        Suggestion(
+                            id=f"dead_code_{scope}_{stmt.lineno}_{uuid.uuid4().hex[:8]}",
+                            code="# Unreachable code detected",
+                            description=(
+                                f"Code at line {stmt.lineno} in '{scope}' is unreachable because a "
+                                "previous control-flow statement exits this block."
+                            ),
+                            confidence=ConfidenceLevel.HIGH,
+                            diff=None,
+                            applicable_range=_statement_range(stmt),
+                        )
+                    )
+                    continue
+
+                if _is_terminal(stmt):
+                    reached_terminal = True
+                else:
+                    for child_block in _collect_blocks(stmt):
+                        _mark_unreachable(child_block, scope)
+
+        def _body_has_terminal(block: List[ast.stmt]) -> bool:
+            return any(_is_terminal(stmt) for stmt in block)
+
         for node in ast.walk(tree):
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
-                for i, stmt in enumerate(node.body):
-                    if isinstance(stmt, ast.Return):
-                        # Check if there's code after return
-                        if i < len(node.body) - 1:
-                            next_stmt = node.body[i + 1]
-                            suggestions.append(
-                                Suggestion(
-                                    id=f"dead_code_{node.name}_{uuid.uuid4().hex[:8]}",
-                                    code="# Unreachable code detected",
-                                    description=f"Code after return statement in '{node.name}' is unreachable and can be removed.",
-                                    confidence=ConfidenceLevel.HIGH,
-                                    diff=None,
-                                    applicable_range={
-                                        "start": {"line": next_stmt.lineno, "character": 0},
-                                        "end": {
-                                            "line": next_stmt.end_lineno or next_stmt.lineno,
-                                            "character": 0,
-                                        },
-                                    },
-                                )
+                _mark_unreachable(list(node.body), node.name)
+
+                # Guard clause detection: if branch returns and subsequent statements exist
+                for index, stmt in enumerate(node.body):
+                    if (
+                        isinstance(stmt, ast.If)
+                        and not stmt.orelse
+                        and _body_has_terminal(stmt.body)
+                        and index < len(node.body) - 1
+                    ):
+                        follow_stmt = node.body[index + 1]
+                        suggestions.append(
+                            Suggestion(
+                                id=f"guard_unreachable_{follow_stmt.lineno}_{uuid.uuid4().hex[:8]}",
+                                code="# Potential unreachable code after guard clause",
+                                description=(
+                                    "Guard clause returns from the function; subsequent statements "
+                                    "are unreachable when the guard condition is met. Consider "
+                                    "using an else block or reorganizing the flow."
+                                ),
+                                confidence=ConfidenceLevel.MEDIUM,
+                                diff=None,
+                                applicable_range=_statement_range(follow_stmt),
                             )
-                            break
+                        )
 
         return suggestions
 

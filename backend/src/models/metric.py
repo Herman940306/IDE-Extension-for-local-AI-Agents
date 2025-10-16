@@ -17,6 +17,11 @@ class MetricType(str, Enum):
     GAUGE = "gauge"
     HISTOGRAM = "histogram"
     TIMER = "timer"
+    LATENCY = "latency"
+    ERROR = "error"
+    ACCURACY = "accuracy"
+    CACHE_HIT = "cache_hit"
+    USAGE = "usage"
 
 
 class Metric(BaseModel):
@@ -36,7 +41,7 @@ class Metric(BaseModel):
         json_schema_extra = {
             "example": {
                 "name": "api_response_time",
-                "type": "timer",
+                "type": "latency",
                 "value": 0.125,
                 "unit": "seconds",
                 "tags": {"endpoint": "/api/execute", "method": "POST"},
