@@ -85,6 +85,16 @@ jobs:
         working-directory: extension
         run: npm run compile
 
+      - name: Cache vsce tool and extension package cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/vsce
+            ~/.npm/_cacache
+          key: vsce-${{ runner.os }}-node-${{ steps.node-version.outputs.node-version || '20' }}-v1
+          restore-keys: |
+            vsce-${{ runner.os }}-node-${{ steps.node-version.outputs.node-version || '20' }}-
+
       - name: Package VS Code extension
         working-directory: extension
         run: npm run package
