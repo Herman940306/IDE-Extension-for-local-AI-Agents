@@ -1,4 +1,4 @@
-FROM python:3.13-slim@sha256:5b3b46fda94e5c9ef07f62b2c71c7a64c199930ec5b1b6ecf5f92ba37264c95a AS base
+FROM python:3.11-slim AS base
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
 	PYTHONUNBUFFERED=1 \
@@ -18,7 +18,7 @@ RUN pip install --user --no-warn-script-location -r requirements.txt
 COPY . .
 RUN python -m compileall src
 
-FROM python:3.13-slim@sha256:5b3b46fda94e5c9ef07f62b2c71c7a64c199930ec5b1b6ecf5f92ba37264c95a AS runtime
+FROM python:3.11-slim AS runtime
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
 	PYTHONUNBUFFERED=1 \
