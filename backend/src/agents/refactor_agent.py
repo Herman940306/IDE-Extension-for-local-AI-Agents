@@ -601,11 +601,15 @@ class RefactorAgent(AgentAdapter):
 
                     suggestions.append(
                         Suggestion(
-                            id=f"complex_conditional_{node.lineno}_{uuid.uuid4().hex[:8]}",
+                            id=(
+                                f"complex_conditional_{node.lineno}_"
+                                f"{uuid.uuid4().hex[:8]}"
+                            ),
                             code=condition_line.strip(),
                             description=(
-                                f"Complex conditional with {bool_ops} boolean operators. "  # noqa: E501
-                                "Consider extracting into a well-named boolean variable or method."  # noqa: E501
+                                f"Complex conditional with {bool_ops} boolean "
+                                "operators. Consider extracting into a well-named "
+                                "boolean variable or method."
                             ),
                             confidence=ConfidenceLevel.MEDIUM,
                             diff=None,
@@ -657,11 +661,15 @@ class RefactorAgent(AgentAdapter):
                 if reached_terminal:
                     suggestions.append(
                         Suggestion(
-                            id=f"dead_code_{scope}_{stmt.lineno}_{uuid.uuid4().hex[:8]}",
+                            id=(
+                                f"dead_code_{scope}_{stmt.lineno}_"
+                                f"{uuid.uuid4().hex[:8]}"
+                            ),
                             code="# Unreachable code detected",
                             description=(
-                                f"Code at line {stmt.lineno} in '{scope}' is unreachable because a "  # noqa: E501
-                                "previous control-flow statement exits this block."
+                                f"Code at line {stmt.lineno} in '{scope}' is "
+                                "unreachable because a previous control-flow "
+                                "statement exits this block."
                             ),
                             confidence=ConfidenceLevel.HIGH,
                             diff=None,
@@ -694,12 +702,16 @@ class RefactorAgent(AgentAdapter):
                         follow_stmt = node.body[index + 1]
                         suggestions.append(
                             Suggestion(
-                                id=f"guard_unreachable_{follow_stmt.lineno}_{uuid.uuid4().hex[:8]}",
+                                id=(
+                                    f"guard_unreachable_{follow_stmt.lineno}_"
+                                    f"{uuid.uuid4().hex[:8]}"
+                                ),
                                 code="# Potential unreachable code after guard clause",
                                 description=(
-                                    "Guard clause returns from the function; subsequent statements "  # noqa: E501
-                                    "are unreachable when the guard condition is met. Consider "  # noqa: E501
-                                    "using an else block or reorganizing the flow."
+                                    "Guard clause returns from the function; "
+                                    "subsequent statements are unreachable when "
+                                    "the guard condition is met. Consider using "
+                                    "an else block or reorganizing the flow."
                                 ),
                                 confidence=ConfidenceLevel.MEDIUM,
                                 diff=None,
