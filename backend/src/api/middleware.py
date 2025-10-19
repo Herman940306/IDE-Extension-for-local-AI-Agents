@@ -211,10 +211,12 @@ class RequestSizeMiddleware(BaseHTTPMiddleware):
                             "code": "REQUEST_TOO_LARGE",
                             "message": f"Request too large. Max size: {self.max_size} bytes ({self.max_size / (1024 * 1024):.1f} MB)",
                             "correlation_id": correlation_id,
-                            "details": {"size_bytes": size, "max_size_bytes": self.max_size},
-                        }
-                    },
-                    headers={"X-Correlation-ID": correlation_id},
+                            "details": {
+                                "size_bytes": size,
+                                "max_size_bytes": self.max_size},
+                        }},
+                    headers={
+                        "X-Correlation-ID": correlation_id},
                 )
 
         return await call_next(request)

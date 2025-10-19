@@ -122,7 +122,7 @@ class TaskRouter:
                     logger.info(f"Detected intent: {intent.value}")
                     return intent
 
-        logger.warning(f"Could not detect intent, defaulting to UNKNOWN")
+        logger.warning("Could not detect intent, defaulting to UNKNOWN")
         return TaskIntent.UNKNOWN
 
     def analyze_task(

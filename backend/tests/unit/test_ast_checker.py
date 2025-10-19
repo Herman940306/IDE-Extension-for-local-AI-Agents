@@ -84,7 +84,7 @@ except:
 class MyClass:
     def method1(self):
         pass
-    
+
     def method2(self, arg):
         return arg
 

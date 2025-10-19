@@ -275,8 +275,7 @@ class ReasoningCoordinator:
                     "system2_response": system2_response.dict(),
                     "verification_passed": system2_response.valid,
                     "issues": system2_response.issues,
-                }
-            )
+                })
         else:
             # No suggestions from System 1
             return ReasoningResult(

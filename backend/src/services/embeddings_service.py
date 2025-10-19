@@ -162,7 +162,7 @@ class EmbeddingsService:
             # Process files in batches
             batch_size = 10
             for i in range(0, len(code_files), batch_size):
-                batch = code_files[i : i + batch_size]
+                batch = code_files[i: i + batch_size]
                 await self._process_file_batch(batch)
                 files_processed += len(batch)
 

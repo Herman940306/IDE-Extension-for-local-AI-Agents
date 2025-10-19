@@ -133,8 +133,8 @@ class ProvenanceStore:
         try:
             self.conn.execute(
                 """
-                INSERT INTO provenance 
-                (id, timestamp, agent, task_type, input_hash, output_hash, 
+                INSERT INTO provenance
+                (id, timestamp, agent, task_type, input_hash, output_hash,
                  confidence, metadata, trace_id, encrypted)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
@@ -195,9 +195,9 @@ class ProvenanceStore:
         try:
             cursor = self.conn.execute(
                 """
-                SELECT * FROM provenance 
-                WHERE agent = ? 
-                ORDER BY timestamp DESC 
+                SELECT * FROM provenance
+                WHERE agent = ?
+                ORDER BY timestamp DESC
                 LIMIT ? OFFSET ?
             """,
                 (agent, limit, offset),
@@ -221,8 +221,8 @@ class ProvenanceStore:
         try:
             cursor = self.conn.execute(
                 """
-                SELECT * FROM provenance 
-                WHERE trace_id = ? 
+                SELECT * FROM provenance
+                WHERE trace_id = ?
                 ORDER BY timestamp ASC
             """,
                 (trace_id,),

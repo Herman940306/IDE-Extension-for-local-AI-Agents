@@ -23,7 +23,7 @@ class PromptTemplates:
             System prompt string
         """
         prompts = {
-            TaskType.INLINE_SUGGESTION: """You are an expert code completion assistant. 
+            TaskType.INLINE_SUGGESTION: """You are an expert code completion assistant.
 Your role is to provide intelligent, context-aware code suggestions that help developers write better code faster.
 Focus on:
 - Type safety and best practices

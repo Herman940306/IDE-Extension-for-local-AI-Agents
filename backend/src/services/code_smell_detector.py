@@ -85,8 +85,7 @@ class CodeSmellDetector:
                                 line_end=node.end_lineno or node.lineno,
                                 suggestion="Consider splitting into smaller, focused classes using Single Responsibility Principle",
                                 confidence=0.9,
-                            )
-                        )
+                            ))
 
             # Detect long functions
             for node in ast.walk(tree):
@@ -123,8 +122,7 @@ class CodeSmellDetector:
                                 line_end=node.lineno,
                                 suggestion="Consider using a configuration object or builder pattern",
                                 confidence=0.8,
-                            )
-                        )
+                            ))
 
         except SyntaxError as e:
             logger.warning(f"Syntax error in {file_path}: {e}")
@@ -218,8 +216,7 @@ class CodeSmellDetector:
                                 line_end=line2_end,
                                 suggestion="Consider extracting common logic into a shared function",
                                 confidence=similarity,
-                            )
-                        )
+                            ))
 
         except Exception as e:
             logger.error(f"Failed to detect semantic duplication: {e}")
@@ -242,7 +239,7 @@ class CodeSmellDetector:
 
             for node in ast.walk(tree):
                 if isinstance(node, ast.FunctionDef):
-                    func_lines = lines[node.lineno - 1 : node.end_lineno]
+                    func_lines = lines[node.lineno - 1: node.end_lineno]
                     func_code = "\n".join(func_lines)
                     functions.append(
                         (node.name, func_code, node.lineno, node.end_lineno or node.lineno)

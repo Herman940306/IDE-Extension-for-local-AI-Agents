@@ -195,7 +195,7 @@ async def test_detect_dead_code(refactor_agent):
 def process_data(data):
     if data is None:
         return None
-    
+
     # This code is unreachable
     print("Processing data")
     result = data * 2

@@ -77,7 +77,7 @@ class CircuitBreaker:
             result = func(*args, **kwargs)
             self._on_success()
             return result
-        except Exception as e:
+        except Exception:
             self._on_failure()
             raise
 
@@ -95,7 +95,7 @@ class CircuitBreaker:
             result = await func(*args, **kwargs)
             self._on_success()
             return result
-        except Exception as e:
+        except Exception:
             self._on_failure()
             raise
 
@@ -120,7 +120,7 @@ class CircuitBreaker:
             self.state = CircuitState.OPEN
             self.last_state_change = time.time()
         elif self.failure_count >= self.failure_threshold:
-            logger.warning(f"Circuit breaker: Threshold reached (OPEN)")
+            logger.warning("Circuit breaker: Threshold reached (OPEN)")
             self.state = CircuitState.OPEN
             self.last_state_change = time.time()
 

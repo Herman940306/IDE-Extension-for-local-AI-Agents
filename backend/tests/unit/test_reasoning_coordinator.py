@@ -132,7 +132,7 @@ async def test_adaptive_mode_low_confidence_escalation(coordinator, mock_reasone
         model="llama3.2:3b",
     )
 
-    result = await coordinator.process(
+    _ = await coordinator.process(
         task_type="refactor",
         description="Refactor this",
         code_context="def func(): pass",

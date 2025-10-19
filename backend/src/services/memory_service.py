@@ -229,21 +229,21 @@ class MemoryService:
         # Create indexes
         cursor.execute(
             """
-            CREATE INDEX IF NOT EXISTS idx_messages_session_id 
+            CREATE INDEX IF NOT EXISTS idx_messages_session_id
             ON messages(session_id)
         """
         )
 
         cursor.execute(
             """
-            CREATE INDEX IF NOT EXISTS idx_messages_timestamp 
+            CREATE INDEX IF NOT EXISTS idx_messages_timestamp
             ON messages(timestamp)
         """
         )
 
         cursor.execute(
             """
-            CREATE INDEX IF NOT EXISTS idx_sessions_workspace 
+            CREATE INDEX IF NOT EXISTS idx_sessions_workspace
             ON sessions(workspace_path)
         """
         )
@@ -295,7 +295,7 @@ class MemoryService:
         cursor = self.sqlite_conn.cursor()
         cursor.execute(
             """
-            INSERT OR REPLACE INTO sessions 
+            INSERT OR REPLACE INTO sessions
             (id, workspace_path, created_at, last_accessed, metadata, message_count)
             VALUES (?, ?, ?, ?, ?, ?)
         """,

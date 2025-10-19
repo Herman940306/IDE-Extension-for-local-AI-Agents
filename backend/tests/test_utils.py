@@ -450,7 +450,7 @@ class LogCapture:
 class TestDataBuilder:
     """
     Builder pattern for creating test data.
-    
+
     Usage:
         task = TestDataBuilder.task()\\
             .with_id("task-123")\\

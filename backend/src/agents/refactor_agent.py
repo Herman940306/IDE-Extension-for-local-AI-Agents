@@ -483,7 +483,7 @@ class RefactorAgent(AgentAdapter):
 
                 if func_lines > self.LONG_METHOD_THRESHOLD:
                     # Extract function code
-                    func_code = "\n".join(lines[node.lineno - 1 : node.end_lineno])
+                    func_code = "\n".join(lines[node.lineno - 1: node.end_lineno])
 
                     suggestions.append(
                         Suggestion(
@@ -491,17 +491,17 @@ class RefactorAgent(AgentAdapter):
                             code=func_code,
                             description=f"Function '{node.name}' is {func_lines} lines long. Consider breaking it into smaller, focused functions.",
                             confidence=(
-                                ConfidenceLevel.HIGH
-                                if func_lines > self.VERY_LONG_METHOD_THRESHOLD
-                                else ConfidenceLevel.MEDIUM
-                            ),
+                                ConfidenceLevel.HIGH if func_lines > self.VERY_LONG_METHOD_THRESHOLD else ConfidenceLevel.MEDIUM),
                             diff=None,
                             applicable_range={
-                                "start": {"line": node.lineno, "character": 0},
-                                "end": {"line": node.end_lineno or node.lineno, "character": 0},
+                                "start": {
+                                    "line": node.lineno,
+                                    "character": 0},
+                                "end": {
+                                    "line": node.end_lineno or node.lineno,
+                                    "character": 0},
                             },
-                        )
-                    )
+                        ))
 
         return suggestions
 

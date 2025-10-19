@@ -259,12 +259,12 @@ def sample_llm_prompt() -> str:
     """Sample LLM prompt for testing."""
     return """
     You are a code review assistant. Review the following code:
-    
+
     ```python
     def hello_world():
         print('Hello, World!')
     ```
-    
+
     Provide feedback on:
     1. Code quality
     2. Best practices

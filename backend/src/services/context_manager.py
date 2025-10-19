@@ -535,7 +535,7 @@ class ContextManager:
         """Get text content of a tree-sitter node"""
         if node is None:
             return ""
-        return content[node.start_byte : node.end_byte]
+        return content[node.start_byte: node.end_byte]
 
     async def build_dependency_graph(self, force_rebuild: bool = False) -> nx.DiGraph:
         """
