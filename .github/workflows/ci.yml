@@ -57,16 +57,29 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Node.js
+      - name: Set up Node.js (with cache if lockfile exists)
+        if: ${{ hashFiles('extension/package-lock.json') != '' }}
         uses: actions/setup-node@v4
         with:
           node-version: "20"
-          cache: 'npm'  # Built-in npm caching
-          cache-dependency-path: 'extension/package-lock.json'
+          cache: npm
+          cache-dependency-path: extension/package-lock.json
 
-      - name: Install dependencies
+      - name: Set up Node.js (no cache, no lockfile)
+        if: ${{ hashFiles('extension/package-lock.json') == '' }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install dependencies (npm ci)
+        if: ${{ hashFiles('extension/package-lock.json') != '' }}
         working-directory: extension
         run: npm ci
+
+      - name: Install dependencies (npm install)
+        if: ${{ hashFiles('extension/package-lock.json') == '' }}
+        working-directory: extension
+        run: npm install
 
       - name: Compile TypeScript
         working-directory: extension
