@@ -4,14 +4,20 @@ Project Creator: Herman Swanepoel
 """
 
 import ast
+import logging
 import re
+import uuid
 from typing import List, Optional
 
+from src.adapters.base_adapter import AgentAdapter, AgentConfig, Capability
 from src.adapters.crewai_adapter import CrewAIDocAgent
-from src.models import AgentResponse, CodeContext, Suggestion, Task
+from src.models import AgentResponse, CodeContext, ConfidenceLevel, Suggestion, Task
+from src.services.llm_manager import LLMManager
+
+logger = logging.getLogger(__name__)
 
 
-class DocAgent:
+class DocAgent(AgentAdapter):
     """
     Documentation generation agent
 
@@ -19,32 +25,53 @@ class DocAgent:
     using CrewAI for collaborative documentation generation.
     """
 
-    def __init__(self, crewai_adapter: Optional[CrewAIDocAgent] = None):
-        """
-        Initialize Doc Agent
+    def __init__(
+        self,
+        llm_manager: Optional[LLMManager] = None,
+        crewai_adapter: Optional[CrewAIDocAgent] = None,
+        config: Optional[AgentConfig] = None,
+    ):
+        """Initialize the documentation agent."""
+        config = config or AgentConfig(
+            name="Documentation Agent",
+            description="Generates docstrings, READMEs, API docs, and code comments",
+            capabilities=[Capability.DOCUMENTATION],
+            metadata={"supports": ["docstring", "readme", "api", "comments"]},
+        )
+        super().__init__(config)
 
-        Args:
-            crewai_adapter: Optional CrewAI adapter for collaborative doc generation
-        """
-        self.name = "Doc Agent"
+        self.llm_manager = llm_manager
         self.crewai_adapter = crewai_adapter or CrewAIDocAgent()
 
-    async def generate_documentation(self, task: Task, context: CodeContext) -> AgentResponse:
-        """
-        Generate documentation for code
+        logger.info(
+            "✓ DocAgent initialized",
+            extra={
+                "agent_name": config.name,
+                "capabilities": [cap.value for cap in config.capabilities],
+            },
+        )
 
-        Args:
-            task: Task to execute
-            context: Code context
+    async def initialize(self) -> None:
+        if self.is_initialized:
+            return
 
-        Returns:
-            AgentResponse with documentation suggestions
-        """
+        if self.crewai_adapter and not self.crewai_adapter.is_initialized:
+            await self.crewai_adapter.initialize()
+
+        self.is_initialized = True
+        logger.info("✓ DocAgent ready")
+
+    async def execute_task(self, task: Task, context: CodeContext) -> AgentResponse:
+        """Generate documentation suggestions based on the provided task and context."""
+        if not self.is_initialized:
+            await self.initialize()
+
         try:
-            # Determine documentation type
+            if not context.code:
+                return self._create_empty_response(task)
+
             doc_type = self._determine_doc_type(task, context)
 
-            # Generate documentation based on type
             if doc_type == "docstring":
                 suggestions = await self._generate_docstrings(context)
             elif doc_type == "readme":
@@ -54,27 +81,47 @@ class DocAgent:
             elif doc_type == "comments":
                 suggestions = await self._generate_comments(context)
             else:
-                # Use CrewAI for general documentation
-                return await self.crewai_adapter.execute_task(task, context)
+                return await self._execute_general_documentation(task, context)
 
             confidence = self._calculate_confidence(suggestions)
 
             return AgentResponse(
-                task_id=task.id,
-                agent_name=self.name,
+                agent_id="doc_agent",
+                agent_name=self.config.name,
                 suggestions=suggestions,
                 confidence=confidence,
                 reasoning=f"Generated {doc_type} documentation",
+                metadata={
+                    "task_id": task.id,
+                    "doc_type": doc_type,
+                    "suggestion_count": len(suggestions),
+                },
             )
 
-        except Exception as e:
-            return AgentResponse(
-                task_id=task.id,
-                agent_name=self.name,
-                suggestions=[],
-                confidence=0.0,
-                reasoning=f"Documentation generation failed: {str(e)}",
-            )
+        except Exception as exc:  # pragma: no cover - defensive guard
+            logger.exception("DocAgent execution failed", extra={"task_id": task.id})
+            return self._create_error_response(task, str(exc))
+
+    async def get_capabilities(self) -> List[Capability]:
+        return self.config.capabilities
+
+    async def health_check(self) -> bool:
+        try:
+            if self.llm_manager:
+                await self.llm_manager.generate("ping", max_tokens=8)
+
+            if self.crewai_adapter:
+                return await self.crewai_adapter.health_check()
+
+            return True
+        except Exception as exc:  # pragma: no cover - defensive guard
+            logger.warning("DocAgent health check failed", extra={"error": str(exc)})
+            return False
+
+    async def shutdown(self) -> None:
+        if self.crewai_adapter:
+            await self.crewai_adapter.shutdown()
+        await super().shutdown()
 
     def _determine_doc_type(self, task: Task, context: CodeContext) -> str:
         """Determine what type of documentation to generate"""

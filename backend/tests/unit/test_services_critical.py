@@ -7,13 +7,13 @@ Target Coverage: 90%+
 GODMODE: AUTONOMOUS EXECUTION - PHASE 3 BATCH 1
 """
 
-import pytest
 import asyncio
-from unittest.mock import AsyncMock, Mock, patch, MagicMock
-from src.services.llm_manager import LLMManager, LLMProvider, LLMError
-from src.services.connection_manager import ConnectionManager
-from fastapi import WebSocket
+from unittest.mock import AsyncMock, patch
 
+import pytest
+from fastapi import WebSocket
+from src.services.connection_manager import ConnectionManager
+from src.services.llm_manager import LLMError, LLMManager, LLMProvider
 
 # ============================================================================
 # LLM Manager Tests
@@ -153,6 +153,64 @@ class TestLLMManagerGeneration:
 
         mock_response_cache.get.assert_not_called()
 
+    @pytest.mark.asyncio
+    async def test_generate_with_openai_provider(self):
+        """Test generation when using OpenAI provider"""
+        fake_provider = AsyncMock()
+        fake_provider.generate.return_value = "Cloud response"
+
+        manager = LLMManager(provider=LLMProvider.OPENAI, api_key="test-key", allow_cloud=True)
+
+        with patch.object(
+            LLMManager, "_get_cloud_provider", return_value=fake_provider
+        ) as mock_get_provider:
+            result = await manager.generate("Test prompt")
+
+        assert result == "Cloud response"
+        mock_get_provider.assert_called_once()
+        assert mock_get_provider.call_args.args[0] == LLMProvider.OPENAI
+        fake_provider.generate.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_generate_cloud_requires_allow_flag(self):
+        """Cloud provider should require allow_cloud flag"""
+        manager = LLMManager(provider=LLMProvider.OPENAI, api_key="test-key", allow_cloud=False)
+
+        with pytest.raises(LLMError):
+            await manager.generate("Test prompt")
+
+    @pytest.mark.asyncio
+    async def test_generate_cloud_privacy_block(self):
+        """Cloud usage should be blocked when sensitive data is detected"""
+        manager = LLMManager(provider=LLMProvider.OPENAI, api_key="test-key", allow_cloud=True)
+
+        with pytest.raises(LLMError):
+            await manager.generate("Contact me at foo@example.com")
+
+    @pytest.mark.asyncio
+    async def test_generate_falls_back_to_cloud(self):
+        """Fallback to cloud provider when Ollama fails"""
+        fake_provider = AsyncMock()
+        fake_provider.generate.return_value = "Cloud response"
+
+        manager = LLMManager(api_key="test-key", allow_cloud=True)
+
+        with (
+            patch.object(
+                LLMManager, "_generate_ollama", side_effect=LLMError("Ollama offline")
+            ) as mock_ollama_generate,
+            patch.object(
+                LLMManager, "_get_cloud_provider", return_value=fake_provider
+            ) as mock_get_provider,
+        ):
+            result = await manager.generate("Test prompt")
+
+        assert result == "Cloud response"
+        mock_ollama_generate.assert_awaited_once()
+        mock_get_provider.assert_called_once()
+        assert mock_get_provider.call_args.args[0] == LLMProvider.OPENAI
+        fake_provider.generate.assert_awaited_once()
+
 
 @pytest.mark.asyncio
 class TestLLMManagerHealthCheck:
@@ -258,6 +316,46 @@ class TestLLMManagerCacheOperations:
         result = await manager.clear_cache()
 
         assert result is False
+
+
+class TestCloudProviderImplementations:
+    """Tests for the optional cloud provider implementations"""
+
+    @pytest.mark.asyncio
+    async def test_openai_provider_missing_dependency(self, monkeypatch):
+        """OpenAI provider should raise a clear error when dependency missing"""
+        from src.services import cloud_providers as cp
+
+        provider = cp.OpenAIProvider(api_key="test-key", model="gpt-4o")
+        original_import = cp.importlib.import_module
+
+        def fake_import(name, package=None):
+            if name == "openai":
+                raise ImportError("missing")
+            return original_import(name, package)
+
+        monkeypatch.setattr(cp.importlib, "import_module", fake_import)
+
+        with pytest.raises(cp.ProviderDependencyError):
+            await provider.generate("prompt")
+
+    @pytest.mark.asyncio
+    async def test_anthropic_provider_missing_dependency(self, monkeypatch):
+        """Anthropic provider should raise when dependency missing"""
+        from src.services import cloud_providers as cp
+
+        provider = cp.AnthropicProvider(api_key="test-key", model="claude-3-opus")
+        original_import = cp.importlib.import_module
+
+        def fake_import(name, package=None):
+            if name == "anthropic":
+                raise ImportError("missing")
+            return original_import(name, package)
+
+        monkeypatch.setattr(cp.importlib, "import_module", fake_import)
+
+        with pytest.raises(cp.ProviderDependencyError):
+            await provider.generate("prompt")
 
 
 # ============================================================================
