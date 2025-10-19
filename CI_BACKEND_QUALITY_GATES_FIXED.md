@@ -14,21 +14,30 @@ ModuleNotFoundError: No module named 'cryptography'
 ```
 
 ### Why It Happened
-The CI workflow (commit `92fa911`) intentionally **skipped** installing backend dependencies:
-```yaml
-- name: Install linting tools only (skip full dependencies for now)
-  run: |
-    python -m pip install --upgrade pip
-    python -m pip install black flake8
-    # Temporarily skipping: python -m pip install -r backend/requirements.txt
-```
+**TWO issues combined:**
 
-This was a temporary measure that left pytest unable to import the application code.
+1. **CI workflow skipped dependencies** (commit `92fa911`):
+   ```yaml
+   - name: Install linting tools only (skip full dependencies for now)
+     run: |
+       python -m pip install --upgrade pip
+       python -m pip install black flake8
+       # Temporarily skipping: python -m pip install -r backend/requirements.txt
+   ```
+
+2. **requirements.txt missing critical dependencies**:
+   - `pydantic-settings` (used by `src/config/settings.py`)
+   - `dependency-injector` (used by `src/core/container.py`)
+   - `cryptography` (used by `src/verifier/provenance_store.py`)
+   - `structlog` (used throughout for logging)
+
+These packages were installed manually during development but never added to requirements.txt, causing CI to fail even after enabling dependency installation.
 
 ## ✅ Solution Implemented
 
-### Changes Made (Multiple Commits Leading to HEAD `8767775`)
-1. **Enabled full dependency installation**:
+### Changes Made (Commits: `8767775` → `9177876`)
+
+1. **Enabled full dependency installation** in CI:
    ```yaml
    - name: Install backend dependencies
      working-directory: backend
@@ -37,7 +46,15 @@ This was a temporary measure that left pytest unable to import the application c
        python -m pip install -r requirements.txt
    ```
 
-2. **Added pip caching** for faster builds:
+2. **Added missing dependencies to requirements.txt** (commit `9177876`):
+   ```txt
+   pydantic-settings==2.5.2
+   dependency-injector==4.42.0
+   cryptography==41.0.7
+   structlog==23.2.0
+   ```
+
+3. **Added pip caching** for faster builds:
    ```yaml
    - name: Set up Python
      uses: actions/setup-python@v5
@@ -47,7 +64,7 @@ This was a temporary measure that left pytest unable to import the application c
        cache-dependency-path: 'backend/requirements.txt'
    ```
 
-3. **Enabled pytest with proper markers**:
+4. **Enabled pytest with proper markers**:
    ```yaml
    - name: Run pytest (unit-only)
      working-directory: backend
@@ -57,7 +74,7 @@ This was a temporary measure that left pytest unable to import the application c
        pytest -v -m "not integration and not slow and not performance"
    ```
 
-4. **Added coverage artifact upload**:
+5. **Added coverage artifact upload**:
    ```yaml
    - name: Upload coverage artifact
      if: always()
@@ -162,6 +179,8 @@ This allows:
 ## 📝 Commit History
 
 ```
+9177876 fix: add missing dependencies (pydantic-settings, dependency-injector, cryptography, structlog) to requirements.txt
+5acba48 docs: add GODMODE DevOps report for backend quality gates CI fix
 0a20e73 ci: trigger backend quality gates validation with full dependencies
 8767775 ci: fix vsce cache key by removing invalid steps.node-version reference (use static Node 20)
 ce907d2 ci(extension): add vsce and npm cache to speed packaging
