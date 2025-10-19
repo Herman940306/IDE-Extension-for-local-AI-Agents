@@ -23,7 +23,10 @@ class ResponseCache:
     """LLM response caching service using Redis"""
 
     def __init__(
-        self, redis_client: Optional[Redis], default_ttl: int = 3600, key_prefix: str = "llm_cache"
+        self,
+        redis_client: Optional[Redis],
+        default_ttl: int = 3600,
+        key_prefix: str = "llm_cache",
     ):
         """
         Initialize response cache.
@@ -87,14 +90,17 @@ class ResponseCache:
                 self._stats["misses"] += 1
 
                 logger.debug(
-                    "Cache miss", extra={"cache_key": cache_key[:16] + "...", "model": model}
+                    "Cache miss",
+                    extra={"cache_key": cache_key[:16] + "...", "model": model},
                 )
 
                 return None
 
         except Exception as e:
             self._stats["errors"] += 1
-            logger.warning(f"Cache get error: {e}", extra={"model": model, "error": str(e)})
+            logger.warning(
+                f"Cache get error: {e}", extra={"model": model, "error": str(e)}
+            )
             return None
 
     async def set(
@@ -137,14 +143,20 @@ class ResponseCache:
 
             logger.debug(
                 "Response cached",
-                extra={"cache_key": cache_key[:16] + "...", "model": model, "ttl": ttl_seconds},
+                extra={
+                    "cache_key": cache_key[:16] + "...",
+                    "model": model,
+                    "ttl": ttl_seconds,
+                },
             )
 
             return True
 
         except Exception as e:
             self._stats["errors"] += 1
-            logger.warning(f"Cache set error: {e}", extra={"model": model, "error": str(e)})
+            logger.warning(
+                f"Cache set error: {e}", extra={"model": model, "error": str(e)}
+            )
             return False
 
     def _generate_cache_key(
@@ -223,7 +235,8 @@ class ResponseCache:
             if keys:
                 await self.redis.delete(*keys)
                 logger.info(
-                    f"Cache cleared: {len(keys)} keys deleted", extra={"keys_deleted": len(keys)}
+                    f"Cache cleared: {len(keys)} keys deleted",
+                    extra={"keys_deleted": len(keys)},
                 )
 
             # Reset stats

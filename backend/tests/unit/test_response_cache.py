@@ -127,7 +127,9 @@ class TestResponseCacheSet:
 
         response = {"text": "Test response"}
 
-        result = await cache.set(prompt="test prompt", model="codellama:7b", response=response)
+        result = await cache.set(
+            prompt="test prompt", model="codellama:7b", response=response
+        )
 
         assert result is True
         mock_redis_client.setex.assert_called_once()
@@ -219,7 +221,9 @@ class TestCacheKeyGeneration:
         cache = ResponseCache(redis_client=mock_redis_client)
 
         key = cache._generate_cache_key(
-            prompt="test prompt", model="codellama:7b", context_params={"temperature": 0.7}
+            prompt="test prompt",
+            model="codellama:7b",
+            context_params={"temperature": 0.7},
         )
 
         assert key.startswith("llm_cache:")
@@ -229,11 +233,15 @@ class TestCacheKeyGeneration:
         cache = ResponseCache(redis_client=mock_redis_client)
 
         key1 = cache._generate_cache_key(
-            prompt="test prompt", model="codellama:7b", context_params={"temperature": 0.7}
+            prompt="test prompt",
+            model="codellama:7b",
+            context_params={"temperature": 0.7},
         )
 
         key2 = cache._generate_cache_key(
-            prompt="test prompt", model="codellama:7b", context_params={"temperature": 0.7}
+            prompt="test prompt",
+            model="codellama:7b",
+            context_params={"temperature": 0.7},
         )
 
         assert key1 == key2

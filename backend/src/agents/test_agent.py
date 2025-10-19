@@ -19,7 +19,7 @@ class TestAgent(AgentAdapter):
         if config is None:
             config = AgentConfig(
                 name="Test Generation Agent",
-                description="Generates unit, edge-case, and integration tests for code snippets",
+                description="Generates unit, edge-case, and integration tests for code snippets",  # noqa: E501
                 capabilities=[Capability.TESTING],
                 metadata={"supports": ["unit", "edge", "integration"]},
             )
@@ -45,7 +45,9 @@ class TestAgent(AgentAdapter):
             language = context.language or "unknown"
             test_framework = self._determine_test_framework(language)
 
-            suggestions = await self._generate_tests(context.code, language, test_framework)
+            suggestions = await self._generate_tests(
+                context.code, language, test_framework
+            )
 
             confidence = self._calculate_confidence(suggestions)
             reasoning = self._build_reasoning(language, test_framework, suggestions)
@@ -65,7 +67,9 @@ class TestAgent(AgentAdapter):
             )
 
         except Exception as exc:  # pragma: no cover - defensive logging
-            logger.exception("TestAgent task execution failed", extra={"task_id": task.id})
+            logger.exception(
+                "TestAgent task execution failed", extra={"task_id": task.id}
+            )
             return self._create_error_response(task, str(exc))
 
     def _determine_test_framework(self, language: str) -> str:
@@ -111,7 +115,9 @@ class TestAgent(AgentAdapter):
             suggestions.append(unit_test)
 
         # Generate edge case tests
-        edge_case_test = await self._generate_edge_case_tests(code, language, test_framework)
+        edge_case_test = await self._generate_edge_case_tests(
+            code, language, test_framework
+        )
         if edge_case_test:
             suggestions.append(edge_case_test)
 
@@ -139,7 +145,10 @@ class TestAgent(AgentAdapter):
             r"api",
         ]
 
-        return any(re.search(pattern, code, re.IGNORECASE) for pattern in integration_indicators)
+        return any(
+            re.search(pattern, code, re.IGNORECASE)
+            for pattern in integration_indicators
+        )
 
     async def _generate_unit_tests(
         self, code: str, language: str, test_framework: str
@@ -200,7 +209,7 @@ class TestAgent(AgentAdapter):
         """
         try:
             prompt = (
-                f"Generate edge case tests for this {language} code using {test_framework}:\n\n"
+                f"Generate edge case tests for this {language} code using {test_framework}:\n\n"  # noqa: E501
                 f"```{language}\n{code}\n```\n\n"
                 "Generate tests for:\n"
                 "- Boundary conditions\n"
@@ -242,7 +251,7 @@ class TestAgent(AgentAdapter):
         """
         try:
             prompt = (
-                f"Generate integration tests for this {language} code using {test_framework}:\n\n"
+                f"Generate integration tests for this {language} code using {test_framework}:\n\n"  # noqa: E501
                 f"```{language}\n{code}\n```\n\n"
                 "Generate tests that:\n"
                 "- Test interactions with external systems\n"
@@ -294,7 +303,9 @@ class TestAgent(AgentAdapter):
         values = [self._confidence_to_float(s.confidence) for s in suggestions]
         return sum(values) / len(values)
 
-    def _build_reasoning(self, language: str, framework: str, suggestions: List[Suggestion]) -> str:
+    def _build_reasoning(
+        self, language: str, framework: str, suggestions: List[Suggestion]
+    ) -> str:
         if not suggestions:
             return "No actionable test scenarios identified."
 

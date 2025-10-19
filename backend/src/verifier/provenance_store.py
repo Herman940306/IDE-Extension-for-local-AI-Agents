@@ -25,7 +25,11 @@ class ProvenanceStore:
     with optional encryption for sensitive data.
     """
 
-    def __init__(self, db_path: str = "./data/provenance.db", encryption_key: Optional[str] = None):
+    def __init__(
+        self,
+        db_path: str = "./data/provenance.db",
+        encryption_key: Optional[str] = None,
+    ):
         """
         Initialize provenance store.
 
@@ -170,7 +174,9 @@ class ProvenanceStore:
             Provenance entry dict or None
         """
         try:
-            cursor = self.conn.execute("SELECT * FROM provenance WHERE id = ?", (log_id,))
+            cursor = self.conn.execute(
+                "SELECT * FROM provenance WHERE id = ?", (log_id,)
+            )
             row = cursor.fetchone()
 
             if row:
@@ -180,7 +186,9 @@ class ProvenanceStore:
             logger.error(f"Failed to get provenance {log_id}: {e}")
             return None
 
-    def get_by_agent(self, agent: str, limit: int = 100, offset: int = 0) -> List[Dict[str, Any]]:
+    def get_by_agent(
+        self, agent: str, limit: int = 100, offset: int = 0
+    ) -> List[Dict[str, Any]]:
         """
         Get provenance entries by agent.
 
@@ -324,7 +332,11 @@ class ProvenanceStore:
             for row in cursor:
                 task_stats[row[0]] = row[1]
 
-            return {"total_entries": total, "by_agent": agent_stats, "by_task_type": task_stats}
+            return {
+                "total_entries": total,
+                "by_agent": agent_stats,
+                "by_task_type": task_stats,
+            }
         except Exception as e:
             logger.error(f"Failed to get statistics: {e}")
             return {}
@@ -351,7 +363,10 @@ class ProvenanceStore:
         return result
 
     def export_audit_report(
-        self, output_path: str, start_time: Optional[str] = None, end_time: Optional[str] = None
+        self,
+        output_path: str,
+        start_time: Optional[str] = None,
+        end_time: Optional[str] = None,
     ) -> bool:
         """
         Export audit report to JSON file.

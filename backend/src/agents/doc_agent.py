@@ -157,7 +157,9 @@ class DocAgent(AgentAdapter):
 
         return suggestions
 
-    async def _generate_python_docstrings(self, context: CodeContext) -> List[Suggestion]:
+    async def _generate_python_docstrings(
+        self, context: CodeContext
+    ) -> List[Suggestion]:
         """Generate Python docstrings"""
         if not context.code:
             return []
@@ -204,7 +206,9 @@ class DocAgent(AgentAdapter):
             return self._create_class_docstring(node)
         return '    """TODO: Add docstring"""\n'
 
-    def _create_function_docstring(self, node: Union[ast.FunctionDef, ast.AsyncFunctionDef]) -> str:
+    def _create_function_docstring(
+        self, node: Union[ast.FunctionDef, ast.AsyncFunctionDef]
+    ) -> str:
         """Create docstring for a function"""
         # Extract parameters
         params = []
@@ -232,7 +236,7 @@ class DocAgent(AgentAdapter):
             for param_name, param_type in params:
                 if param_name != "self":
                     docstring_lines.append(
-                        f"        {param_name} ({param_type}): Description of {param_name}"
+                        f"        {param_name} ({param_type}): Description of {param_name}"  # noqa: E501
                     )
 
         if return_type != "None":
@@ -387,7 +391,9 @@ class DocAgent(AgentAdapter):
     def _create_readme_template(self, context: CodeContext) -> str:
         """Create basic README template"""
         file_name = context.file_path.split("/")[-1]
-        project_name = file_name.replace(".py", "").replace(".js", "").replace(".ts", "").title()
+        project_name = (
+            file_name.replace(".py", "").replace(".js", "").replace(".ts", "").title()
+        )
 
         readme = f"""# {project_name}
 

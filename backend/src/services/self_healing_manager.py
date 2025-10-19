@@ -30,7 +30,10 @@ class CircuitBreaker:
     """
 
     def __init__(
-        self, failure_threshold: int = 5, timeout: float = 60.0, success_threshold: int = 2
+        self,
+        failure_threshold: int = 5,
+        timeout: float = 60.0,
+        success_threshold: int = 2,
     ):
         """
         Initialize circuit breaker
@@ -230,7 +233,9 @@ class SelfHealingManager:
         self.service_health[service_name] = health
         return health
 
-    async def execute_with_healing(self, service_name: str, func: Callable, *args, **kwargs) -> Any:
+    async def execute_with_healing(
+        self, service_name: str, func: Callable, *args, **kwargs
+    ) -> Any:
         """
         Execute function with self-healing protection
 
@@ -258,7 +263,9 @@ class SelfHealingManager:
 
         except Exception as e:
             self.total_failures += 1
-            self.failure_history[service_name].append({"timestamp": time.time(), "error": str(e)})
+            self.failure_history[service_name].append(
+                {"timestamp": time.time(), "error": str(e)}
+            )
 
             logger.error(f"Service failure: {service_name} - {e}")
 
@@ -287,7 +294,9 @@ class SelfHealingManager:
                         return func(*args, **kwargs)
 
                 except Exception as recovery_error:
-                    logger.error(f"Auto-recovery failed: {service_name} - {recovery_error}")
+                    logger.error(
+                        f"Auto-recovery failed: {service_name} - {recovery_error}"
+                    )
 
             raise
 
@@ -341,7 +350,9 @@ class SelfHealingManager:
 
         return results
 
-    def get_failure_history(self, service_name: str, limit: int = 10) -> List[Dict[str, Any]]:
+    def get_failure_history(
+        self, service_name: str, limit: int = 10
+    ) -> List[Dict[str, Any]]:
         """
         Get failure history for a service
 
@@ -368,7 +379,9 @@ class SelfHealingManager:
             "total_recoveries": self.total_recoveries,
             "auto_recoveries": self.auto_recoveries,
             "recovery_rate": (
-                self.auto_recoveries / self.total_failures if self.total_failures > 0 else 0.0
+                self.auto_recoveries / self.total_failures
+                if self.total_failures > 0
+                else 0.0
             ),
         }
 

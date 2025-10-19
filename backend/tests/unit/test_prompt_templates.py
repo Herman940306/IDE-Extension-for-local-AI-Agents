@@ -157,7 +157,9 @@ class TestPromptTemplatesDocumentation:
 
     def test_build_documentation_prompt(self):
         """Test building documentation prompt"""
-        code = "def calculate_total(items):\n    return sum(item.price for item in items)"
+        code = (
+            "def calculate_total(items):\n    return sum(item.price for item in items)"
+        )
         context = {"style": "google", "include_examples": True}
 
         prompt = PromptTemplates.build_documentation_prompt(code, context)
@@ -185,7 +187,9 @@ class TestPromptTemplatesEdgeCases:
         # Should handle None gracefully or use empty dict
         try:
             prompt = PromptTemplates.build_code_suggestion_prompt(code, None)
-            assert prompt is not None or True  # Either works or raises handled exception
+            assert (
+                prompt is not None or True
+            )  # Either works or raises handled exception
         except (TypeError, AttributeError):
             pass  # Acceptable if None is not handled
 

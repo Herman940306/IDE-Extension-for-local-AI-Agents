@@ -13,7 +13,9 @@ class Settings(BaseSettings):
     """Application settings from environment variables"""
 
     model_config = SettingsConfigDict(
-        extra="allow", env_file=".env", case_sensitive=False  # Allow extra fields from .env file
+        extra="allow",
+        env_file=".env",
+        case_sensitive=False,  # Allow extra fields from .env file
     )
 
     # Ollama Configuration

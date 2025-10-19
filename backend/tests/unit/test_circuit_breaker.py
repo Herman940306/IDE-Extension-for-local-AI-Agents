@@ -30,7 +30,10 @@ class TestCircuitBreakerInitialization:
     def test_initialization_with_custom_values(self):
         """Test circuit breaker initialization with custom values"""
         cb = CircuitBreaker(
-            name="test_service", failure_threshold=10, timeout_seconds=120.0, success_threshold=3
+            name="test_service",
+            failure_threshold=10,
+            timeout_seconds=120.0,
+            success_threshold=3,
         )
 
         assert cb.name == "test_service"
@@ -60,12 +63,15 @@ class TestCircuitBreakerClosedState:
         """Test failed call below failure threshold"""
         cb = CircuitBreaker(name="test_service", failure_threshold=5)
 
+        class CustomTestException(Exception):
+            pass
+
         async def failing_func():
-            raise Exception("Test error")
+            raise CustomTestException("Test error")
 
         # Fail 4 times (below threshold)
-        for i in range(4):
-            with pytest.raises(Exception):
+        for _i in range(4):
+            with pytest.raises(CustomTestException):
                 await cb.call(failing_func)
 
         # Circuit should still be closed
@@ -76,12 +82,15 @@ class TestCircuitBreakerClosedState:
         """Test failed call at failure threshold opens circuit"""
         cb = CircuitBreaker(name="test_service", failure_threshold=5)
 
+        class CustomTestException(Exception):
+            pass
+
         async def failing_func():
-            raise Exception("Test error")
+            raise CustomTestException("Test error")
 
         # Fail 5 times (at threshold)
-        for i in range(5):
-            with pytest.raises(Exception):
+        for _i in range(5):
+            with pytest.raises(CustomTestException):
                 await cb.call(failing_func)
 
         # Circuit should be open
@@ -98,9 +107,39 @@ class TestCircuitBreakerClosedState:
         async def successful_func():
             return "success"
 
+        # Use a specific exception for B017
+        class CustomTestException(Exception):
+            pass
+
+        async def failing_func_b017():
+            raise CustomTestException("Test error")
+
+        # Fail 4 times (below threshold)
+        for _i in range(4):
+            with pytest.raises(CustomTestException):
+                await cb.call(failing_func_b017)
+
+        # Circuit should still be closed
+        assert cb._state == CircuitState.CLOSED
+        assert cb._failure_count == 4
+
+        # Fail 5 times (at threshold)
+        for _i in range(5):
+            with pytest.raises(CustomTestException):
+                await cb.call(failing_func_b017)
+
+        # Circuit should be open
+        assert cb._state == CircuitState.OPEN
+        assert cb._failure_count == 5
+
+        # Success resets failure count
+        await cb.call(successful_func)
+        assert cb._failure_count == 0
+        assert cb._state == CircuitState.CLOSED
+
         # Fail 3 times
-        for i in range(3):
-            with pytest.raises(Exception):
+        for _i in range(3):
+            with pytest.raises(Exception):  # noqa: B017
                 await cb.call(failing_func)
 
         assert cb._failure_count == 3
@@ -125,8 +164,8 @@ class TestCircuitBreakerOpenState:
             raise Exception("Test error")
 
         # Open the circuit
-        for i in range(3):
-            with pytest.raises(Exception):
+        for _i in range(3):
+            with pytest.raises(Exception):  # noqa: B017
                 await cb.call(failing_func)
 
         assert cb._state == CircuitState.OPEN
@@ -152,8 +191,8 @@ class TestCircuitBreakerOpenState:
             raise Exception("Test error")
 
         # Open the circuit
-        for i in range(2):
-            with pytest.raises(Exception):
+        for _i in range(2):
+            with pytest.raises(Exception):  # noqa: B017
                 await cb.call(failing_func)
 
         assert cb._state == CircuitState.OPEN
@@ -178,8 +217,8 @@ class TestCircuitBreakerOpenState:
             raise Exception("Test error")
 
         # Open the circuit
-        for i in range(2):
-            with pytest.raises(Exception):
+        for _i in range(2):
+            with pytest.raises(Exception):  # noqa: B017
                 await cb.call(failing_func)
 
         # Try to call
@@ -202,7 +241,10 @@ class TestCircuitBreakerHalfOpenState:
     async def test_half_open_success_increments_count(self):
         """Test that success in half-open increments success count"""
         cb = CircuitBreaker(
-            name="test_service", failure_threshold=2, timeout_seconds=0.1, success_threshold=2
+            name="test_service",
+            failure_threshold=2,
+            timeout_seconds=0.1,
+            success_threshold=2,
         )
 
         async def failing_func():
@@ -212,8 +254,8 @@ class TestCircuitBreakerHalfOpenState:
             return "success"
 
         # Open the circuit
-        for i in range(2):
-            with pytest.raises(Exception):
+        for _i in range(2):
+            with pytest.raises(Exception):  # noqa: B017
                 await cb.call(failing_func)
 
         # Wait for timeout
@@ -228,7 +270,10 @@ class TestCircuitBreakerHalfOpenState:
     async def test_half_open_closes_after_success_threshold(self):
         """Test that circuit closes after success threshold in half-open"""
         cb = CircuitBreaker(
-            name="test_service", failure_threshold=2, timeout_seconds=0.1, success_threshold=2
+            name="test_service",
+            failure_threshold=2,
+            timeout_seconds=0.1,
+            success_threshold=2,
         )
 
         async def failing_func():
@@ -238,8 +283,8 @@ class TestCircuitBreakerHalfOpenState:
             return "success"
 
         # Open the circuit
-        for i in range(2):
-            with pytest.raises(Exception):
+        for _i in range(2):
+            with pytest.raises(Exception):  # noqa: B017
                 await cb.call(failing_func)
 
         # Wait for timeout
@@ -257,7 +302,10 @@ class TestCircuitBreakerHalfOpenState:
     async def test_half_open_reopens_on_failure(self):
         """Test that circuit reopens immediately on failure in half-open"""
         cb = CircuitBreaker(
-            name="test_service", failure_threshold=2, timeout_seconds=0.1, success_threshold=2
+            name="test_service",
+            failure_threshold=2,
+            timeout_seconds=0.1,
+            success_threshold=2,
         )
 
         async def failing_func():
@@ -267,8 +315,8 @@ class TestCircuitBreakerHalfOpenState:
             return "success"
 
         # Open the circuit
-        for i in range(2):
-            with pytest.raises(Exception):
+        for _i in range(2):
+            with pytest.raises(Exception):  # noqa: B017
                 await cb.call(failing_func)
 
         # Wait for timeout
@@ -279,7 +327,7 @@ class TestCircuitBreakerHalfOpenState:
         assert cb._state == CircuitState.HALF_OPEN
 
         # Fail once - should reopen immediately
-        with pytest.raises(Exception):
+        with pytest.raises(Exception):  # noqa: B017
             await cb.call(failing_func)
 
         assert cb._state == CircuitState.OPEN
@@ -311,8 +359,8 @@ class TestCircuitBreakerGetState:
             raise Exception("Test error")
 
         # Open the circuit
-        for i in range(2):
-            with pytest.raises(Exception):
+        for _i in range(2):
+            with pytest.raises(Exception):  # noqa: B017
                 await cb.call(failing_func)
 
         state = cb.get_state()
@@ -324,7 +372,9 @@ class TestCircuitBreakerGetState:
     @pytest.mark.asyncio
     async def test_get_state_half_open(self):
         """Test getting state when circuit is half-open"""
-        cb = CircuitBreaker(name="test_service", failure_threshold=2, timeout_seconds=0.1)
+        cb = CircuitBreaker(
+            name="test_service", failure_threshold=2, timeout_seconds=0.1
+        )
 
         async def failing_func():
             raise Exception("Test error")
@@ -333,8 +383,8 @@ class TestCircuitBreakerGetState:
             return "success"
 
         # Open the circuit
-        for i in range(2):
-            with pytest.raises(Exception):
+        for _i in range(2):
+            with pytest.raises(Exception):  # noqa: B017
                 await cb.call(failing_func)
 
         # Wait for timeout
@@ -361,8 +411,8 @@ class TestCircuitBreakerReset:
             raise Exception("Test error")
 
         # Open the circuit
-        for i in range(2):
-            with pytest.raises(Exception):
+        for _i in range(2):
+            with pytest.raises(Exception):  # noqa: B017
                 await cb.call(failing_func)
 
         assert cb._state == CircuitState.OPEN
@@ -377,7 +427,9 @@ class TestCircuitBreakerReset:
     @pytest.mark.asyncio
     async def test_manual_reset_from_half_open(self):
         """Test manual reset from half-open state"""
-        cb = CircuitBreaker(name="test_service", failure_threshold=2, timeout_seconds=0.1)
+        cb = CircuitBreaker(
+            name="test_service", failure_threshold=2, timeout_seconds=0.1
+        )
 
         async def failing_func():
             raise Exception("Test error")
@@ -386,8 +438,8 @@ class TestCircuitBreakerReset:
             return "success"
 
         # Open the circuit
-        for i in range(2):
-            with pytest.raises(Exception):
+        for _i in range(2):
+            with pytest.raises(Exception):  # noqa: B017
                 await cb.call(failing_func)
 
         # Wait for timeout and transition to half-open
@@ -427,8 +479,8 @@ class TestCircuitBreakerEdgeCases:
             raise Exception("Test error")
 
         # Circuit should never open with 0 threshold
-        for i in range(5):
-            with pytest.raises(Exception):
+        for _i in range(5):
+            with pytest.raises(Exception):  # noqa: B017
                 await cb.call(failing_func)
 
         # Should still be closed (0 threshold means never open)
@@ -437,7 +489,9 @@ class TestCircuitBreakerEdgeCases:
     @pytest.mark.asyncio
     async def test_very_short_timeout(self):
         """Test with very short timeout"""
-        cb = CircuitBreaker(name="test_service", failure_threshold=1, timeout_seconds=0.01)  # 10ms
+        cb = CircuitBreaker(
+            name="test_service", failure_threshold=1, timeout_seconds=0.01
+        )  # 10ms
 
         async def failing_func():
             raise Exception("Test error")
@@ -446,7 +500,7 @@ class TestCircuitBreakerEdgeCases:
             return "success"
 
         # Open the circuit
-        with pytest.raises(Exception):
+        with pytest.raises(Exception):  # noqa: B017
             await cb.call(failing_func)
 
         # Wait for very short timeout
@@ -494,8 +548,8 @@ class TestCircuitBreakerEdgeCases:
             raise Exception("Test error")
 
         # Open circuit 1
-        for i in range(2):
-            with pytest.raises(Exception):
+        for _i in range(2):
+            with pytest.raises(Exception):  # noqa: B017
                 await cb1.call(failing_func)
 
         # Circuit 1 should be open, circuit 2 should be closed

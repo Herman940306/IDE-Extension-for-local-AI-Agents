@@ -57,7 +57,9 @@ def create_async_mock(return_value: Any = None, side_effect: Any = None) -> Asyn
 
 
 def generate_mock_llm_response(
-    response_text: str = "Test response", model: str = "codellama:7b", duration_ms: int = 1000
+    response_text: str = "Test response",
+    model: str = "codellama:7b",
+    duration_ms: int = 1000,
 ) -> Dict[str, Any]:
     """
     Generate a mock LLM response.
@@ -151,7 +153,9 @@ def assert_dict_contains(actual: Dict, expected: Dict) -> None:
     """
     for key, value in expected.items():
         assert key in actual, f"Key '{key}' not found in actual dictionary"
-        assert actual[key] == value, f"Value mismatch for key '{key}': {actual[key]} != {value}"
+        assert (
+            actual[key] == value
+        ), f"Value mismatch for key '{key}': {actual[key]} != {value}"
 
 
 def assert_list_contains(actual: List, expected: List) -> None:
@@ -169,7 +173,9 @@ def assert_list_contains(actual: List, expected: List) -> None:
         assert item in actual, f"Item '{item}' not found in actual list"
 
 
-def assert_async_mock_called_with_pattern(mock: AsyncMock, *args_pattern, **kwargs_pattern) -> None:
+def assert_async_mock_called_with_pattern(
+    mock: AsyncMock, *args_pattern, **kwargs_pattern
+) -> None:
     """
     Assert that async mock was called with arguments matching pattern.
 
@@ -185,7 +191,9 @@ def assert_async_mock_called_with_pattern(mock: AsyncMock, *args_pattern, **kwar
 
     call_args = mock.call_args
     if args_pattern:
-        assert call_args.args == args_pattern, f"Args mismatch: {call_args.args} != {args_pattern}"
+        assert (
+            call_args.args == args_pattern
+        ), f"Args mismatch: {call_args.args} != {args_pattern}"
 
     if kwargs_pattern:
         for key, value in kwargs_pattern.items():
@@ -227,7 +235,9 @@ class PerformanceTimer:
         self.elapsed_ms = self.elapsed * 1000
 
 
-async def measure_async_performance(coro: Callable, *args, **kwargs) -> tuple[Any, float]:
+async def measure_async_performance(
+    coro: Callable, *args, **kwargs
+) -> tuple[Any, float]:
     """
     Measure performance of an async function.
 
@@ -245,7 +255,9 @@ async def measure_async_performance(coro: Callable, *args, **kwargs) -> tuple[An
     return result, elapsed
 
 
-def assert_performance(elapsed_ms: float, max_ms: float, operation: str = "Operation") -> None:
+def assert_performance(
+    elapsed_ms: float, max_ms: float, operation: str = "Operation"
+) -> None:
     """
     Assert that operation completed within time limit.
 
@@ -257,7 +269,9 @@ def assert_performance(elapsed_ms: float, max_ms: float, operation: str = "Opera
     Raises:
         AssertionError: If elapsed time exceeds maximum
     """
-    assert elapsed_ms <= max_ms, f"{operation} took {elapsed_ms:.2f}ms, expected <{max_ms}ms"
+    assert (
+        elapsed_ms <= max_ms
+    ), f"{operation} took {elapsed_ms:.2f}ms, expected <{max_ms}ms"
 
 
 # ============================================================================
@@ -344,7 +358,9 @@ def assert_json_schema(data: Dict, schema: Dict) -> None:
 # ============================================================================
 
 
-async def assert_raises_async(exception_class: type, coro: Callable, *args, **kwargs) -> None:
+async def assert_raises_async(
+    exception_class: type, coro: Callable, *args, **kwargs
+) -> None:
     """
     Assert that async function raises specific exception.
 
@@ -359,11 +375,15 @@ async def assert_raises_async(exception_class: type, coro: Callable, *args, **kw
     """
     try:
         await coro(*args, **kwargs)
-        raise AssertionError(f"Expected {exception_class.__name__} but no exception was raised")
+        raise AssertionError(
+            f"Expected {exception_class.__name__} but no exception was raised"
+        )
     except exception_class:
         pass  # Expected
     except Exception as e:
-        raise AssertionError(f"Expected {exception_class.__name__} but got {type(e).__name__}: {e}")
+        raise AssertionError(
+            f"Expected {exception_class.__name__} but got {type(e).__name__}: {e}"
+        ) from e
 
 
 # ============================================================================
@@ -371,7 +391,7 @@ async def assert_raises_async(exception_class: type, coro: Callable, *args, **kw
 # ============================================================================
 
 
-async def retry_async(
+async def retry_async(  # noqa: E501
     coro: Callable, max_retries: int = 3, delay_ms: int = 100, *args, **kwargs
 ) -> Any:
     """
@@ -435,11 +455,15 @@ class LogCapture:
 
     def assert_logged(self, message: str) -> None:
         """Assert that message was logged."""
-        assert message in self.messages, f"Message '{message}' not found in logs: {self.messages}"
+        assert (
+            message in self.messages
+        ), f"Message '{message}' not found in logs: {self.messages}"
 
     def assert_not_logged(self, message: str) -> None:
         """Assert that message was not logged."""
-        assert message not in self.messages, f"Message '{message}' found in logs but shouldn't be"
+        assert (
+            message not in self.messages
+        ), f"Message '{message}' found in logs but shouldn't be"
 
 
 # ============================================================================

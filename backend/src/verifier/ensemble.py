@@ -22,7 +22,9 @@ class VerifierEnsemble:
     """
 
     def __init__(
-        self, ast_checker: Optional[ASTChecker] = None, confidence_threshold: float = 0.85
+        self,
+        ast_checker: Optional[ASTChecker] = None,
+        confidence_threshold: float = 0.85,
     ):
         """
         Initialize verifier ensemble.
@@ -33,10 +35,16 @@ class VerifierEnsemble:
         """
         self.ast_checker = ast_checker or ASTChecker()
         self.confidence_threshold = confidence_threshold
-        logger.info(f"VerifierEnsemble initialized with threshold={confidence_threshold}")
+        logger.info(
+            f"VerifierEnsemble initialized with threshold={confidence_threshold}"
+        )
 
     def verify(
-        self, code: str, language: str, context: str, original_task: Optional[str] = None
+        self,
+        code: str,
+        language: str,
+        context: str,
+        original_task: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
         Run full verification pipeline.
@@ -84,13 +92,17 @@ class VerifierEnsemble:
             "valid": is_valid,
             "confidence": final_confidence,
             "reason": (
-                "Passed all verification checks" if is_valid else "Confidence below threshold"
+                "Passed all verification checks"
+                if is_valid
+                else "Confidence below threshold"
             ),
             "details": {"ast": ast_result, "llm_confidence": llm_confidence},
             "stage": "complete",
         }
 
-        logger.info(f"Verification complete: valid={is_valid}, confidence={final_confidence:.2f}")
+        logger.info(
+            f"Verification complete: valid={is_valid}, confidence={final_confidence:.2f}"  # noqa: E501
+        )
         return result
 
     def _aggregate_confidence(

@@ -54,7 +54,12 @@ class TestMetaController:
         """Test performance metrics update"""
         controller = MetaController()
 
-        metrics = {"agent": "Reasoner", "latency": 150, "success": True, "confidence": 0.9}
+        metrics = {
+            "agent": "Reasoner",
+            "latency": 150,
+            "success": True,
+            "confidence": 0.9,
+        }
 
         controller.update_graph(metrics)
 

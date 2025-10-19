@@ -58,7 +58,6 @@ class TestLLMManagerInitialization:
 class TestLLMManagerGeneration:
     """Test LLM generation functionality"""
 
-    @patch("src.services.llm_manager.ollama")
     async def test_generate_success(self, mock_ollama):
         """Test successful text generation"""
         mock_ollama.chat.return_value = {"message": {"content": "Generated response"}}
@@ -75,7 +74,9 @@ class TestLLMManagerGeneration:
         mock_ollama.chat.return_value = {"message": {"content": "Response"}}
 
         manager = LLMManager()
-        await manager.generate("User prompt", system_prompt="You are a helpful assistant")
+        await manager.generate(
+            "User prompt", system_prompt="You are a helpful assistant"
+        )
 
         call_args = mock_ollama.chat.call_args
         messages = call_args.kwargs["messages"]
@@ -109,6 +110,17 @@ class TestLLMManagerGeneration:
         assert result == "New response"
         mock_ollama.chat.assert_called_once()
         mock_response_cache.set.assert_called_once()
+
+    # B017: Use a specific exception for pytest.raises
+    @patch("src.services.llm_manager.ollama")
+    async def test_generate_with_b017(self, mock_ollama):
+        class CustomTestException(Exception):
+            pass
+
+        mock_ollama.chat.side_effect = CustomTestException("Test error")
+        manager = LLMManager()
+        with pytest.raises(CustomTestException):
+            await manager.generate("Test prompt")
 
     @patch("src.services.llm_manager.ollama")
     async def test_generate_with_temperature(self, mock_ollama):
@@ -159,7 +171,9 @@ class TestLLMManagerGeneration:
         fake_provider = AsyncMock()
         fake_provider.generate.return_value = "Cloud response"
 
-        manager = LLMManager(provider=LLMProvider.OPENAI, api_key="test-key", allow_cloud=True)
+        manager = LLMManager(
+            provider=LLMProvider.OPENAI, api_key="test-key", allow_cloud=True
+        )
 
         with patch.object(
             LLMManager, "_get_cloud_provider", return_value=fake_provider
@@ -174,7 +188,9 @@ class TestLLMManagerGeneration:
     @pytest.mark.asyncio
     async def test_generate_cloud_requires_allow_flag(self):
         """Cloud provider should require allow_cloud flag"""
-        manager = LLMManager(provider=LLMProvider.OPENAI, api_key="test-key", allow_cloud=False)
+        manager = LLMManager(
+            provider=LLMProvider.OPENAI, api_key="test-key", allow_cloud=False
+        )
 
         with pytest.raises(LLMError):
             await manager.generate("Test prompt")
@@ -182,7 +198,9 @@ class TestLLMManagerGeneration:
     @pytest.mark.asyncio
     async def test_generate_cloud_privacy_block(self):
         """Cloud usage should be blocked when sensitive data is detected"""
-        manager = LLMManager(provider=LLMProvider.OPENAI, api_key="test-key", allow_cloud=True)
+        manager = LLMManager(
+            provider=LLMProvider.OPENAI, api_key="test-key", allow_cloud=True
+        )
 
         with pytest.raises(LLMError):
             await manager.generate("Contact me at foo@example.com")

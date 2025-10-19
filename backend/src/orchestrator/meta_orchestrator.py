@@ -50,7 +50,9 @@ class AgentHealth:
     @property
     def average_latency(self) -> float:
         """Calculate average latency"""
-        return self.total_latency / self.request_count if self.request_count > 0 else 0.0
+        return (
+            self.total_latency / self.request_count if self.request_count > 0 else 0.0
+        )
 
     @property
     def is_healthy(self) -> bool:
@@ -215,7 +217,9 @@ class MetaOrchestrator:
         if not healthy_agents:
             # Try fallback agents
             healthy_agents = [
-                agent for agent in self.agents.keys() if self.agent_health[agent].is_healthy
+                agent
+                for agent in self.agents.keys()
+                if self.agent_health[agent].is_healthy
             ]
 
         # Rank by performance
@@ -267,7 +271,9 @@ class MetaOrchestrator:
             # Try fallback
             return await self._try_fallback(task, agent_name)
 
-    async def _execute_multi_agent(self, task: Task, agent_names: List[str]) -> AgentResponse:
+    async def _execute_multi_agent(
+        self, task: Task, agent_names: List[str]
+    ) -> AgentResponse:
         """
         Execute task with multiple agents and aggregate responses
 
@@ -279,13 +285,17 @@ class MetaOrchestrator:
             Aggregated AgentResponse
         """
         # Execute agents in parallel
-        tasks_list = [self._execute_single_agent(task, agent_name) for agent_name in agent_names]
+        tasks_list = [
+            self._execute_single_agent(task, agent_name) for agent_name in agent_names
+        ]
 
         responses = await asyncio.gather(*tasks_list, return_exceptions=True)
 
         # Filter out exceptions
         valid_responses = [
-            r for r in responses if isinstance(r, AgentResponse) and not isinstance(r, Exception)
+            r
+            for r in responses
+            if isinstance(r, AgentResponse) and not isinstance(r, Exception)
         ]
 
         if not valid_responses:
@@ -322,7 +332,9 @@ class MetaOrchestrator:
         unique_suggestions = self._deduplicate_suggestions(all_suggestions)
 
         # Rank by confidence (convert enum levels to float values for ordering)
-        unique_suggestions.sort(key=lambda s: self._confidence_to_float(s.confidence), reverse=True)
+        unique_suggestions.sort(
+            key=lambda s: self._confidence_to_float(s.confidence), reverse=True
+        )
 
         # Take top suggestions
         top_suggestions = unique_suggestions[:5]
@@ -344,7 +356,9 @@ class MetaOrchestrator:
             },
         )
 
-    def _deduplicate_suggestions(self, suggestions: List[Suggestion]) -> List[Suggestion]:
+    def _deduplicate_suggestions(
+        self, suggestions: List[Suggestion]
+    ) -> List[Suggestion]:
         """
         Remove duplicate suggestions based on code similarity
 
@@ -483,7 +497,9 @@ class MetaOrchestrator:
         """
         return {
             "registered_agents": len(self.agents),
-            "healthy_agents": sum(1 for h in self.agent_health.values() if h.is_healthy),
+            "healthy_agents": sum(
+                1 for h in self.agent_health.values() if h.is_healthy
+            ),
             "active_tasks": len(self.active_tasks),
             "total_requests": sum(h.request_count for h in self.agent_health.values()),
             "overall_success_rate": self._calculate_overall_success_rate(),
@@ -505,14 +521,17 @@ class MetaOrchestrator:
         """
         results = {}
 
-        for agent_name, agent in self.agents.items():
+        for agent_name, _agent in self.agents.items():
             try:
                 # Simple ping test
                 start = time.time()
                 # Could implement agent.ping() method
                 latency = time.time() - start
 
-                results[agent_name] = {"healthy": True, "latency": round(latency * 1000, 2)}  # ms
+                results[agent_name] = {
+                    "healthy": True,
+                    "latency": round(latency * 1000, 2),
+                }  # ms
             except Exception as e:
                 results[agent_name] = {"healthy": False, "error": str(e)}
                 self.agent_health[agent_name].status = AgentStatus.UNAVAILABLE

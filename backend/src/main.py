@@ -12,11 +12,19 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import ValidationError
 from src.api.exception_handlers import register_exception_handlers
-from src.api.middleware import CorrelationIDMiddleware, RateLimitMiddleware, RequestSizeMiddleware
+from src.api.middleware import (
+    CorrelationIDMiddleware,
+    RateLimitMiddleware,
+    RequestSizeMiddleware,
+)
 from src.core.config import get_settings
 from src.core.container import Container
 from src.core.logging import configure_logging, get_logger
-from src.models.session import TaskAcceptedPayload, TaskRequestPayload, TaskSessionResult
+from src.models.session import (
+    TaskAcceptedPayload,
+    TaskRequestPayload,
+    TaskSessionResult,
+)
 from src.services.connection_manager import ConnectionManager
 
 # Configure structured logging
@@ -64,9 +72,7 @@ async def lifespan(app: FastAPI):
 
 
 # Create FastAPI application
-API_DESCRIPTION = (
-    "Backend service for multi-agent AI coding assistant with production-ready infrastructure."
-)
+API_DESCRIPTION = "Backend service for multi-agent AI coding assistant with production-ready infrastructure."  # noqa: E501
 
 app = FastAPI(
     title="Enterprise AI Agents API",
@@ -227,7 +233,9 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
                 message_type = data.get("type")
                 payload = data.get("payload", {})
 
-                logger.info("message_received", client_id=client_id, message_type=message_type)
+                logger.info(
+                    "message_received", client_id=client_id, message_type=message_type
+                )
 
                 if message_type == "task_request":
                     await handle_task_request(client_id, payload)
@@ -239,7 +247,9 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
                     await connection_manager.send_personal_message(
                         {
                             "type": "error",
-                            "payload": {"message": f"Unknown message type: {message_type}"},
+                            "payload": {
+                                "message": f"Unknown message type: {message_type}"
+                            },
                         },
                         client_id,
                     )
@@ -250,7 +260,9 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
             except RuntimeError as runtime_error:
                 message = str(runtime_error).lower()
                 disconnect_error = "disconnect message" in message
-                receive_after_disconnect = "receive" in message and "disconnect" in message
+                receive_after_disconnect = (
+                    "receive" in message and "disconnect" in message
+                )
 
                 if disconnect_error or receive_after_disconnect:
                     # Treat as clean disconnect without bubbling an exception to uvicorn
@@ -268,16 +280,24 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
                 await connection_manager.send_personal_message(
                     {
                         "type": "error",
-                        "payload": {"message": "Invalid message format", "details": str(e)},
+                        "payload": {
+                            "message": "Invalid message format",
+                            "details": str(e),
+                        },
                     },
                     client_id,
                 )
             except Exception as e:
-                logger.error("message_processing_error", client_id=client_id, error=str(e))
+                logger.error(
+                    "message_processing_error", client_id=client_id, error=str(e)
+                )
                 await connection_manager.send_personal_message(
                     {
                         "type": "error",
-                        "payload": {"message": "Internal server error", "details": str(e)},
+                        "payload": {
+                            "message": "Internal server error",
+                            "details": str(e),
+                        },
                     },
                     client_id,
                 )
@@ -287,7 +307,9 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
         disconnect_reason = "server_error"
     finally:
         if connected:
-            logger.info("client_disconnected", client_id=client_id, reason=disconnect_reason)
+            logger.info(
+                "client_disconnected", client_id=client_id, reason=disconnect_reason
+            )
             await connection_manager.disconnect(client_id)
 
 
@@ -351,7 +373,8 @@ async def handle_task_request(client_id: str, payload: Dict):
 async def handle_ping(client_id: str):
     """Handle ping message"""
     await connection_manager.send_personal_message(
-        {"type": "pong", "payload": {"timestamp": asyncio.get_event_loop().time()}}, client_id
+        {"type": "pong", "payload": {"timestamp": asyncio.get_event_loop().time()}},
+        client_id,
     )
 
 

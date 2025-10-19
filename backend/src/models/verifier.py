@@ -92,7 +92,9 @@ class AnalyticalVerifier:
             is_valid, issues, suggestions = self._parse_verification(response)
 
             # Calculate confidence
-            confidence = self._calculate_confidence(is_valid, issues, request.system1_confidence)
+            confidence = self._calculate_confidence(
+                is_valid, issues, request.system1_confidence
+            )
 
             # Calculate latency
             latency_ms = (time.time() - start_time) * 1000
@@ -104,7 +106,7 @@ class AnalyticalVerifier:
                 self.rejections += 1
 
             logger.info(
-                f"Verification complete: {latency_ms:.0f}ms, valid={is_valid}, conf={confidence:.2f}"
+                f"Verification complete: {latency_ms:.0f}ms, valid={is_valid}, conf={confidence:.2f}"  # noqa: E501
             )
 
             return VerificationResponse(
@@ -133,7 +135,7 @@ class AnalyticalVerifier:
 
     def _build_verification_prompt(self, request: VerificationRequest) -> str:
         """Build verification prompt"""
-        prompt = f"""You are an expert code reviewer. Analyze the following code for correctness, quality, and potential issues.
+        prompt = f"""You are an expert code reviewer. Analyze the following code for correctness, quality, and potential issues.  # noqa: E501
 
 Original Task: {request.original_task}
 
@@ -183,7 +185,10 @@ Analysis:"""
             response.raise_for_status()
 
             result = response.json()
-            return {"text": result.get("response", ""), "reasoning": "Analytical verification"}
+            return {
+                "text": result.get("response", ""),
+                "reasoning": "Analytical verification",
+            }
 
         except httpx.TimeoutException:
             logger.warning("Ollama verification timed out")
@@ -205,10 +210,14 @@ Analysis:"""
         issues = []
         if "ISSUES:" in text.upper():
             issues_section = text.split("ISSUES:")[1].split("SUGGESTIONS:")[0]
-            issue_lines = [line.strip() for line in issues_section.split("\n") if line.strip()]
+            issue_lines = [
+                line.strip() for line in issues_section.split("\n") if line.strip()
+            ]
             for line in issue_lines[:5]:  # Limit to 5 issues
                 if line and not line.startswith("REASONING"):
-                    issues.append({"type": "warning", "message": line.lstrip("- ").lstrip("* ")})
+                    issues.append(
+                        {"type": "warning", "message": line.lstrip("- ").lstrip("* ")}
+                    )
 
         # Extract suggestions
         suggestions = []
@@ -249,11 +258,15 @@ Analysis:"""
     def get_stats(self) -> Dict[str, Any]:
         """Get verification statistics"""
         avg_latency = (
-            self.total_latency / self.total_verifications if self.total_verifications > 0 else 0
+            self.total_latency / self.total_verifications
+            if self.total_verifications > 0
+            else 0
         )
 
         rejection_rate = (
-            self.rejections / self.total_verifications if self.total_verifications > 0 else 0
+            self.rejections / self.total_verifications
+            if self.total_verifications > 0
+            else 0
         )
 
         return {

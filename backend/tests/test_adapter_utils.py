@@ -85,7 +85,8 @@ const y = 2;
     def test_format_reasoning_steps_max_limit(self):
         """Test reasoning steps respects max limit"""
         steps = [
-            {"tool": f"tool{i}", "thought": f"thought{i}", "status": "success"} for i in range(10)
+            {"tool": f"tool{i}", "thought": f"thought{i}", "status": "success"}
+            for i in range(10)
         ]
         reasoning = AdapterUtils.format_reasoning_steps(steps, max_steps=3)
         assert "and 7 more steps" in reasoning
@@ -164,5 +165,9 @@ class TestAdapterExceptions:
         assert issubclass(
             AdapterExceptions.AdapterInitializationError, AdapterExceptions.AdapterError
         )
-        assert issubclass(AdapterExceptions.AdapterExecutionError, AdapterExceptions.AdapterError)
-        assert issubclass(AdapterExceptions.AdapterTimeoutError, AdapterExceptions.AdapterError)
+        assert issubclass(
+            AdapterExceptions.AdapterExecutionError, AdapterExceptions.AdapterError
+        )
+        assert issubclass(
+            AdapterExceptions.AdapterTimeoutError, AdapterExceptions.AdapterError
+        )

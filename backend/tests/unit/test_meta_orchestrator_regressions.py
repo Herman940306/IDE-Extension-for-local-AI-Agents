@@ -6,7 +6,14 @@ import pytest
 from src.adapters.adapter_utils import AdapterUtils
 from src.adapters.base_adapter import AgentAdapter, AgentConfig, Capability
 from src.adapters.crewai_adapter import CrewAIAdapter
-from src.models import AgentResponse, CodeContext, ConfidenceLevel, Suggestion, Task, TaskType
+from src.models import (
+    AgentResponse,
+    CodeContext,
+    ConfidenceLevel,
+    Suggestion,
+    Task,
+    TaskType,
+)
 from src.orchestrator.meta_orchestrator import MetaOrchestrator
 from src.services.embeddings_service import EmbeddingsService
 from src.services.llm_manager import LLMError, LLMManager, LLMProvider
@@ -139,7 +146,9 @@ async def test_meta_orchestrator_uses_fallback_agent_when_primary_fails():
         metadata={"source": "fallback"},
     )
 
-    failing_agent = _StubAgent(error=RuntimeError("primary agent failure"), name="Failing Agent")
+    failing_agent = _StubAgent(
+        error=RuntimeError("primary agent failure"), name="Failing Agent"
+    )
     fallback_agent = _StubAgent(response=fallback_response, name="Fallback Agent")
 
     orchestrator.register_agent("primary_agent", failing_agent)

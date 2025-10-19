@@ -32,7 +32,9 @@ class CodeSmellDetector:
         self.similarity_threshold = 0.85  # 85% similarity = potential duplication
         self.god_class_threshold = 10  # Methods/responsibilities
 
-    async def detect_smells(self, file_path: str, content: str, language: str) -> List[CodeSmell]:
+    async def detect_smells(
+        self, file_path: str, content: str, language: str
+    ) -> List[CodeSmell]:
         """
         Detect code smells in a file
 
@@ -62,7 +64,9 @@ class CodeSmellDetector:
 
         return smells
 
-    async def _detect_python_smells(self, file_path: str, content: str) -> List[CodeSmell]:
+    async def _detect_python_smells(
+        self, file_path: str, content: str
+    ) -> List[CodeSmell]:
         """Detect Python-specific code smells"""
         smells = []
 
@@ -80,10 +84,10 @@ class CodeSmellDetector:
                                 file_path=file_path,
                                 smell_type="god_class",
                                 severity=Priority.HIGH,
-                                description=f"Class '{node.name}' has {len(methods)} methods (threshold: {self.god_class_threshold})",
+                                description=f"Class '{node.name}' has {len(methods)} methods (threshold: {self.god_class_threshold})",  # noqa: E501
                                 line_start=node.lineno,
                                 line_end=node.end_lineno or node.lineno,
-                                suggestion="Consider splitting into smaller, focused classes using Single Responsibility Principle",
+                                suggestion="Consider splitting into smaller, focused classes using Single Responsibility Principle",  # noqa: E501
                                 confidence=0.9,
                             )
                         )
@@ -99,7 +103,7 @@ class CodeSmellDetector:
                                 file_path=file_path,
                                 smell_type="long_function",
                                 severity=Priority.MEDIUM,
-                                description=f"Function '{node.name}' is {func_lines} lines long",
+                                description=f"Function '{node.name}' is {func_lines} lines long",  # noqa: E501
                                 line_start=node.lineno,
                                 line_end=node.end_lineno or node.lineno,
                                 suggestion="Consider breaking into smaller functions",
@@ -118,10 +122,10 @@ class CodeSmellDetector:
                                 file_path=file_path,
                                 smell_type="too_many_parameters",
                                 severity=Priority.MEDIUM,
-                                description=f"Function '{node.name}' has {param_count} parameters",
+                                description=f"Function '{node.name}' has {param_count} parameters",  # noqa: E501
                                 line_start=node.lineno,
                                 line_end=node.lineno,
-                                suggestion="Consider using a configuration object or builder pattern",
+                                suggestion="Consider using a configuration object or builder pattern",  # noqa: E501
                                 confidence=0.8,
                             )
                         )
@@ -139,7 +143,7 @@ class CodeSmellDetector:
 
         try:
             # Detect callback hell (nested callbacks)
-            callback_pattern = r"function\s*\([^)]*\)\s*\{[^}]*function\s*\([^)]*\)\s*\{[^}]*function\s*\([^)]*\)\s*\{"
+            callback_pattern = r"function\s*\([^)]*\)\s*\{[^}]*function\s*\([^)]*\)\s*\{[^}]*function\s*\([^)]*\)\s*\{"  # noqa: E501
             if re.search(callback_pattern, content):
                 smells.append(
                     CodeSmell(
@@ -178,7 +182,9 @@ class CodeSmellDetector:
 
         return smells
 
-    async def _detect_semantic_duplication(self, file_path: str, content: str) -> List[CodeSmell]:
+    async def _detect_semantic_duplication(
+        self, file_path: str, content: str
+    ) -> List[CodeSmell]:
         """
         Detect semantic code duplication using embeddings
         Finds similar code even with different variable names
@@ -213,10 +219,10 @@ class CodeSmellDetector:
                                 file_path=file_path,
                                 smell_type="semantic_duplication",
                                 severity=Priority.MEDIUM,
-                                description=f"Functions '{name1}' and '{name2}' are {int(similarity * 100)}% similar",
+                                description=f"Functions '{name1}' and '{name2}' are {int(similarity * 100)}% similar",  # noqa: E501
                                 line_start=line1_start,
                                 line_end=line2_end,
-                                suggestion="Consider extracting common logic into a shared function",
+                                suggestion="Consider extracting common logic into a shared function",  # noqa: E501
                                 confidence=similarity,
                             )
                         )
@@ -245,15 +251,24 @@ class CodeSmellDetector:
                     func_lines = lines[node.lineno - 1 : node.end_lineno]
                     func_code = "\n".join(func_lines)
                     functions.append(
-                        (node.name, func_code, node.lineno, node.end_lineno or node.lineno)
+                        (
+                            node.name,
+                            func_code,
+                            node.lineno,
+                            node.end_lineno or node.lineno,
+                        )
                     )
         except Exception as e:
             logger.debug(f"AST parsing failed, using regex fallback: {e}")
             # Fallback: simple regex-based extraction
-            func_pattern = r"(function\s+(\w+)|(\w+)\s*=\s*function|(\w+)\s*=\s*\([^)]*\)\s*=>)"
+            func_pattern = (
+                r"(function\s+(\w+)|(\w+)\s*=\s*function|(\w+)\s*=\s*\([^)]*\)\s*=>)"
+            )
             matches = re.finditer(func_pattern, content)
             for match in matches:
-                func_name = match.group(2) or match.group(3) or match.group(4) or "anonymous"
+                func_name = (
+                    match.group(2) or match.group(3) or match.group(4) or "anonymous"
+                )
                 # Extract function body (simplified)
                 start_pos = match.start()
                 line_num = content[:start_pos].count("\n") + 1
@@ -272,7 +287,7 @@ class CodeSmellDetector:
         except Exception as e:
             logger.debug(f"Numpy cosine similarity failed, using fallback: {e}")
             # Fallback without numpy
-            dot_product = sum(a * b for a, b in zip(vec1, vec2))
+            dot_product = sum(a * b for a, b in zip(vec1, vec2, strict=False))
             magnitude1 = sum(a * a for a in vec1) ** 0.5
             magnitude2 = sum(b * b for b in vec2) ** 0.5
             if magnitude1 == 0 or magnitude2 == 0:
@@ -280,7 +295,7 @@ class CodeSmellDetector:
             return dot_product / (magnitude1 * magnitude2)
 
     async def analyze_codebase(
-        self, workspace_path: str, file_extensions: List[str] = [".py", ".ts", ".js"]
+        self, workspace_path: str, file_extensions: List[str] = None
     ) -> Dict[str, List[CodeSmell]]:
         """
         Analyze entire codebase for code smells
@@ -292,6 +307,8 @@ class CodeSmellDetector:
         Returns:
             Dictionary mapping file paths to detected smells
         """
+        if file_extensions is None:
+            file_extensions = [".py", ".ts", ".js"]
         results = {}
         workspace = Path(workspace_path)
 
@@ -319,7 +336,9 @@ class CodeSmellDetector:
                 except Exception as e:
                     logger.warning(f"Failed to analyze {file_path}: {e}")
 
-            logger.info(f"✓ Code smell analysis complete: {len(results)} files with issues")
+            logger.info(
+                f"✓ Code smell analysis complete: {len(results)} files with issues"
+            )
 
         except Exception as e:
             logger.error(f"Failed to analyze codebase: {e}")

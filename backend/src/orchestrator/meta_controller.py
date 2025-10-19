@@ -56,7 +56,10 @@ class MetaController:
             self.graph.nodes[node]["success_count"] = 0
 
     def route(
-        self, task_type: str, complexity: float, context: Optional[Dict[str, Any]] = None
+        self,
+        task_type: str,
+        complexity: float,
+        context: Optional[Dict[str, Any]] = None,
     ) -> List[str]:
         """
         Determine execution path based on task characteristics.
@@ -88,14 +91,18 @@ class MetaController:
                     AgentNode.VERIFIER.value,
                     AgentNode.AGGREGATOR.value,
                 ]
-                logger.info(f"Complex task route (with verification): {' -> '.join(path)}")
+                logger.info(
+                    f"Complex task route (with verification): {' -> '.join(path)}"
+                )
                 return path
 
             # Medium complexity: use graph-based routing
             path = nx.shortest_path(
                 self.graph, AgentNode.PLANNER, AgentNode.AGGREGATOR, weight="weight"
             )
-            path_str = [node.value if isinstance(node, AgentNode) else node for node in path]
+            path_str = [
+                node.value if isinstance(node, AgentNode) else node for node in path
+            ]
             logger.info(f"Complex task route: {' -> '.join(path_str)}")
             return path_str
         except nx.NetworkXNoPath:
@@ -108,7 +115,9 @@ class MetaController:
                 AgentNode.AGGREGATOR.value,
             ]
 
-    def estimate_complexity(self, code_length: int, ast_depth: int, task_type: str) -> float:
+    def estimate_complexity(
+        self, code_length: int, ast_depth: int, task_type: str
+    ) -> float:
         """
         Estimate task complexity based on code characteristics.
 
@@ -192,7 +201,10 @@ class MetaController:
             if executions > 0:
                 avg_latency = self.graph.nodes[node]["total_latency"] / executions
                 success_rate = self.graph.nodes[node]["success_count"] / executions
-                agent_stats[node] = {"avg_latency": avg_latency, "success_rate": success_rate}
+                agent_stats[node] = {
+                    "avg_latency": avg_latency,
+                    "success_rate": success_rate,
+                }
 
         # Adjust edge weights
         # Lower weight = preferred path

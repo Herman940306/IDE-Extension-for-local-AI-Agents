@@ -58,7 +58,10 @@ class EmbeddingsService:
 
             # Initialize ChromaDB
             self.chroma_client = chromadb.Client(
-                Settings(persist_directory=self.chroma_persist_dir, anonymized_telemetry=False)
+                Settings(
+                    persist_directory=self.chroma_persist_dir,
+                    anonymized_telemetry=False,
+                )
             )
 
             # Get or create collection
@@ -74,7 +77,9 @@ class EmbeddingsService:
             logger.error(f"Failed to initialize embeddings service: {e}")
             raise
 
-    async def embed_code(self, code: str, metadata: Optional[Dict[str, Any]] = None) -> List[float]:
+    async def embed_code(
+        self, code: str, metadata: Optional[Dict[str, Any]] = None
+    ) -> List[float]:
         """
         Generate embedding for code snippet
 
@@ -118,7 +123,10 @@ class EmbeddingsService:
             # Batch encoding is significantly faster than individual encoding
             loop = asyncio.get_event_loop()
             embeddings = await loop.run_in_executor(
-                None, lambda: self.model.encode(code_snippets, convert_to_numpy=True, batch_size=32)
+                None,
+                lambda: self.model.encode(
+                    code_snippets, convert_to_numpy=True, batch_size=32
+                ),
             )
 
             return [emb.tolist() for emb in embeddings]
@@ -130,7 +138,7 @@ class EmbeddingsService:
     async def embed_codebase(
         self,
         workspace_path: str,
-        file_extensions: List[str] = [".py", ".ts", ".js", ".tsx", ".jsx"],
+        file_extensions: List[str] = None,
     ) -> int:
         """
         Generate embeddings for entire codebase
@@ -142,6 +150,8 @@ class EmbeddingsService:
         Returns:
             Number of files processed
         """
+        if file_extensions is None:
+            file_extensions = [".py", ".ts", ".js", ".tsx", ".jsx"]
         if not self.is_initialized:
             raise RuntimeError("Embeddings service not initialized")
 
@@ -210,7 +220,10 @@ class EmbeddingsService:
 
             # Store all in ChromaDB
             self.collection.upsert(
-                ids=file_ids, embeddings=embeddings, documents=contents, metadatas=metadatas
+                ids=file_ids,
+                embeddings=embeddings,
+                documents=contents,
+                metadatas=metadatas,
             )
 
         except Exception as e:
@@ -278,7 +291,9 @@ class EmbeddingsService:
                             "code": results["documents"][0][i],
                             "metadata": results["metadatas"][0][i],
                             "distance": (
-                                results["distances"][0][i] if "distances" in results else None
+                                results["distances"][0][i]
+                                if "distances" in results
+                                else None
                             ),
                         }
                     )

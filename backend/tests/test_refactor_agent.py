@@ -33,7 +33,9 @@ def mock_llm_manager():
     """Create mock LLM manager"""
     llm = Mock(spec=LLMManager)
     llm.health_check = AsyncMock(return_value=True)
-    llm.generate = AsyncMock(return_value="SUGGESTION: Use async/await\nREASON: Better readability")
+    llm.generate = AsyncMock(
+        return_value="SUGGESTION: Use async/await\nREASON: Better readability"
+    )
     return llm
 
 
@@ -108,7 +110,9 @@ def very_long_function():
     pass
 """
 
-    context = CodeContext(file_path="test.py", language="python", workspace_path="/workspace")
+    context = CodeContext(
+        file_path="test.py", language="python", workspace_path="/workspace"
+    )
 
     task = Task(
         id="test-1",
@@ -141,7 +145,9 @@ def calculate_price(quantity):
     return base_price - discount + tax
 """
 
-    context = CodeContext(file_path="test.py", language="python", workspace_path="/workspace")
+    context = CodeContext(
+        file_path="test.py", language="python", workspace_path="/workspace"
+    )
 
     task = Task(
         id="test-2",
@@ -165,12 +171,14 @@ async def test_detect_complex_conditional(refactor_agent):
 
     code = """
 def check_eligibility(user):
-    if user.age > 18 and user.verified and user.active and not user.banned and user.country == "US":
+    if user.age > 18 and user.verified and user.active and not user.banned and user.country == "US":  # noqa: E501
         return True
     return False
 """
 
-    context = CodeContext(file_path="test.py", language="python", workspace_path="/workspace")
+    context = CodeContext(
+        file_path="test.py", language="python", workspace_path="/workspace"
+    )
 
     task = Task(
         id="test-3",
@@ -202,7 +210,9 @@ def process_data(data):
     return result
 """
 
-    context = CodeContext(file_path="test.py", language="python", workspace_path="/workspace")
+    context = CodeContext(
+        file_path="test.py", language="python", workspace_path="/workspace"
+    )
 
     task = Task(
         id="test-4",
@@ -231,7 +241,9 @@ def multiply(a: int, b: int) -> int:
     return a * b
 """
 
-    context = CodeContext(file_path="test.py", language="python", workspace_path="/workspace")
+    context = CodeContext(
+        file_path="test.py", language="python", workspace_path="/workspace"
+    )
 
     task = Task(
         id="test-5",
@@ -262,7 +274,9 @@ def long_function_with_issues():
     return z
 """
 
-    context = CodeContext(file_path="test.py", language="python", workspace_path="/workspace")
+    context = CodeContext(
+        file_path="test.py", language="python", workspace_path="/workspace"
+    )
 
     task = Task(
         id="test-6",
@@ -293,7 +307,9 @@ def bad_function():
     return 0
 """
 
-    context = CodeContext(file_path="test.py", language="python", workspace_path="/workspace")
+    context = CodeContext(
+        file_path="test.py", language="python", workspace_path="/workspace"
+    )
 
     task = Task(
         id="test-7",
@@ -335,7 +351,9 @@ async def test_error_handling(refactor_agent):
     # Invalid Python code
     code = "def invalid syntax here"
 
-    context = CodeContext(file_path="test.py", language="python", workspace_path="/workspace")
+    context = CodeContext(
+        file_path="test.py", language="python", workspace_path="/workspace"
+    )
 
     task = Task(
         id="test-8",
@@ -367,7 +385,9 @@ function calculateTotal(items) {
 }
 """
 
-    context = CodeContext(file_path="test.js", language="javascript", workspace_path="/workspace")
+    context = CodeContext(
+        file_path="test.js", language="javascript", workspace_path="/workspace"
+    )
 
     task = Task(
         id="test-9",
@@ -397,7 +417,9 @@ def func1():
     return x + y + z
 """
 
-    context = CodeContext(file_path="test.py", language="python", workspace_path="/workspace")
+    context = CodeContext(
+        file_path="test.py", language="python", workspace_path="/workspace"
+    )
 
     task = Task(
         id="test-10",
@@ -415,7 +437,9 @@ def func1():
 
 
 @pytest.mark.asyncio
-async def test_memory_integration(agent_config, mock_llm_manager, mock_code_smell_detector):
+async def test_memory_integration(
+    agent_config, mock_llm_manager, mock_code_smell_detector
+):
     """Test memory service integration"""
     from src.services.memory_service import MemoryService, MemoryConfig, StorageBackend
 
@@ -435,7 +459,9 @@ async def test_memory_integration(agent_config, mock_llm_manager, mock_code_smel
     await agent.initialize()
 
     code = "def test(): pass"
-    context = CodeContext(file_path="test.py", language="python", workspace_path="/workspace")
+    context = CodeContext(
+        file_path="test.py", language="python", workspace_path="/workspace"
+    )
 
     task = Task(
         id="test-11",

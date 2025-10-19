@@ -110,7 +110,10 @@ class CognitiveTraceStore:
             logger.error(f"Failed to flush traces: {e}")
 
     def get_traces(
-        self, agent: Optional[str] = None, trace_id: Optional[str] = None, limit: int = 100
+        self,
+        agent: Optional[str] = None,
+        trace_id: Optional[str] = None,
+        limit: int = 100,
     ) -> List[Dict[str, Any]]:
         """
         Retrieve traces with optional filtering.

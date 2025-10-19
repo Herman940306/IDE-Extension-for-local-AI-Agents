@@ -54,14 +54,18 @@ class AuraIAException(Exception):
         }
 
     def __str__(self) -> str:
-        return f"[{self.error_code}] {self.message} (correlation_id: {self.correlation_id})"
+        return f"[{self.error_code}] {self.message} (correlation_id: {self.correlation_id})"  # noqa: E501
 
 
 class AdapterException(AuraIAException):
     """Adapter-specific errors"""
 
     def __init__(
-        self, message: str, adapter_name: str, details: Optional[Dict[str, Any]] = None, **kwargs
+        self,
+        message: str,
+        adapter_name: str,
+        details: Optional[Dict[str, Any]] = None,
+        **kwargs,
     ):
         """
         Initialize adapter exception.
@@ -77,7 +81,10 @@ class AdapterException(AuraIAException):
             adapter_details.update(details)
 
         super().__init__(
-            message=message, error_code="ADAPTER_ERROR", details=adapter_details, **kwargs
+            message=message,
+            error_code="ADAPTER_ERROR",
+            details=adapter_details,
+            **kwargs,
         )
 
 
@@ -85,7 +92,11 @@ class LLMException(AuraIAException):
     """LLM inference errors"""
 
     def __init__(
-        self, message: str, model: str, details: Optional[Dict[str, Any]] = None, **kwargs
+        self,
+        message: str,
+        model: str,
+        details: Optional[Dict[str, Any]] = None,
+        **kwargs,
     ):
         """
         Initialize LLM exception.
@@ -100,14 +111,20 @@ class LLMException(AuraIAException):
         if details:
             llm_details.update(details)
 
-        super().__init__(message=message, error_code="LLM_ERROR", details=llm_details, **kwargs)
+        super().__init__(
+            message=message, error_code="LLM_ERROR", details=llm_details, **kwargs
+        )
 
 
 class ValidationException(AuraIAException):
     """Input validation errors"""
 
     def __init__(
-        self, message: str, field: str, details: Optional[Dict[str, Any]] = None, **kwargs
+        self,
+        message: str,
+        field: str,
+        details: Optional[Dict[str, Any]] = None,
+        **kwargs,
     ):
         """
         Initialize validation exception.
@@ -123,14 +140,19 @@ class ValidationException(AuraIAException):
             validation_details.update(details)
 
         super().__init__(
-            message=message, error_code="VALIDATION_ERROR", details=validation_details, **kwargs
+            message=message,
+            error_code="VALIDATION_ERROR",
+            details=validation_details,
+            **kwargs,
         )
 
 
 class CircuitBreakerOpenException(AuraIAException):
     """Circuit breaker is open"""
 
-    def __init__(self, service_name: str, details: Optional[Dict[str, Any]] = None, **kwargs):
+    def __init__(
+        self, service_name: str, details: Optional[Dict[str, Any]] = None, **kwargs
+    ):
         """
         Initialize circuit breaker exception.
 
@@ -154,7 +176,13 @@ class CircuitBreakerOpenException(AuraIAException):
 class RateLimitExceededException(AuraIAException):
     """Rate limit exceeded"""
 
-    def __init__(self, limit: int, window: int, details: Optional[Dict[str, Any]] = None, **kwargs):
+    def __init__(
+        self,
+        limit: int,
+        window: int,
+        details: Optional[Dict[str, Any]] = None,
+        **kwargs,
+    ):
         """
         Initialize rate limit exception.
 

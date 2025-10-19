@@ -74,7 +74,7 @@ class OpenAIProvider(CloudProvider):
             module = importlib.import_module("openai")
         except ImportError as exc:  # pragma: no cover - optional dependency branch
             raise ProviderDependencyError(
-                "OpenAI provider requires the optional 'openai' package. Install it via "
+                "OpenAI provider requires the optional 'openai' package. Install it via "  # noqa: E501
                 "`pip install openai`."
             ) from exc
 
@@ -91,10 +91,10 @@ class OpenAIProvider(CloudProvider):
         elif chat_completion is not None:
             self._client_mode = "legacy"
             self._client = module
-            setattr(module, "api_key", self.api_key)
+            module.api_key = self.api_key
         else:  # pragma: no cover - defensive branch
             raise ProviderDependencyError(
-                "The installed 'openai' package does not expose a supported client interface."
+                "The installed 'openai' package does not expose a supported client interface."  # noqa: E501
             )
 
         return self._client
@@ -215,14 +215,14 @@ class AnthropicProvider(CloudProvider):
 
         if not self.api_key:
             raise ProviderConfigurationError(
-                "Anthropic provider requires an API key. Set one before generating text."
+                "Anthropic provider requires an API key. Set one before generating text."  # noqa: E501
             )
 
         try:
             module = importlib.import_module("anthropic")
         except ImportError as exc:  # pragma: no cover - optional dependency branch
             raise ProviderDependencyError(
-                "Anthropic provider requires the optional 'anthropic' package. Install it via "
+                "Anthropic provider requires the optional 'anthropic' package. Install it via "  # noqa: E501
                 "`pip install anthropic`."
             ) from exc
 
@@ -237,7 +237,7 @@ class AnthropicProvider(CloudProvider):
             self._client = sync_client_cls(api_key=self.api_key)
         else:  # pragma: no cover - defensive branch
             raise ProviderDependencyError(
-                "The installed 'anthropic' package does not expose a supported client interface."
+                "The installed 'anthropic' package does not expose a supported client interface."  # noqa: E501
             )
 
         return self._client

@@ -119,7 +119,9 @@ class ReasoningCoordinator:
 
         try:
             # Analyze task
-            task_analysis = self.task_router.analyze_task(description, code_context, language)
+            task_analysis = self.task_router.analyze_task(
+                description, code_context, language
+            )
 
             complexity = task_analysis["complexity"]
             intent = task_analysis["intent"]
@@ -127,7 +129,9 @@ class ReasoningCoordinator:
             # Determine processing strategy
             strategy = self._determine_strategy(mode, complexity, task_analysis)
 
-            logger.info(f"Strategy: {strategy}, complexity={complexity:.2f}, intent={intent}")
+            logger.info(
+                f"Strategy: {strategy}, complexity={complexity:.2f}, intent={intent}"
+            )
 
             # Execute based on strategy
             if strategy == ProcessingMode.SYSTEM1_ONLY:
@@ -144,7 +148,12 @@ class ReasoningCoordinator:
 
             else:  # ADAPTIVE
                 result = await self._process_adaptive(
-                    task_type, description, code_context, language, selected_text, complexity
+                    task_type,
+                    description,
+                    code_context,
+                    language,
+                    selected_text,
+                    complexity,
                 )
 
             # Add metadata
@@ -160,7 +169,9 @@ class ReasoningCoordinator:
             # Update meta-controller
             self._update_performance_metrics(result)
 
-            logger.info(f"Request completed: {total_latency:.0f}ms, strategy={strategy.value}")
+            logger.info(
+                f"Request completed: {total_latency:.0f}ms, strategy={strategy.value}"
+            )
 
             return result
 
@@ -257,12 +268,16 @@ class ReasoningCoordinator:
 
             # Combine results
             final_confidence = self._combine_confidence(
-                system1_response.confidence, system2_response.confidence, system2_response.valid
+                system1_response.confidence,
+                system2_response.confidence,
+                system2_response.valid,
             )
 
             # Merge suggestions
             final_suggestions = self._merge_suggestions(
-                system1_response.suggestions, system2_response.suggestions, system2_response.valid
+                system1_response.suggestions,
+                system2_response.suggestions,
+                system2_response.valid,
             )
 
             return ReasoningResult(
@@ -270,7 +285,7 @@ class ReasoningCoordinator:
                     "success": True,
                     "suggestions": final_suggestions,
                     "confidence": final_confidence,
-                    "reasoning": f"System 1: {system1_response.reasoning}\nSystem 2: {system2_response.reasoning}",
+                    "reasoning": f"System 1: {system1_response.reasoning}\nSystem 2: {system2_response.reasoning}",  # noqa: E501
                     "system1_response": system1_response.dict(),
                     "system2_response": system2_response.dict(),
                     "verification_passed": system2_response.valid,
@@ -360,7 +375,10 @@ class ReasoningCoordinator:
         return system1_conf * 0.3 + system2_conf * 0.7
 
     def _merge_suggestions(
-        self, system1_suggestions: List[str], system2_suggestions: List[str], verified: bool
+        self,
+        system1_suggestions: List[str],
+        system2_suggestions: List[str],
+        verified: bool,
     ) -> List[str]:
         """Merge suggestions from both systems"""
         if not verified:
@@ -404,14 +422,20 @@ class ReasoningCoordinator:
     def get_stats(self) -> Dict[str, Any]:
         """Get coordinator statistics"""
         system1_rate = (
-            self.system1_only_count / self.total_requests if self.total_requests > 0 else 0
+            self.system1_only_count / self.total_requests
+            if self.total_requests > 0
+            else 0
         )
 
         dual_process_rate = (
-            self.dual_process_count / self.total_requests if self.total_requests > 0 else 0
+            self.dual_process_count / self.total_requests
+            if self.total_requests > 0
+            else 0
         )
 
-        escalation_rate = self.escalations / self.total_requests if self.total_requests > 0 else 0
+        escalation_rate = (
+            self.escalations / self.total_requests if self.total_requests > 0 else 0
+        )
 
         return {
             "total_requests": self.total_requests,

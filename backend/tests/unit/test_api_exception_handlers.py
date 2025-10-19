@@ -28,7 +28,6 @@ def app():
     register_exception_handlers(app)
 
     # Add test routes that raise exceptions
-    @app.get("/test/rate-limit")
     async def test_rate_limit():
         raise RateLimitExceededException(limit=100, window=60)
 
@@ -49,6 +48,14 @@ def app():
         raise ValueError("Unexpected error")
 
     return app
+
+    # B017: Use a specific exception for pytest.raises
+    class CustomTestException(Exception):
+        pass
+
+    @app.get("/test/b017-exception")
+    async def test_b017_exception():
+        raise CustomTestException("Test error")
 
 
 @pytest.fixture
@@ -251,7 +258,9 @@ class TestExceptionHandlerIntegration:
         custom_id = "custom-correlation-123"
 
         # Create mock request with correlation ID in state
-        response = client.get("/test/generic-exception", headers={"X-Correlation-ID": custom_id})
+        response = client.get(
+            "/test/generic-exception", headers={"X-Correlation-ID": custom_id}
+        )
 
         # Note: This test shows the pattern, but TestClient doesn't
         # preserve request.state across middleware

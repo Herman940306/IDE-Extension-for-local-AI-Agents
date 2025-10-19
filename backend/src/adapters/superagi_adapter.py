@@ -64,11 +64,13 @@ class SuperAGIAdapter(AgentAdapter):
             self.is_initialized = True
 
         except httpx.HTTPError as e:
-            raise AdapterExceptions.AdapterConnectionError(f"Failed to connect to SuperAGI: {e}")
+            raise AdapterExceptions.AdapterConnectionError(
+                f"Failed to connect to SuperAGI: {e}"
+            ) from e
         except Exception as e:
             raise AdapterExceptions.AdapterInitializationError(
                 f"Failed to initialize SuperAGI adapter: {e}"
-            )
+            ) from e
 
     async def execute_task(self, task: Task, context: CodeContext) -> AgentResponse:
         """
@@ -85,7 +87,9 @@ class SuperAGIAdapter(AgentAdapter):
             await self.initialize()
 
         if not self.http_client:
-            raise AdapterExceptions.AdapterExecutionError("HTTP client is not initialized")
+            raise AdapterExceptions.AdapterExecutionError(
+                "HTTP client is not initialized"
+            )
 
         try:
             # Extract goal from task
@@ -106,7 +110,9 @@ class SuperAGIAdapter(AgentAdapter):
             }
 
             # Start execution
-            response = await self.http_client.post("/executions", json=execution_request)
+            response = await self.http_client.post(
+                "/executions", json=execution_request
+            )
             response.raise_for_status()
 
             execution_result = response.json()
@@ -191,7 +197,7 @@ class SuperAGIAdapter(AgentAdapter):
         goal += f"Language: {context.language}\n\n"
 
         if context.selected_text:
-            goal += f"Focus on this code:\n```{context.language}\n{context.selected_text}\n```\n\n"
+            goal += f"Focus on this code:\n```{context.language}\n{context.selected_text}\n```\n\n"  # noqa: E501
 
         goal += "Provide actionable suggestions with code examples."
 
@@ -216,7 +222,9 @@ class SuperAGIAdapter(AgentAdapter):
         while elapsed < max_wait:
             try:
                 if not self.http_client:
-                    raise AdapterExceptions.AdapterExecutionError("HTTP client is not initialized")
+                    raise AdapterExceptions.AdapterExecutionError(
+                        "HTTP client is not initialized"
+                    )
 
                 response = await self.http_client.get(f"/executions/{execution_id}")
                 response.raise_for_status()
@@ -239,9 +247,13 @@ class SuperAGIAdapter(AgentAdapter):
                 poll_interval = min(poll_interval * backoff_multiplier, max_interval)
 
             except httpx.HTTPError as e:
-                raise AdapterExceptions.AdapterConnectionError(f"Failed to monitor execution: {e}")
+                raise AdapterExceptions.AdapterConnectionError(
+                    f"Failed to monitor execution: {e}"
+                ) from e
 
-        raise AdapterExceptions.AdapterTimeoutError(f"Execution timed out after {max_wait} seconds")
+        raise AdapterExceptions.AdapterTimeoutError(
+            f"Execution timed out after {max_wait} seconds"
+        )
 
     def _convert_result(self, result: Dict[str, Any], task: Task) -> AgentResponse:
         """
@@ -286,7 +298,9 @@ class SuperAGIAdapter(AgentAdapter):
                 metadata={"task_id": task.id},
             )
 
-    def _parse_suggestions(self, output: str, steps: List[Dict[str, Any]]) -> List[Suggestion]:
+    def _parse_suggestions(
+        self, output: str, steps: List[Dict[str, Any]]
+    ) -> List[Suggestion]:
         """Parse suggestions from SuperAGI output using shared utilities"""
         suggestions: List[Suggestion] = []
 
@@ -325,7 +339,9 @@ class SuperAGIAdapter(AgentAdapter):
 
         return suggestions
 
-    def _calculate_confidence(self, result: Dict[str, Any], suggestions: List[Suggestion]) -> float:
+    def _calculate_confidence(
+        self, result: Dict[str, Any], suggestions: List[Suggestion]
+    ) -> float:
         """Calculate confidence score using shared utility"""
         steps = result.get("steps", [])
         success_rate = AdapterUtils.calculate_step_success_rate(steps)

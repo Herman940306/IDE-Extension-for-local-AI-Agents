@@ -24,7 +24,7 @@ class PromptTemplates:
         """
         prompts = {
             TaskType.INLINE_SUGGESTION: """You are an expert code completion assistant.
-Your role is to provide intelligent, context-aware code suggestions that help developers write better code faster.
+Your role is to provide intelligent, context-aware code suggestions that help developers write better code faster.  # noqa: E501
 Focus on:
 - Type safety and best practices
 - Idiomatic code patterns
@@ -64,7 +64,7 @@ Your role is to create clear, comprehensive documentation including:
 - README sections
 
 Write documentation that is clear, concise, and helpful.""",
-            TaskType.SECURITY_ANALYSIS: """You are an expert security analysis assistant.
+            TaskType.SECURITY_ANALYSIS: """You are an expert security analysis assistant.  # noqa: E501
 Your role is to identify security vulnerabilities including:
 - Injection attacks (SQL, XSS, etc.)
 - Authentication and authorization issues
@@ -104,7 +104,7 @@ Provide intelligent code completion suggestions. Consider:
 3. The context of the surrounding code
 4. Common patterns in this language
 
-Suggest 1-3 completions with confidence levels (high/medium/low) and brief explanations."""
+Suggest 1-3 completions with confidence levels (high/medium/low) and brief explanations."""  # noqa: E501
 
     @staticmethod
     def build_refactor_prompt(code: str, context: Dict[str, Any]) -> str:

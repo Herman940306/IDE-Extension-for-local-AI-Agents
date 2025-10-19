@@ -31,7 +31,7 @@ class ConnectionManager:
                 "messages_received": 0,
             }
         logger.info(
-            f"Client {client_id} connected. Total connections: {len(self.active_connections)}"
+            f"Client {client_id} connected. Total connections: {len(self.active_connections)}"  # noqa: E501
         )
 
     async def disconnect(self, client_id: str) -> None:

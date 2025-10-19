@@ -54,7 +54,10 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Monitor backend health")
     parser.add_argument(
-        "--interval", type=int, default=60, help="Check interval in seconds (default: 60)"
+        "--interval",
+        type=int,
+        default=60,
+        help="Check interval in seconds (default: 60)",
     )
     parser.add_argument("--once", action="store_true", help="Check once and exit")
 

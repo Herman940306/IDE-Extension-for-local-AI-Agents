@@ -43,7 +43,7 @@ jobs:
           python -m pip install pydantic-settings dependency-injector cryptography structlog
 
       - name: Black formatting check
-        run: black backend --line-length=100 --check
+        run: black backend --check
 
       - name: Flake8 lint
         run: flake8 backend

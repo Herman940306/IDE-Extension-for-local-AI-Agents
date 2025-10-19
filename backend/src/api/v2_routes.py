@@ -100,7 +100,7 @@ async def route_task(request: RouteRequest):
         )
     except Exception as e:
         logger.error(f"Routing failed: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.post("/verify", response_model=VerifyResponse)
@@ -119,12 +119,14 @@ async def verify_code(request: VerifyRequest):
             original_task=request.original_task,
         )
 
-        logger.info(f"Verification: valid={result['valid']}, conf={result['confidence']:.2f}")
+        logger.info(
+            f"Verification: valid={result['valid']}, conf={result['confidence']:.2f}"
+        )
 
         return VerifyResponse(**result)
     except Exception as e:
         logger.error(f"Verification failed: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.post("/traces", response_model=TraceResponse)
@@ -150,7 +152,7 @@ async def get_traces(request: TraceRequest):
         return TraceResponse(traces=traces, summary=summary)
     except Exception as e:
         logger.error(f"Trace retrieval failed: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.get("/graph/state")
@@ -167,7 +169,7 @@ async def get_graph_state():
         return state
     except Exception as e:
         logger.error(f"Failed to get graph state: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.post("/graph/reset")
@@ -183,7 +185,7 @@ async def reset_graph():
         return {"status": "success", "message": "Graph reset complete"}
     except Exception as e:
         logger.error(f"Failed to reset graph: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.get("/provenance/stats")
@@ -199,7 +201,7 @@ async def get_provenance_stats():
         return stats
     except Exception as e:
         logger.error(f"Failed to get provenance stats: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.get("/health")

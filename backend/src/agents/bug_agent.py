@@ -54,7 +54,7 @@ class BugAgent:
         self.security_patterns = {
             "sql_injection": r"(execute|query|cursor\.execute)\s*\(\s*['\"].*%s.*['\"]",
             "command_injection": r"(os\.system|subprocess\.call|eval|exec)\s*\(",
-            "hardcoded_secret": r"(password|secret|api_key|token)\s*=\s*['\"][^'\"]+['\"]",
+            "hardcoded_secret": r"(password|secret|api_key|token)\s*=\s*['\"][^'\"]+['\"]",  # noqa: E501
             "xss_vulnerability": r"innerHTML\s*=|document\.write\s*\(",
             "path_traversal": r"open\s*\([^)]*\+[^)]*\)",
             "insecure_random": r"random\.random\(\)|Math\.random\(\)",
@@ -172,7 +172,9 @@ class BugAgent:
 
         return issues
 
-    async def _python_specific_checks(self, context: CodeContext) -> List[Dict[str, Any]]:
+    async def _python_specific_checks(
+        self, context: CodeContext
+    ) -> List[Dict[str, Any]]:
         """Python-specific security and quality checks"""
         issues = []
 
@@ -186,7 +188,7 @@ class BugAgent:
                     "pattern": "unsafe_deserialization",
                     "line": 0,
                     "code": "pickle.loads/load",
-                    "message": "Unsafe deserialization with pickle can lead to code execution",
+                    "message": "Unsafe deserialization with pickle can lead to code execution",  # noqa: E501
                 }
             )
 
@@ -209,7 +211,9 @@ class BugAgent:
 
         return issues
 
-    async def _javascript_specific_checks(self, context: CodeContext) -> List[Dict[str, Any]]:
+    async def _javascript_specific_checks(
+        self, context: CodeContext
+    ) -> List[Dict[str, Any]]:
         """JavaScript/TypeScript-specific checks"""
         issues = []
 
@@ -266,7 +270,7 @@ class BugAgent:
                 "```\n\n"
                 "Provide a detailed analysis in the following format:\n"
                 "1. List each issue found\n"
-                "2. Categorize as: security, performance, logic, style, or maintainability\n"
+                "2. Categorize as: security, performance, logic, style, or maintainability\n"  # noqa: E501
                 "3. Assign severity: critical, high, medium, low, or info\n"
                 "4. Explain the issue and potential impact\n"
                 "5. Suggest a fix\n\n"
@@ -337,9 +341,13 @@ class BugAgent:
         }
 
         for issue in all_issues:
-            issue["severity"] = self._normalize_severity(issue.get("severity", Severity.INFO))
+            issue["severity"] = self._normalize_severity(
+                issue.get("severity", Severity.INFO)
+            )
 
-        all_issues.sort(key=lambda x: severity_order.get(x.get("severity", Severity.INFO), 4))
+        all_issues.sort(
+            key=lambda x: severity_order.get(x.get("severity", Severity.INFO), 4)
+        )
 
         return all_issues
 
@@ -367,7 +375,9 @@ class BugAgent:
 
         return suggestions
 
-    async def _generate_fix_code(self, issue: Dict[str, Any], context: CodeContext) -> str:
+    async def _generate_fix_code(
+        self, issue: Dict[str, Any], context: CodeContext
+    ) -> str:
         """Generate fix code for an issue using LLM"""
         try:
             prompt = f"""Generate a code fix for the following issue:
@@ -413,7 +423,7 @@ Provide only the fixed code without explanations.
             "hardcoded_secret": "Hardcoded secret or credential detected",
             "xss_vulnerability": "Potential XSS vulnerability detected",
             "path_traversal": "Potential path traversal vulnerability detected",
-            "insecure_random": "Insecure random number generation for security purposes",
+            "insecure_random": "Insecure random number generation for security purposes",  # noqa: E501
             "nested_loops": "Nested loops may cause performance issues",
             "inefficient_string_concat": "Inefficient string concatenation in loop",
             "global_variable": "Global variable usage may cause maintainability issues",
@@ -449,7 +459,7 @@ Provide only the fixed code without explanations.
     def _generate_reasoning(self, issues: List[Dict[str, Any]]) -> str:
         """Generate reasoning text for the analysis"""
         if not issues:
-            return "No significant bugs or security issues detected. Code appears to be clean."
+            return "No significant bugs or security issues detected. Code appears to be clean."  # noqa: E501
 
         # Count by severity
         severity_counts = {}
@@ -458,7 +468,9 @@ Provide only the fixed code without explanations.
             severity_counts[severity] = severity_counts.get(severity, 0) + 1
 
         reasoning = f"Found {len(issues)} issue(s):\n"
-        for severity, count in sorted(severity_counts.items(), key=lambda x: x[0].value):
+        for severity, count in sorted(
+            severity_counts.items(), key=lambda x: x[0].value
+        ):
             reasoning += f"- {severity.value.upper()}: {count}\n"
 
         reasoning += "\nTop issues:\n"
@@ -478,7 +490,9 @@ Provide only the fixed code without explanations.
         message = issue.get("message", "Issue detected")
         return f"[{severity_value.upper()}] {message}"
 
-    def _build_applicable_range(self, issue: Dict[str, Any]) -> Optional[Dict[str, Dict[str, int]]]:
+    def _build_applicable_range(
+        self, issue: Dict[str, Any]
+    ) -> Optional[Dict[str, Dict[str, int]]]:
         line = issue.get("line")
         if isinstance(line, int) and line > 0:
             return {

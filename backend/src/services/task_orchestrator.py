@@ -49,8 +49,8 @@ class SimpleReasonerEngine:
         reasoning = textwrap.dedent(
             f"""
             Primary objective: {description}
-            Suggested adjustment focuses on readability and maintainability while keeping the
-            original intent intact. Confidence is derived from static analysis heuristics that
+            Suggested adjustment focuses on readability and maintainability while keeping the  # noqa: E501
+            original intent intact. Confidence is derived from static analysis heuristics that  # noqa: E501
             inspect the supplied code and task type.
             """
         ).strip()
@@ -114,11 +114,13 @@ class SimpleVerifierEngine:
             "task_type": request.type.value,
         }
 
-        return VerificationSummary(status=status, confidence=confidence, metadata=metadata)
+        return VerificationSummary(
+            status=status, confidence=confidence, metadata=metadata
+        )
 
 
 class TaskOrchestrator:
-    """Coordinates task execution across the lightweight reasoning and verification stages."""
+    """Coordinates task execution across the lightweight reasoning and verification stages."""  # noqa: E501
 
     def __init__(
         self,
@@ -188,7 +190,9 @@ class TaskOrchestrator:
         agent_response: AgentResponse,
         verification_summary: Optional[VerificationSummary],
     ) -> str:
-        primary_suggestion = agent_response.suggestions[0] if agent_response.suggestions else None
+        primary_suggestion = (
+            agent_response.suggestions[0] if agent_response.suggestions else None
+        )
         verification_text = "Verification skipped."
         if verification_summary:
             verification_text = (
@@ -203,7 +207,8 @@ class TaskOrchestrator:
             )
 
         return (
-            "No actionable suggestions were produced by the orchestrator. " f"{verification_text}"
+            "No actionable suggestions were produced by the orchestrator. "
+            f"{verification_text}"
         )
 
 

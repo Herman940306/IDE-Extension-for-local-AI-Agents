@@ -45,7 +45,9 @@ def register_exception_handlers(app: FastAPI) -> None:
         )
 
     @app.exception_handler(AuraIAException)
-    async def aura_exception_handler(request: Request, exc: AuraIAException) -> JSONResponse:
+    async def aura_exception_handler(
+        request: Request, exc: AuraIAException
+    ) -> JSONResponse:
         """Handle all AuraIA exceptions"""
         logger.error(
             "aura_exception",
@@ -69,7 +71,9 @@ def register_exception_handlers(app: FastAPI) -> None:
         )
 
     @app.exception_handler(Exception)
-    async def generic_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+    async def generic_exception_handler(
+        request: Request, exc: Exception
+    ) -> JSONResponse:
         """Handle all unhandled exceptions"""
         correlation_id = getattr(request.state, "correlation_id", str(uuid.uuid4()))
 

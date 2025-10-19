@@ -43,7 +43,9 @@ class CrewAIAdapter(AgentAdapter):
             # Initialize LLM
             self.llm = Ollama(
                 model=self.config.metadata.get("model", "codellama:7b"),
-                base_url=self.config.metadata.get("ollama_url", "http://localhost:11434"),
+                base_url=self.config.metadata.get(
+                    "ollama_url", "http://localhost:11434"
+                ),
             )
 
             # Create Doc Agent
@@ -53,9 +55,9 @@ class CrewAIAdapter(AgentAdapter):
                     goal="Generate clear, comprehensive documentation for code",
                     backstory=textwrap.dedent(
                         """
-                        You are an expert technical writer with deep knowledge of software
-                        documentation best practices. You excel at creating docstrings, README
-                        files, and API documentation that are clear, concise, and helpful.
+                        You are an expert technical writer with deep knowledge of software  # noqa: E501
+                        documentation best practices. You excel at creating docstrings, README  # noqa: E501
+                        files, and API documentation that are clear, concise, and helpful.  # noqa: E501
                         """
                     ).strip(),
                     llm=self.llm,
@@ -70,8 +72,8 @@ class CrewAIAdapter(AgentAdapter):
                     goal="Generate comprehensive test cases for code",
                     backstory=textwrap.dedent(
                         """
-                        You are a senior test engineer with expertise in unit testing, integration
-                        testing, and test-driven development. You write thorough test cases that
+                        You are a senior test engineer with expertise in unit testing, integration  # noqa: E501
+                        testing, and test-driven development. You write thorough test cases that  # noqa: E501
                         cover edge cases and ensure code reliability.
                         """
                     ).strip(),
@@ -83,7 +85,7 @@ class CrewAIAdapter(AgentAdapter):
             self.is_initialized = True
 
         except Exception as e:
-            raise Exception(f"Failed to initialize CrewAI adapter: {e}")
+            raise Exception(f"Failed to initialize CrewAI adapter: {e}") from e
 
     async def execute_task(self, task: Task, context: CodeContext) -> AgentResponse:
         """
@@ -176,13 +178,11 @@ Please provide your response in the following format:
 """
 
         if context.selected_text:
-            description += (
-                f"\n\nSelected Code:\n```{context.language}\n{context.selected_text}\n```"
-            )
+            description += f"\n\nSelected Code:\n```{context.language}\n{context.selected_text}\n```"  # noqa: E501
 
         return CrewTask(
             description=description,
-            expected_output="Detailed analysis and actionable suggestions or generated content",
+            expected_output="Detailed analysis and actionable suggestions or generated content",  # noqa: E501
         )
 
     def _select_agents(self, task: Task) -> List[Agent]:
@@ -274,7 +274,9 @@ Please provide your response in the following format:
                     r"([^\n]+)\n```", result_text[: result_text.find(code)]
                 )
                 description = (
-                    description_match.group(1) if description_match else f"Suggestion {i+1}"
+                    description_match.group(1)
+                    if description_match
+                    else f"Suggestion {i+1}"
                 )
 
                 suggestions.append(
@@ -302,7 +304,9 @@ Please provide your response in the following format:
 
         return suggestions
 
-    def _calculate_confidence(self, result_text: str, suggestions: List[Suggestion]) -> float:
+    def _calculate_confidence(
+        self, result_text: str, suggestions: List[Suggestion]
+    ) -> float:
         """
         Calculate confidence score based on result quality
 
@@ -328,7 +332,10 @@ Please provide your response in the following format:
             confidence += 0.1
 
         # Increase confidence if result has reasoning
-        if any(keyword in result_text.lower() for keyword in ["because", "reason", "analysis"]):
+        if any(
+            keyword in result_text.lower()
+            for keyword in ["because", "reason", "analysis"]
+        ):
             confidence += 0.1
 
         return min(confidence, 1.0)

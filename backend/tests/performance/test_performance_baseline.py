@@ -70,7 +70,11 @@ class TestCachePerformance:
     @pytest.mark.asyncio
     async def test_cache_hit_rate(self, mock_response_cache):
         """Measure cache hit rate"""
-        mock_response_cache.get_stats.return_value = {"hits": 30, "misses": 70, "hit_rate": 0.3}
+        mock_response_cache.get_stats.return_value = {
+            "hits": 30,
+            "misses": 70,
+            "hit_rate": 0.3,
+        }
 
         stats = await mock_response_cache.get_stats()
         print(f"\n📊 Cache Hit Rate: {stats['hit_rate']*100:.1f}%")

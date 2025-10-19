@@ -47,10 +47,16 @@ class AgentResponse(BaseModel):
 
     agent_id: str = Field(..., description="Agent identifier")
     agent_name: str = Field(..., description="Human-readable agent name")
-    suggestions: List[Suggestion] = Field(default_factory=list, description="List of suggestions")
-    confidence: float = Field(..., ge=0.0, le=1.0, description="Overall confidence score")
+    suggestions: List[Suggestion] = Field(
+        default_factory=list, description="List of suggestions"
+    )
+    confidence: float = Field(
+        ..., ge=0.0, le=1.0, description="Overall confidence score"
+    )
     reasoning: str = Field(..., description="Explanation of the reasoning")
-    metadata: Dict[str, Any] = Field(default_factory=dict, description="Additional metadata")
+    metadata: Dict[str, Any] = Field(
+        default_factory=dict, description="Additional metadata"
+    )
 
     class Config:
         json_schema_extra = {
@@ -66,7 +72,7 @@ class AgentResponse(BaseModel):
                     }
                 ],
                 "confidence": 0.92,
-                "reasoning": "TypeScript best practices recommend explicit return types",
+                "reasoning": "TypeScript best practices recommend explicit return types",  # noqa: E501
                 "metadata": {},
             }
         }

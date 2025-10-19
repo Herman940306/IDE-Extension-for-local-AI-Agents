@@ -8,7 +8,14 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from src.adapters.autogpt_adapter import AutoGPTAdapter, AutoGPTResearchAgent
 from src.adapters.base_adapter import AgentConfig, Capability
-from src.models import CodeContext, ConfidenceLevel, Priority, Suggestion, Task, TaskType
+from src.models import (
+    CodeContext,
+    ConfidenceLevel,
+    Priority,
+    Suggestion,
+    Task,
+    TaskType,
+)
 
 
 @pytest.fixture
@@ -21,7 +28,11 @@ def mock_config():
         enabled=True,
         max_concurrent=1,
         timeout=120,
-        metadata={"autogpt_url": "http://localhost:8002", "model": "gpt-4", "max_iterations": 15},
+        metadata={
+            "autogpt_url": "http://localhost:8002",
+            "model": "gpt-4",
+            "max_iterations": 15,
+        },
     )
 
 
@@ -132,7 +143,10 @@ def best_practice():
         actions = [
             {
                 "name": "write_file",
-                "args": {"filename": "output.py", "content": "generated_content = True"},
+                "args": {
+                    "filename": "output.py",
+                    "content": "generated_content = True",
+                },
                 "reasoning": "Creating output file",
             }
         ]
@@ -144,7 +158,10 @@ def best_practice():
     def test_calculate_confidence_high(self, mock_config):
         """Test confidence calculation with thorough analysis"""
         adapter = AutoGPTAdapter(mock_config)
-        result = {"status": "completed", "thoughts": [{"text": f"Thought {i}"} for i in range(10)]}
+        result = {
+            "status": "completed",
+            "thoughts": [{"text": f"Thought {i}"} for i in range(10)],
+        }
         suggestions = [
             Suggestion(
                 id="sugg-1",
@@ -171,7 +188,10 @@ def best_practice():
     def test_build_reasoning(self, mock_config):
         """Test reasoning generation"""
         adapter = AutoGPTAdapter(mock_config)
-        thoughts = [{"text": "Analyzing requirements"}, {"text": "Researching solutions"}]
+        thoughts = [
+            {"text": "Analyzing requirements"},
+            {"text": "Researching solutions"},
+        ]
         actions = [{"name": "web_search", "reasoning": "Finding information"}]
         output = "Research complete"
 

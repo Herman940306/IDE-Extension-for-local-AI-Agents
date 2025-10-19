@@ -61,7 +61,9 @@ async def test_llm_manager_health_check_ollama_failure(monkeypatch):
 async def test_llm_manager_health_check_cloud_failure(monkeypatch):
     manager = LLMManager(provider=LLMProvider.OPENAI, api_key="test", allow_cloud=True)
     fake_provider = AsyncMock()
-    fake_provider.health_check = AsyncMock(side_effect=CloudProviderError("unavailable"))
+    fake_provider.health_check = AsyncMock(
+        side_effect=CloudProviderError("unavailable")
+    )
 
     monkeypatch.setattr(manager, "_get_cloud_provider", lambda _: fake_provider)
 

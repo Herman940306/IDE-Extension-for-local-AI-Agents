@@ -183,7 +183,10 @@ class TestCodeContextModel:
         """Test creating code context with all fields"""
         commits = [
             GitCommit(
-                hash="abc123", message="Initial commit", author="John Doe", timestamp=1705132800.0
+                hash="abc123",
+                message="Initial commit",
+                author="John Doe",
+                timestamp=1705132800.0,
             )
         ]
 
@@ -216,7 +219,9 @@ class TestCodeContextModel:
 
     def test_code_context_serialization(self):
         """Test code context serialization"""
-        context = CodeContext(file_path="test.py", language="python", imports=["import os"])
+        context = CodeContext(
+            file_path="test.py", language="python", imports=["import os"]
+        )
 
         data = context.model_dump()
 
@@ -278,8 +283,14 @@ class TestSuggestionModel:
 
     def test_suggestion_confidence_enum(self):
         """Test suggestion with different confidence levels"""
-        for level in [ConfidenceLevel.HIGH, ConfidenceLevel.MEDIUM, ConfidenceLevel.LOW]:
-            suggestion = Suggestion(id="sugg-1", code="test", description="test", confidence=level)
+        for level in [
+            ConfidenceLevel.HIGH,
+            ConfidenceLevel.MEDIUM,
+            ConfidenceLevel.LOW,
+        ]:
+            suggestion = Suggestion(
+                id="sugg-1", code="test", description="test", confidence=level
+            )
             assert suggestion.confidence == level
 
 
@@ -289,7 +300,10 @@ class TestAgentResponseModel:
     def test_agent_response_minimal(self):
         """Test creating agent response with minimal fields"""
         response = AgentResponse(
-            agent_id="agent-1", agent_name="Test Agent", confidence=0.9, reasoning="Test reasoning"
+            agent_id="agent-1",
+            agent_name="Test Agent",
+            confidence=0.9,
+            reasoning="Test reasoning",
         )
 
         assert response.agent_id == "agent-1"
@@ -332,14 +346,20 @@ class TestAgentResponseModel:
         """Test confidence score validation"""
         # Valid confidence
         response = AgentResponse(
-            agent_id="agent-1", agent_name="Test Agent", confidence=0.5, reasoning="Test"
+            agent_id="agent-1",
+            agent_name="Test Agent",
+            confidence=0.5,
+            reasoning="Test",
         )
         assert response.confidence == 0.5
 
         # Invalid confidence
         with pytest.raises(ValidationError):
             AgentResponse(
-                agent_id="agent-1", agent_name="Test Agent", confidence=1.5, reasoning="Test"
+                agent_id="agent-1",
+                agent_name="Test Agent",
+                confidence=1.5,
+                reasoning="Test",
             )
 
 
@@ -421,7 +441,9 @@ class TestTaskModel:
     def test_task_all_types(self):
         """Test creating tasks with all task types"""
         for task_type in TaskType:
-            task = Task(id=f"task-{task_type.value}", type=task_type, content="test content")
+            task = Task(
+                id=f"task-{task_type.value}", type=task_type, content="test content"
+            )
             assert task.type == task_type
 
     def test_task_all_priorities(self):
@@ -511,7 +533,9 @@ class TestModelIntegration:
     def test_task_with_code_context(self):
         """Test task containing code context"""
         context_obj = CodeContext(
-            file_path="test.py", language="python", cursor_position={"line": 10, "character": 5}
+            file_path="test.py",
+            language="python",
+            cursor_position={"line": 10, "character": 5},
         )
 
         task = Task(

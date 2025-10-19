@@ -32,11 +32,15 @@ class AgentConfig(BaseModel):
 
     name: str = Field(..., description="Agent name")
     description: str = Field(..., description="Agent description")
-    capabilities: List[Capability] = Field(default_factory=list, description="Agent capabilities")
+    capabilities: List[Capability] = Field(
+        default_factory=list, description="Agent capabilities"
+    )
     enabled: bool = Field(default=True, description="Whether agent is enabled")
     max_concurrent: int = Field(default=1, description="Maximum concurrent executions")
     timeout: int = Field(default=30, description="Execution timeout in seconds")
-    metadata: Dict[str, Any] = Field(default_factory=dict, description="Additional metadata")
+    metadata: Dict[str, Any] = Field(
+        default_factory=dict, description="Additional metadata"
+    )
 
 
 class AgentAdapter(ABC):
@@ -64,7 +68,9 @@ class AgentAdapter(ABC):
         if AgentAdapter._response_cache is None:
             from src.services.response_cache import ResponseCache
 
-            AgentAdapter._response_cache = ResponseCache(redis_client=None, default_ttl=3600)
+            AgentAdapter._response_cache = ResponseCache(
+                redis_client=None, default_ttl=3600
+            )
 
     @property
     def response_cache(self) -> "ResponseCache":

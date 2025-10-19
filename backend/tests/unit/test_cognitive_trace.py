@@ -134,7 +134,9 @@ class TestCognitiveTraceStore:
         assert stats["total_traces"] == 10
         assert "Reasoner" in stats["agents"]
         assert "Verifier" in stats["agents"]
-        assert abs(stats["avg_confidence"] - 0.8) < 0.001  # Use approximate equality for float
+        assert (
+            abs(stats["avg_confidence"] - 0.8) < 0.001
+        )  # Use approximate equality for float
 
     def test_clear(self, temp_trace_file):
         """Test clearing traces"""

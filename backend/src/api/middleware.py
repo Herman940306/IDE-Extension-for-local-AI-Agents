@@ -2,7 +2,7 @@
 Middleware Layer for FastAPI
 Project Creator: Herman Swanepoel
 
-Request/response processing pipeline including correlation ID, rate limiting, and size validation.
+Request/response processing pipeline including correlation ID, rate limiting, and size validation.  # noqa: E501
 """
 
 import logging
@@ -132,7 +132,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
                 content={
                     "error": {
                         "code": "RATE_LIMIT_EXCEEDED",
-                        "message": f"Rate limit exceeded: {limit} requests per {window} seconds",
+                        "message": f"Rate limit exceeded: {limit} requests per {window} seconds",  # noqa: E501
                         "correlation_id": correlation_id,
                         "details": {"limit": limit, "window": window},
                     }
@@ -192,7 +192,9 @@ class RequestSizeMiddleware(BaseHTTPMiddleware):
             size = int(content_length)
 
             if size > self.max_size:
-                correlation_id = getattr(request.state, "correlation_id", str(uuid.uuid4()))
+                correlation_id = getattr(
+                    request.state, "correlation_id", str(uuid.uuid4())
+                )
 
                 logger.warning(
                     f"Request size exceeded: {size} bytes",
@@ -209,9 +211,12 @@ class RequestSizeMiddleware(BaseHTTPMiddleware):
                     content={
                         "error": {
                             "code": "REQUEST_TOO_LARGE",
-                            "message": f"Request too large. Max size: {self.max_size} bytes ({self.max_size / (1024 * 1024):.1f} MB)",
+                            "message": f"Request too large. Max size: {self.max_size} bytes ({self.max_size / (1024 * 1024):.1f} MB)",  # noqa: E501
                             "correlation_id": correlation_id,
-                            "details": {"size_bytes": size, "max_size_bytes": self.max_size},
+                            "details": {
+                                "size_bytes": size,
+                                "max_size_bytes": self.max_size,
+                            },
                         }
                     },
                     headers={"X-Correlation-ID": correlation_id},

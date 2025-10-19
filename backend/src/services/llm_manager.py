@@ -76,7 +76,9 @@ class LLMManager:
         self.response_cache = response_cache
         self.enable_cache = enable_cache and response_cache is not None
         cloud_candidates = {LLMProvider.OPENAI, LLMProvider.ANTHROPIC}
-        self._cloud_provider_type = provider if provider in cloud_candidates else LLMProvider.OPENAI
+        self._cloud_provider_type = (
+            provider if provider in cloud_candidates else LLMProvider.OPENAI
+        )
         self._cloud_providers: Dict[LLMProvider, CloudProvider] = {}
         self.privacy_manager = PrivacyManager(allow_cloud=allow_cloud)
 
@@ -110,7 +112,7 @@ class LLMManager:
                         self._cloud_provider_type.value,
                     )
                 else:
-                    raise Exception("Ollama unavailable and cloud fallback disabled")
+                    raise Exception("Ollama unavailable and cloud fallback disabled") from None  # noqa: E501
 
     async def _test_ollama_connection(self) -> None:
         """Test connection to Ollama server"""
@@ -120,7 +122,7 @@ class LLMManager:
             loop = asyncio.get_event_loop()
             await loop.run_in_executor(None, client.list)
         except Exception as e:
-            raise Exception(f"Cannot connect to Ollama at {self.base_url}: {e}")
+            raise Exception(f"Cannot connect to Ollama at {self.base_url}: {e}") from e
 
     def _determine_target_provider(self, use_cloud: bool) -> LLMProvider:
         """Resolve which provider should handle the request."""
@@ -222,7 +224,9 @@ class LLMManager:
                 )
         except LLMError as exc:
             if target_provider == LLMProvider.OLLAMA and self.allow_cloud:
-                logger.info("Falling back to cloud provider after Ollama failure: %s", exc)
+                logger.info(
+                    "Falling back to cloud provider after Ollama failure: %s", exc
+                )
                 target_provider = self._cloud_provider_type
                 cache_provider_value = target_provider.value
                 response_text = await self._generate_cloud(
@@ -240,7 +244,12 @@ class LLMManager:
             raise LLMError("No response generated from the selected provider.")
 
         # Cache the response if enabled
-        if self.enable_cache and use_cache and response_text and self.response_cache is not None:
+        if (
+            self.enable_cache
+            and use_cache
+            and response_text
+            and self.response_cache is not None
+        ):
             context_params = {
                 "system_prompt": system_prompt,
                 "temperature": temperature,
@@ -401,7 +410,7 @@ class LLMManager:
 
             except Exception as e:
                 logger.error(f"Streaming generation failed: {e}")
-                raise Exception(f"LLM streaming failed: {e}")
+                raise Exception(f"LLM streaming failed: {e}") from e
         else:
             raise NotImplementedError("Streaming only supported for Ollama currently")
 
@@ -474,7 +483,7 @@ class LLMManager:
             if self.provider in {LLMProvider.OPENAI, LLMProvider.ANTHROPIC}:
                 if not self.allow_cloud:
                     logger.warning(
-                        "Cloud provider configured but cloud usage disabled during health check"
+                        "Cloud provider configured but cloud usage disabled during health check"  # noqa: E501
                     )
                     return False
                 provider = self._get_cloud_provider(self.provider)

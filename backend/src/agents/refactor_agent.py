@@ -134,7 +134,9 @@ class RefactorAgent(AgentAdapter):
             # Verify LLM is available
             llm_healthy = await self.llm_manager.health_check()
             if not llm_healthy:
-                logger.warning("LLM health check failed, agent will use AST-only analysis")
+                logger.warning(
+                    "LLM health check failed, agent will use AST-only analysis"
+                )
 
             self.is_initialized = True
             logger.info(
@@ -153,7 +155,7 @@ class RefactorAgent(AgentAdapter):
                 name="Extract Method",
                 description="Long method that should be split into smaller methods",
                 detector=self._detect_long_method,
-                suggestion_template="Consider extracting this logic into a separate method",
+                suggestion_template="Consider extracting this logic into a separate method",  # noqa: E501
                 confidence=0.85,
             ),
             RefactoringPattern(
@@ -342,7 +344,9 @@ class RefactorAgent(AgentAdapter):
         # 3. LLM-powered suggestions (deep analysis) - only if issues found
         if len(suggestions) > 0:
             try:
-                llm_suggestions = await self._generate_llm_suggestions(code, context, suggestions)
+                llm_suggestions = await self._generate_llm_suggestions(
+                    code, context, suggestions
+                )
                 suggestions.extend(llm_suggestions)
             except LLMError as e:
                 logger.warning(f"LLM suggestions skipped: {e}")
@@ -352,12 +356,16 @@ class RefactorAgent(AgentAdapter):
         # Remove duplicates and rank by confidence
         suggestions = self._deduplicate_suggestions(suggestions)
         suggestions = sorted(
-            suggestions, key=lambda s: self._confidence_to_float(s.confidence), reverse=True
+            suggestions,
+            key=lambda s: self._confidence_to_float(s.confidence),
+            reverse=True,
         )
 
         return suggestions[: self.MAX_SUGGESTIONS]
 
-    async def _analyze_code_ast_only(self, code: str, context: CodeContext) -> List[Suggestion]:
+    async def _analyze_code_ast_only(
+        self, code: str, context: CodeContext
+    ) -> List[Suggestion]:
         """
         Analyze code using only AST (fallback when LLM unavailable)
 
@@ -380,7 +388,9 @@ class RefactorAgent(AgentAdapter):
         # Remove duplicates and rank
         suggestions = self._deduplicate_suggestions(suggestions)
         suggestions = sorted(
-            suggestions, key=lambda s: self._confidence_to_float(s.confidence), reverse=True
+            suggestions,
+            key=lambda s: self._confidence_to_float(s.confidence),
+            reverse=True,
         )
 
         return suggestions[: self.MAX_SUGGESTIONS]
@@ -419,7 +429,9 @@ class RefactorAgent(AgentAdapter):
 
         return tree
 
-    async def _detect_patterns_ast(self, code: str, context: CodeContext) -> List[Suggestion]:
+    async def _detect_patterns_ast(
+        self, code: str, context: CodeContext
+    ) -> List[Suggestion]:
         """
         Detect refactoring patterns using AST analysis with node count limits
 
@@ -459,7 +471,9 @@ class RefactorAgent(AgentAdapter):
                     pattern_suggestions = pattern.detector(tree, code, context)
                     suggestions.extend(pattern_suggestions)
                 except Exception as e:
-                    logger.error(f"Pattern detector '{pattern.name}' failed: {e}", exc_info=True)
+                    logger.error(
+                        f"Pattern detector '{pattern.name}' failed: {e}", exc_info=True
+                    )
 
         except SyntaxError as e:
             logger.warning(f"Syntax error in code, skipping AST analysis: {e}")
@@ -489,7 +503,7 @@ class RefactorAgent(AgentAdapter):
                         Suggestion(
                             id=f"long_method_{node.name}_{uuid.uuid4().hex[:8]}",
                             code=func_code,
-                            description=f"Function '{node.name}' is {func_lines} lines long. Consider breaking it into smaller, focused functions.",
+                            description=f"Function '{node.name}' is {func_lines} lines long. Consider breaking it into smaller, focused functions.",  # noqa: E501
                             confidence=(
                                 ConfidenceLevel.HIGH
                                 if func_lines > self.VERY_LONG_METHOD_THRESHOLD
@@ -498,7 +512,10 @@ class RefactorAgent(AgentAdapter):
                             diff=None,
                             applicable_range={
                                 "start": {"line": node.lineno, "character": 0},
-                                "end": {"line": node.end_lineno or node.lineno, "character": 0},
+                                "end": {
+                                    "line": node.end_lineno or node.lineno,
+                                    "character": 0,
+                                },
                             },
                         )
                     )
@@ -524,7 +541,7 @@ class RefactorAgent(AgentAdapter):
                     magic_numbers[value] = []
                 magic_numbers[value].append(node.lineno)
 
-        # Suggest constants for numbers used multiple times or medium-risk single occurrences
+        # Suggest constants for numbers used multiple times or medium-risk single occurrences  # noqa: E501
         for value, lines in magic_numbers.items():
             occurrences = len(lines)
             min_occurrences = self.MAGIC_NUMBER_MIN_OCCURRENCES
@@ -572,32 +589,41 @@ class RefactorAgent(AgentAdapter):
                 for sub_node in ast.walk(node.test):
                     if isinstance(sub_node, ast.BoolOp):
                         bool_ops += max(len(getattr(sub_node, "values", [])) - 1, 1)
-                    if isinstance(sub_node, ast.UnaryOp) and isinstance(sub_node.op, ast.Not):
+                    if isinstance(sub_node, ast.UnaryOp) and isinstance(
+                        sub_node.op, ast.Not
+                    ):
                         bool_ops += 1
 
                 if bool_ops >= self.COMPLEX_CONDITIONAL_THRESHOLD:
-                    condition_line = lines[node.lineno - 1] if node.lineno <= len(lines) else ""
+                    condition_line = (
+                        lines[node.lineno - 1] if node.lineno <= len(lines) else ""
+                    )
 
                     suggestions.append(
                         Suggestion(
                             id=f"complex_conditional_{node.lineno}_{uuid.uuid4().hex[:8]}",
                             code=condition_line.strip(),
                             description=(
-                                f"Complex conditional with {bool_ops} boolean operators. "
-                                "Consider extracting into a well-named boolean variable or method."
+                                f"Complex conditional with {bool_ops} boolean operators. "  # noqa: E501
+                                "Consider extracting into a well-named boolean variable or method."  # noqa: E501
                             ),
                             confidence=ConfidenceLevel.MEDIUM,
                             diff=None,
                             applicable_range={
                                 "start": {"line": node.lineno, "character": 0},
-                                "end": {"line": node.lineno, "character": len(condition_line)},
+                                "end": {
+                                    "line": node.lineno,
+                                    "character": len(condition_line),
+                                },
                             },
                         )
                     )
 
         return suggestions
 
-    def _detect_dead_code(self, tree: ast.AST, code: str, context: CodeContext) -> List[Suggestion]:
+    def _detect_dead_code(
+        self, tree: ast.AST, code: str, context: CodeContext
+    ) -> List[Suggestion]:
         """Detect potentially dead/unused code"""
         suggestions = []
 
@@ -634,7 +660,7 @@ class RefactorAgent(AgentAdapter):
                             id=f"dead_code_{scope}_{stmt.lineno}_{uuid.uuid4().hex[:8]}",
                             code="# Unreachable code detected",
                             description=(
-                                f"Code at line {stmt.lineno} in '{scope}' is unreachable because a "
+                                f"Code at line {stmt.lineno} in '{scope}' is unreachable because a "  # noqa: E501
                                 "previous control-flow statement exits this block."
                             ),
                             confidence=ConfidenceLevel.HIGH,
@@ -657,7 +683,7 @@ class RefactorAgent(AgentAdapter):
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
                 _mark_unreachable(list(node.body), node.name)
 
-                # Guard clause detection: if branch returns and subsequent statements exist
+                # Guard clause detection: if branch returns and subsequent statements exist  # noqa: E501
                 for index, stmt in enumerate(node.body):
                     if (
                         isinstance(stmt, ast.If)
@@ -671,8 +697,8 @@ class RefactorAgent(AgentAdapter):
                                 id=f"guard_unreachable_{follow_stmt.lineno}_{uuid.uuid4().hex[:8]}",
                                 code="# Potential unreachable code after guard clause",
                                 description=(
-                                    "Guard clause returns from the function; subsequent statements "
-                                    "are unreachable when the guard condition is met. Consider "
+                                    "Guard clause returns from the function; subsequent statements "  # noqa: E501
+                                    "are unreachable when the guard condition is met. Consider "  # noqa: E501
                                     "using an else block or reorganizing the flow."
                                 ),
                                 confidence=ConfidenceLevel.MEDIUM,
@@ -683,7 +709,9 @@ class RefactorAgent(AgentAdapter):
 
         return suggestions
 
-    async def _detect_code_smells(self, code: str, context: CodeContext) -> List[Suggestion]:
+    async def _detect_code_smells(
+        self, code: str, context: CodeContext
+    ) -> List[Suggestion]:
         """Detect code smells using semantic analysis"""
         suggestions = []
 
@@ -774,7 +802,9 @@ REASON: [why this improves the code]
 
         return prompt
 
-    def _parse_llm_response(self, response: str, context: CodeContext) -> List[Suggestion]:
+    def _parse_llm_response(
+        self, response: str, context: CodeContext
+    ) -> List[Suggestion]:
         """Parse LLM response into structured suggestions"""
         suggestions = []
 
@@ -782,13 +812,13 @@ REASON: [why this improves the code]
         pattern = r"SUGGESTION:\s*(.+?)\s*REASON:\s*(.+?)(?=SUGGESTION:|$)"
         matches = re.findall(pattern, response, re.DOTALL | re.IGNORECASE)
 
-        for description, reason in matches:
+        for description, _reason in matches:
             suggestions.append(
                 Suggestion(
                     id=f"llm_{uuid.uuid4().hex[:8]}",
                     code="",  # LLM doesn't provide code, just suggestions
                     description=description.strip(),
-                    confidence=ConfidenceLevel.MEDIUM,  # LLM suggestions are medium confidence
+                    confidence=ConfidenceLevel.MEDIUM,  # LLM suggestions are medium confidence  # noqa: E501
                     diff=None,
                     applicable_range=None,
                 )
@@ -796,7 +826,9 @@ REASON: [why this improves the code]
 
         return suggestions
 
-    def _deduplicate_suggestions(self, suggestions: List[Suggestion]) -> List[Suggestion]:
+    def _deduplicate_suggestions(
+        self, suggestions: List[Suggestion]
+    ) -> List[Suggestion]:
         """Remove duplicate suggestions"""
         seen = set()
         unique = []
@@ -820,7 +852,11 @@ REASON: [why this improves the code]
 
     def _confidence_to_float(self, confidence: ConfidenceLevel) -> float:
         """Convert confidence level to float"""
-        mapping = {ConfidenceLevel.HIGH: 0.9, ConfidenceLevel.MEDIUM: 0.7, ConfidenceLevel.LOW: 0.5}
+        mapping = {
+            ConfidenceLevel.HIGH: 0.9,
+            ConfidenceLevel.MEDIUM: 0.7,
+            ConfidenceLevel.LOW: 0.5,
+        }
         return mapping.get(confidence, 0.5)
 
     def _float_to_confidence(self, value: float) -> ConfidenceLevel:
@@ -832,10 +868,12 @@ REASON: [why this improves the code]
         else:
             return ConfidenceLevel.LOW
 
-    def _generate_reasoning(self, suggestions: List[Suggestion], context: CodeContext) -> str:
+    def _generate_reasoning(
+        self, suggestions: List[Suggestion], context: CodeContext
+    ) -> str:
         """Generate reasoning explanation"""
         if not suggestions:
-            return "No refactoring opportunities detected. Code appears to follow best practices."
+            return "No refactoring opportunities detected. Code appears to follow best practices."  # noqa: E501
 
         reasoning = (
             f"Analyzed {context.language} code and found "
@@ -844,15 +882,21 @@ REASON: [why this improves the code]
 
         # Summarize by confidence level
         high_conf = sum(1 for s in suggestions if s.confidence == ConfidenceLevel.HIGH)
-        medium_conf = sum(1 for s in suggestions if s.confidence == ConfidenceLevel.MEDIUM)
+        medium_conf = sum(
+            1 for s in suggestions if s.confidence == ConfidenceLevel.MEDIUM
+        )
         low_conf = sum(1 for s in suggestions if s.confidence == ConfidenceLevel.LOW)
 
         if high_conf > 0:
-            reasoning += f"- {high_conf} high-confidence suggestions (recommended to apply)\n"
+            reasoning += (
+                f"- {high_conf} high-confidence suggestions (recommended to apply)\n"
+            )
         if medium_conf > 0:
-            reasoning += f"- {medium_conf} medium-confidence suggestions (review before applying)\n"
+            reasoning += f"- {medium_conf} medium-confidence suggestions (review before applying)\n"  # noqa: E501
         if low_conf > 0:
-            reasoning += f"- {low_conf} low-confidence suggestions (optional improvements)\n"
+            reasoning += (
+                f"- {low_conf} low-confidence suggestions (optional improvements)\n"
+            )
 
         reasoning += "\nFocus on high-confidence suggestions first for maximum impact."
 
@@ -882,7 +926,9 @@ REASON: [why this improves the code]
         except Exception as e:
             logger.warning(f"Failed to store task in memory: {e}")
 
-    async def _store_response_in_memory(self, task: Task, response: AgentResponse) -> None:
+    async def _store_response_in_memory(
+        self, task: Task, response: AgentResponse
+    ) -> None:
         """Store response in memory service"""
         if not self.memory_service:
             return

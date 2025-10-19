@@ -21,7 +21,10 @@ class RateLimiter:
     """Redis-based rate limiter using sliding window"""
 
     def __init__(
-        self, redis_client: Optional[Redis], default_limit: int = 100, default_window: int = 60
+        self,
+        redis_client: Optional[Redis],
+        default_limit: int = 100,
+        default_window: int = 60,
     ):
         """
         Initialize rate limiter.
@@ -41,7 +44,10 @@ class RateLimiter:
         else:
             logger.info(
                 "Rate limiter initialized",
-                extra={"default_limit": default_limit, "default_window": default_window},
+                extra={
+                    "default_limit": default_limit,
+                    "default_window": default_window,
+                },
             )
 
     async def check_rate_limit(
@@ -111,7 +117,9 @@ class RateLimiter:
             return (allowed, remaining)
 
         except Exception as e:
-            logger.error(f"Rate limit check error: {e}", extra={"key": key, "error": str(e)})
+            logger.error(
+                f"Rate limit check error: {e}", extra={"key": key, "error": str(e)}
+            )
             # Fail open: allow request on error
             return (True, -1)
 
@@ -137,5 +145,7 @@ class RateLimiter:
             return True
 
         except Exception as e:
-            logger.error(f"Rate limit reset error: {e}", extra={"key": key, "error": str(e)})
+            logger.error(
+                f"Rate limit reset error: {e}", extra={"key": key, "error": str(e)}
+            )
             return False

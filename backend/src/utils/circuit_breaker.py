@@ -90,7 +90,9 @@ class CircuitBreaker:
                 details={
                     "failure_count": self._failure_count,
                     "last_failure": (
-                        self._last_failure_time.isoformat() if self._last_failure_time else None
+                        self._last_failure_time.isoformat()
+                        if self._last_failure_time
+                        else None
                     ),
                 },
             )
@@ -156,7 +158,10 @@ class CircuitBreaker:
 
         elif self._state == CircuitState.CLOSED:
             # Open if threshold exceeded (threshold of 0 means never open)
-            if self.failure_threshold > 0 and self._failure_count >= self.failure_threshold:
+            if (
+                self.failure_threshold > 0
+                and self._failure_count >= self.failure_threshold
+            ):
                 self._transition_to_open()
 
     def _transition_to_open(self) -> None:
@@ -221,6 +226,7 @@ class CircuitBreaker:
     def reset(self) -> None:
         """Manually reset circuit breaker to closed state"""
         logger.info(
-            f"Circuit breaker manually reset: {self.name}", extra={"circuit_breaker": self.name}
+            f"Circuit breaker manually reset: {self.name}",
+            extra={"circuit_breaker": self.name},
         )
         self._transition_to_closed()

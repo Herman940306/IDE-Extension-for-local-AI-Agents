@@ -148,7 +148,10 @@ class TestContainer:
         assert isinstance(trace_store, CognitiveTraceStore)
         assert isinstance(provenance, ProvenanceStore)
         assert str(trace_store.path) == container.config().observability.trace_log_path
-        assert str(provenance.db_path) == container.config().observability.provenance_db_path
+        assert (
+            str(provenance.db_path)
+            == container.config().observability.provenance_db_path
+        )
 
     def test_meta_orchestrator_provider(self):
         container = Container()

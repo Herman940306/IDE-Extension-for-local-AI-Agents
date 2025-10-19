@@ -268,7 +268,10 @@ class MemoryService:
             raise
 
     async def create_session(
-        self, session_id: str, workspace_path: str, metadata: Optional[Dict[str, Any]] = None
+        self,
+        session_id: str,
+        workspace_path: str,
+        metadata: Optional[Dict[str, Any]] = None,
     ) -> Session:
         """
         Create a new session.
@@ -341,7 +344,7 @@ class MemoryService:
         cursor = self.sqlite_conn.cursor()
         cursor.execute(
             """
-            SELECT id, workspace_path, created_at, last_accessed, metadata, message_count
+            SELECT id, workspace_path, created_at, last_accessed, metadata, message_count  # noqa: E501
             FROM sessions WHERE id = ?
         """,
             (session_id,),
@@ -408,7 +411,9 @@ class MemoryService:
 
             # Trim to max size
             await self.redis_client.ltrim(
-                f"session:{session_id}:messages", 0, self.config.max_messages_per_session - 1
+                f"session:{session_id}:messages",
+                0,
+                self.config.max_messages_per_session - 1,
             )
 
             # Set expiry
@@ -419,7 +424,10 @@ class MemoryService:
         logger.debug(f"Stored message {message.id} in session {session_id}")
 
     async def get_session_history(
-        self, session_id: str, limit: int = 50, message_types: Optional[List[MessageType]] = None
+        self,
+        session_id: str,
+        limit: int = 50,
+        message_types: Optional[List[MessageType]] = None,
     ) -> List[Message]:
         """
         Retrieve conversation history for a session.
@@ -669,7 +677,9 @@ class MemoryService:
             "first_message": time_range[0] if time_range[0] else None,
             "last_message": time_range[1] if time_range[1] else None,
             "session_duration_hours": (
-                (time_range[1] - time_range[0]) / 3600 if time_range[0] and time_range[1] else 0
+                (time_range[1] - time_range[0]) / 3600
+                if time_range[0] and time_range[1]
+                else 0
             ),
             "workspace_path": session.workspace_path if session else None,
             "created_at": session.created_at if session else None,

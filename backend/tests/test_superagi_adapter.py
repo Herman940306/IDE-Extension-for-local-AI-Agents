@@ -8,7 +8,14 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from src.adapters.base_adapter import AgentConfig, Capability
 from src.adapters.superagi_adapter import SuperAGIAdapter, SuperAGICodeAgent
-from src.models import CodeContext, ConfidenceLevel, Priority, Suggestion, Task, TaskType
+from src.models import (
+    CodeContext,
+    ConfidenceLevel,
+    Priority,
+    Suggestion,
+    Task,
+    TaskType,
+)
 
 
 @pytest.fixture
@@ -21,7 +28,11 @@ def mock_config():
         enabled=True,
         max_concurrent=1,
         timeout=60,
-        metadata={"superagi_url": "http://localhost:8001", "model": "gpt-4", "max_iterations": 10},
+        metadata={
+            "superagi_url": "http://localhost:8001",
+            "model": "gpt-4",
+            "max_iterations": 10,
+        },
     )
 
 
@@ -59,7 +70,9 @@ class TestSuperAGIAdapter:
         """Test adapter initialization"""
         adapter = SuperAGIAdapter(mock_config)
 
-        with patch("src.adapters.superagi_adapter.httpx.AsyncClient") as mock_client_cls:
+        with patch(
+            "src.adapters.superagi_adapter.httpx.AsyncClient"
+        ) as mock_client_cls:
             mock_client = AsyncMock()
             mock_response = MagicMock()
             mock_response.json.return_value = {"agent_id": "test-agent-123"}
@@ -133,7 +146,10 @@ def new_function():
     def test_calculate_confidence_high(self, mock_config):
         """Test confidence calculation for successful execution"""
         adapter = SuperAGIAdapter(mock_config)
-        result = {"status": "completed", "steps": [{"status": "success"}, {"status": "success"}]}
+        result = {
+            "status": "completed",
+            "steps": [{"status": "success"}, {"status": "success"}],
+        }
         suggestions = [
             Suggestion(
                 id="sugg-1",

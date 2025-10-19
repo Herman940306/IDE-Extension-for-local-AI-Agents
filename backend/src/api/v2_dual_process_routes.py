@@ -100,7 +100,7 @@ async def process_reasoning(request: ReasoningRequest):
 
     except Exception as e:
         logger.error(f"Reasoning failed: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.get("/stats", response_model=StatsResponse)
@@ -122,7 +122,7 @@ async def get_reasoning_stats():
 
     except Exception as e:
         logger.error(f"Failed to get stats: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.get("/graph")
@@ -141,7 +141,7 @@ async def get_reasoning_graph():
 
     except Exception as e:
         logger.error(f"Failed to get graph: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.get("/health")

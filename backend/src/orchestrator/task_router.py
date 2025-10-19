@@ -126,7 +126,10 @@ class TaskRouter:
         return TaskIntent.UNKNOWN
 
     def analyze_task(
-        self, description: str, code_context: Optional[str] = None, language: Optional[str] = None
+        self,
+        description: str,
+        code_context: Optional[str] = None,
+        language: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
         Analyze task and provide routing recommendations.
@@ -159,7 +162,9 @@ class TaskRouter:
             or intent in [TaskIntent.GENERATE, TaskIntent.REFACTOR, TaskIntent.DEBUG],
         }
 
-        logger.info(f"Task analysis: intent={intent.value}, complexity={complexity:.2f}")
+        logger.info(
+            f"Task analysis: intent={intent.value}, complexity={complexity:.2f}"
+        )
         return analysis
 
     def _estimate_complexity(

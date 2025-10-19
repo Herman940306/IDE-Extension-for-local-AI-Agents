@@ -99,7 +99,9 @@ class SemanticSearchService:
             List of search results with relevance scores
         """
         # Generate cache key
-        cache_key = self._generate_cache_key(query, top_k, file_extension, min_relevance)
+        cache_key = self._generate_cache_key(
+            query, top_k, file_extension, min_relevance
+        )
 
         # Check cache
         cached_result = self.search_cache.get(cache_key)
@@ -129,10 +131,14 @@ class SemanticSearchService:
         # Cache results
         self.search_cache.put(cache_key, final_results)
 
-        logger.debug(f"Search completed: {len(final_results)} results for '{query[:50]}'")
+        logger.debug(
+            f"Search completed: {len(final_results)} results for '{query[:50]}'"
+        )
         return final_results
 
-    async def search_by_function(self, function_name: str, top_k: int = 5) -> List[Dict[str, Any]]:
+    async def search_by_function(
+        self, function_name: str, top_k: int = 5
+    ) -> List[Dict[str, Any]]:
         """
         Search for similar functions by name
 
@@ -146,7 +152,9 @@ class SemanticSearchService:
         query = f"function {function_name}"
         return await self.search(query, top_k=top_k)
 
-    async def search_by_class(self, class_name: str, top_k: int = 5) -> List[Dict[str, Any]]:
+    async def search_by_class(
+        self, class_name: str, top_k: int = 5
+    ) -> List[Dict[str, Any]]:
         """
         Search for similar classes by name
 
@@ -211,7 +219,11 @@ class SemanticSearchService:
 
         # Filter out excluded file
         if exclude_file:
-            results = [r for r in results if r.get("metadata", {}).get("file_path") != exclude_file]
+            results = [
+                r
+                for r in results
+                if r.get("metadata", {}).get("file_path") != exclude_file
+            ]
 
         return results[:top_k]
 
@@ -290,7 +302,9 @@ class SemanticSearchService:
         unique_results.sort(key=lambda x: x.get("relevance", 0), reverse=True)
         return unique_results[:top_k]
 
-    async def get_related_files(self, file_path: str, top_k: int = 10) -> List[Dict[str, Any]]:
+    async def get_related_files(
+        self, file_path: str, top_k: int = 10
+    ) -> List[Dict[str, Any]]:
         """
         Find files related to a given file based on semantic similarity
 
@@ -306,7 +320,9 @@ class SemanticSearchService:
         results = await self.search(query, top_k=top_k + 1)
 
         # Exclude the file itself
-        results = [r for r in results if r.get("metadata", {}).get("file_path") != file_path]
+        results = [
+            r for r in results if r.get("metadata", {}).get("file_path") != file_path
+        ]
 
         return results[:top_k]
 
@@ -391,7 +407,11 @@ class SemanticSearchService:
         return round(relevance, 3)
 
     def _generate_cache_key(
-        self, query: str, top_k: int, file_extension: Optional[str], min_relevance: float
+        self,
+        query: str,
+        top_k: int,
+        file_extension: Optional[str],
+        min_relevance: float,
     ) -> str:
         """Generate cache key for search parameters"""
         key_str = f"{query}|{top_k}|{file_extension}|{min_relevance}"
@@ -438,7 +458,7 @@ class SemanticSearchService:
         tasks = [self.search(query, top_k=top_k) for query in queries]
         results = await asyncio.gather(*tasks)
 
-        return {query: result for query, result in zip(queries, results)}
+        return {query: result for query, result in zip(queries, results, strict=False)}
 
     async def rank_candidates(
         self, query: str, candidates: List[Dict[str, Any]]

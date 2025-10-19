@@ -25,7 +25,9 @@ def _export_public_symbols(package_module: Any) -> Dict[str, Any]:
     public_names = getattr(package_module, "__all__", None)
 
     if public_names is None:
-        public_names = [name for name in dir(package_module) if not name.startswith("_")]
+        public_names = [
+            name for name in dir(package_module) if not name.startswith("_")
+        ]
 
     for name in public_names:
         exported[name] = getattr(package_module, name)

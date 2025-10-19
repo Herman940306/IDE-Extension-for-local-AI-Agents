@@ -58,8 +58,9 @@ def insecure_context():
     )
 
 
-@pytest.mark.asyncio
-async def test_static_security_detection(bug_agent, base_task, insecure_context, llm_manager):
+async def test_static_security_detection(
+    bug_agent, base_task, insecure_context, llm_manager
+):
     llm_manager.generate.return_value = "# fix"
 
     response = await bug_agent.analyze_code(base_task, insecure_context)
@@ -86,7 +87,7 @@ async def test_llm_issue_parsing(base_task, safe_context):
     llm_manager = Mock(spec=LLMManager)
     llm_manager.generate = AsyncMock(
         side_effect=[
-            "ISSUE: security - high\nLINE: 5\nDESCRIPTION: Vulnerability\nFIX: Use safe API\n---",
+            "ISSUE: security - high\nLINE: 5\nDESCRIPTION: Vulnerability\nFIX: Use safe API\n---",  # noqa: E501
             "print('fixed')",
         ]
     )
@@ -97,11 +98,21 @@ async def test_llm_issue_parsing(base_task, safe_context):
     assert response.metadata["llm_issues"] == 1
     assert response.suggestions
     assert response.suggestions[0].code == "Use safe API"
-    assert response.suggestions[0].confidence in {ConfidenceLevel.HIGH, ConfidenceLevel.MEDIUM}
+    assert response.suggestions[0].confidence in {
+        ConfidenceLevel.HIGH,
+        ConfidenceLevel.MEDIUM,
+    }
+
+
+# B017: Use a specific exception for pytest.raises
+class CustomTestException(Exception):
+    pass
 
 
 @pytest.mark.asyncio
-async def test_handles_analysis_failure(bug_agent, base_task, insecure_context, monkeypatch):
+async def test_handles_analysis_failure(
+    bug_agent, base_task, insecure_context, monkeypatch
+):
     async def failing_static(context):
         raise RuntimeError("failure")
 

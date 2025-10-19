@@ -129,7 +129,9 @@ class TestAdapterException:
     def test_with_correlation_id(self):
         """Test adapter exception with correlation ID"""
         exc = AdapterException(
-            message="Adapter failed", adapter_name="test_adapter", correlation_id="adapter-123"
+            message="Adapter failed",
+            adapter_name="test_adapter",
+            correlation_id="adapter-123",
         )
 
         assert exc.correlation_id == "adapter-123"
@@ -242,7 +244,9 @@ class TestRateLimitExceededException:
     def test_with_additional_details(self):
         """Test rate limit exception with additional details"""
         exc = RateLimitExceededException(
-            limit=100, window=60, details={"client_id": "client-123", "current_count": 105}
+            limit=100,
+            window=60,
+            details={"client_id": "client-123", "current_count": 105},
         )
 
         assert exc.details["limit"] == 100

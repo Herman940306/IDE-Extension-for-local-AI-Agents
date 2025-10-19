@@ -21,7 +21,11 @@ class EpisodicCache:
     """
 
     def __init__(
-        self, host: str = "localhost", port: int = 6379, db: int = 0, password: Optional[str] = None
+        self,
+        host: str = "localhost",
+        port: int = 6379,
+        db: int = 0,
+        password: Optional[str] = None,
     ):
         """
         Initialize episodic cache.

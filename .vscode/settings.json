@@ -8,8 +8,8 @@
     },
     "diffEditor.codeLens": true,
     // Use local venv
-    "python.defaultInterpreterPath": ".venv_new/Scripts/python.exe",
-    "python.pythonPath": ".venv_new/Scripts/python.exe",
+    "python.defaultInterpreterPath": ".venv/Scripts/python.exe",
+    "python.pythonPath": ".venv/Scripts/python.exe",
     // Python Configuration
     "[python]": {
         "editor.defaultFormatter": "ms-python.black-formatter",
@@ -20,11 +20,11 @@
     },
     // Black Formatter
     "black-formatter.args": [
-        "--line-length=100"
+        "--line-length=88"
     ],
     // Flake8 Linting
     "flake8.args": [
-        "--max-line-length=100",
+        "--max-line-length=88",
         "--extend-ignore=E203,W503"
     ],
     "python.linting.enabled": true,

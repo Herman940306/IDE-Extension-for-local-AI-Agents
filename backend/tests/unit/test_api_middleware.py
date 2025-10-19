@@ -13,7 +13,11 @@ import pytest
 from fastapi import FastAPI, Request
 from fastapi.testclient import TestClient
 from src.api.exception_handlers import register_exception_handlers
-from src.api.middleware import CorrelationIDMiddleware, RateLimitMiddleware, RequestSizeMiddleware
+from src.api.middleware import (
+    CorrelationIDMiddleware,
+    RateLimitMiddleware,
+    RequestSizeMiddleware,
+)
 from src.services.rate_limiter import RateLimiter
 
 # ============================================================================
@@ -55,7 +59,9 @@ class TestCorrelationIDMiddleware:
         """Test middleware preserves provided correlation ID"""
         custom_id = "custom-correlation-123"
 
-        response = correlation_client.get("/test", headers={"X-Correlation-ID": custom_id})
+        response = correlation_client.get(
+            "/test", headers={"X-Correlation-ID": custom_id}
+        )
 
         assert response.status_code == 200
         assert response.headers["X-Correlation-ID"] == custom_id
@@ -121,7 +127,9 @@ async def mock_rate_limiter():
 def app_with_rate_limit(mock_rate_limiter):
     """Create FastAPI app with rate limit middleware"""
     app = FastAPI()
-    app.add_middleware(RateLimitMiddleware, rate_limiter=mock_rate_limiter, enabled=True)
+    app.add_middleware(
+        RateLimitMiddleware, rate_limiter=mock_rate_limiter, enabled=True
+    )
 
     @app.get("/api/suggestions")
     async def suggestions():
@@ -174,7 +182,9 @@ class TestRateLimitMiddleware:
         assert "X-RateLimit-Limit" in response.headers
         assert "X-RateLimit-Remaining" in response.headers
 
-    def test_retry_after_header_on_limit_exceeded(self, rate_limit_client, mock_rate_limiter):
+    def test_retry_after_header_on_limit_exceeded(
+        self, rate_limit_client, mock_rate_limiter
+    ):
         """Test Retry-After header is added when limit exceeded"""
         mock_rate_limiter.check_rate_limit.return_value = (False, 0)
 
@@ -208,7 +218,9 @@ class TestRateLimitMiddleware:
         # Key should contain api_key prefix
         assert "api_key:" in key
 
-    def test_different_endpoints_different_limits(self, rate_limit_client, mock_rate_limiter):
+    def test_different_endpoints_different_limits(
+        self, rate_limit_client, mock_rate_limiter
+    ):
         """Test different endpoints have different rate limits"""
         mock_rate_limiter.check_rate_limit.return_value = (True, 99)
 
@@ -243,7 +255,9 @@ class TestRateLimitMiddleware:
         # Rate limiter should not be called
         limiter.check_rate_limit.assert_not_called()
 
-    def test_rate_limit_error_includes_correlation_id(self, rate_limit_client, mock_rate_limiter):
+    def test_rate_limit_error_includes_correlation_id(
+        self, rate_limit_client, mock_rate_limiter
+    ):
         """Test rate limit error includes correlation ID"""
         mock_rate_limiter.check_rate_limit.return_value = (False, 0)
 
@@ -364,7 +378,9 @@ class TestMiddlewareIntegration:
 
         # Add all middleware
         app.add_middleware(RequestSizeMiddleware, max_size=1024)
-        app.add_middleware(RateLimitMiddleware, rate_limiter=mock_rate_limiter, enabled=True)
+        app.add_middleware(
+            RateLimitMiddleware, rate_limiter=mock_rate_limiter, enabled=True
+        )
         app.add_middleware(CorrelationIDMiddleware)
 
         @app.post("/test")
@@ -387,7 +403,9 @@ class TestMiddlewareIntegration:
 
         # Correlation ID should be first to be available to others
         app.add_middleware(RequestSizeMiddleware, max_size=1024)
-        app.add_middleware(RateLimitMiddleware, rate_limiter=mock_rate_limiter, enabled=True)
+        app.add_middleware(
+            RateLimitMiddleware, rate_limiter=mock_rate_limiter, enabled=True
+        )
         app.add_middleware(CorrelationIDMiddleware)
 
         @app.post("/test")
@@ -407,7 +425,9 @@ class TestMiddlewareIntegration:
     def test_middleware_error_handling(self, mock_rate_limiter):
         """Test middleware handles errors gracefully"""
         app = FastAPI(debug=False)
-        app.add_middleware(RateLimitMiddleware, rate_limiter=mock_rate_limiter, enabled=True)
+        app.add_middleware(
+            RateLimitMiddleware, rate_limiter=mock_rate_limiter, enabled=True
+        )
         register_exception_handlers(app)
 
         @app.get("/test")

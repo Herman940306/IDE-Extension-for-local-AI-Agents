@@ -55,7 +55,7 @@ class AdapterUtils:
             text: Text containing code blocks in markdown format
 
         Returns:
-            List of tuples (code, description) where description is text before the code block
+            List of tuples (code, description) where description is text before the code block  # noqa: E501
         """
         import re
 
@@ -83,7 +83,9 @@ class AdapterUtils:
         return blocks
 
     @staticmethod
-    def calculate_base_confidence(status: str, has_suggestions: bool, success_rate: float) -> float:
+    def calculate_base_confidence(
+        status: str, has_suggestions: bool, success_rate: float
+    ) -> float:
         """
         Calculate base confidence score for adapter response.
 
@@ -307,7 +309,9 @@ class AdapterUtils:
 
     @staticmethod
     def validate_response(
-        response: Dict[str, Any], required_fields: List[str], adapter_name: str = "unknown"
+        response: Dict[str, Any],
+        required_fields: List[str],
+        adapter_name: str = "unknown",
     ) -> Dict[str, Any]:
         """
         Validate adapter response structure.
@@ -337,7 +341,7 @@ class AdapterUtils:
 
         if missing_fields:
             raise ValidationException(
-                message=f"Response missing required fields: {', '.join(missing_fields)}",
+                message=f"Response missing required fields: {', '.join(missing_fields)}",  # noqa: E501
                 field="response",
                 details={
                     "adapter": adapter_name,
@@ -375,7 +379,11 @@ class AdapterUtils:
 
             logger.debug(
                 f"Health check passed for {service_name}",
-                extra={"service": service_name, "duration_ms": duration_ms, "result": result},
+                extra={
+                    "service": service_name,
+                    "duration_ms": duration_ms,
+                    "result": result,
+                },
             )
 
             return bool(result)
@@ -390,7 +398,11 @@ class AdapterUtils:
         except Exception as e:
             logger.error(
                 f"Health check failed for {service_name}",
-                extra={"service": service_name, "error": str(e), "error_type": type(e).__name__},
+                extra={
+                    "service": service_name,
+                    "error": str(e),
+                    "error_type": type(e).__name__,
+                },
             )
             return False
 
@@ -426,12 +438,17 @@ class AdapterUtils:
             log_data.update(additional_context)
 
         if success:
-            logger.info(f"Adapter operation succeeded: {adapter_name}.{operation}", extra=log_data)
+            logger.info(
+                f"Adapter operation succeeded: {adapter_name}.{operation}",
+                extra=log_data,
+            )
         else:
             log_data["error"] = str(error) if error else "Unknown error"
             log_data["error_type"] = type(error).__name__ if error else "Unknown"
 
-            logger.error(f"Adapter operation failed: {adapter_name}.{operation}", extra=log_data)
+            logger.error(
+                f"Adapter operation failed: {adapter_name}.{operation}", extra=log_data
+            )
 
 
 def with_retry(max_retries: int = 3, base_delay: float = 1.0, max_delay: float = 60.0):

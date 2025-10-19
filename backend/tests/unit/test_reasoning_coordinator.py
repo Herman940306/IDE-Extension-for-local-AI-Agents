@@ -30,7 +30,11 @@ def mock_reasoner():
         )
     )
     reasoner.get_stats = Mock(
-        return_value={"model": "llama3.2:3b", "total_requests": 10, "avg_latency_ms": 150.0}
+        return_value={
+            "model": "llama3.2:3b",
+            "total_requests": 10,
+            "avg_latency_ms": 150.0,
+        }
     )
     reasoner.close = AsyncMock()
     return reasoner
@@ -52,7 +56,11 @@ def mock_verifier():
         )
     )
     verifier.get_stats = Mock(
-        return_value={"model": "mistral:7b", "total_verifications": 5, "avg_latency_ms": 800.0}
+        return_value={
+            "model": "mistral:7b",
+            "total_verifications": 5,
+            "avg_latency_ms": 800.0,
+        }
     )
     verifier.close = AsyncMock()
     return verifier
@@ -121,7 +129,9 @@ async def test_dual_process_complex_task(coordinator, mock_reasoner, mock_verifi
 
 
 @pytest.mark.asyncio
-async def test_adaptive_mode_low_confidence_escalation(coordinator, mock_reasoner, mock_verifier):
+async def test_adaptive_mode_low_confidence_escalation(
+    coordinator, mock_reasoner, mock_verifier
+):
     """Test adaptive mode escalates on low confidence"""
     # Mock low confidence from System 1
     mock_reasoner.reason.return_value = ReasoningResponse(
@@ -191,7 +201,9 @@ async def test_suggestion_merging(coordinator):
     system2_suggestions = ["suggestion 2", "suggestion 3"]
 
     # Verified case
-    merged = coordinator._merge_suggestions(system1_suggestions, system2_suggestions, verified=True)
+    merged = coordinator._merge_suggestions(
+        system1_suggestions, system2_suggestions, verified=True
+    )
     assert len(merged) == 3  # Unique suggestions
     assert "suggestion 1" in merged
     assert "suggestion 3" in merged
@@ -245,19 +257,25 @@ async def test_strategy_determination(coordinator):
     """Test strategy determination logic"""
     # ADAPTIVE mode should stay as ADAPTIVE (decision made at runtime)
     strategy = coordinator._determine_strategy(
-        ProcessingMode.ADAPTIVE, complexity=0.3, task_analysis={"requires_verification": False}
+        ProcessingMode.ADAPTIVE,
+        complexity=0.3,
+        task_analysis={"requires_verification": False},
     )
     assert strategy == ProcessingMode.ADAPTIVE
 
     # ADAPTIVE mode with high complexity should also stay ADAPTIVE
     strategy = coordinator._determine_strategy(
-        ProcessingMode.ADAPTIVE, complexity=0.8, task_analysis={"requires_verification": True}
+        ProcessingMode.ADAPTIVE,
+        complexity=0.8,
+        task_analysis={"requires_verification": True},
     )
     assert strategy == ProcessingMode.ADAPTIVE
 
     # Forced mode should be preserved
     strategy = coordinator._determine_strategy(
-        ProcessingMode.SYSTEM1_ONLY, complexity=0.8, task_analysis={"requires_verification": True}
+        ProcessingMode.SYSTEM1_ONLY,
+        complexity=0.8,
+        task_analysis={"requires_verification": True},
     )
     assert strategy == ProcessingMode.SYSTEM1_ONLY
 
@@ -274,7 +292,10 @@ async def test_close_resources(coordinator, mock_reasoner, mock_verifier):
 async def test_metadata_in_result(coordinator):
     """Test that results include proper metadata"""
     result = await coordinator.process(
-        task_type="explain", description="Test", code_context="def test(): pass", language="python"
+        task_type="explain",
+        description="Test",
+        code_context="def test(): pass",
+        language="python",
     )
 
     assert "metadata" in result

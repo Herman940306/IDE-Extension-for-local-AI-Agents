@@ -27,8 +27,13 @@ class TestEmbeddingsService:
     def test_initialization(self, embeddings_service, embeddings_config):
         """Test service initializes with correct configuration"""
         assert embeddings_service.model_name == embeddings_config["model_name"]
-        assert embeddings_service.chroma_persist_dir == embeddings_config["chroma_persist_dir"]
-        assert embeddings_service.collection_name == embeddings_config["collection_name"]
+        assert (
+            embeddings_service.chroma_persist_dir
+            == embeddings_config["chroma_persist_dir"]
+        )
+        assert (
+            embeddings_service.collection_name == embeddings_config["collection_name"]
+        )
         assert embeddings_service.is_initialized is False
         assert embeddings_service.model is None
 
@@ -39,8 +44,14 @@ class TestEmbeddingsService:
         mock_chroma = MagicMock()
         mock_collection = MagicMock()
 
-        with patch("src.services.embeddings_service.SentenceTransformer", return_value=mock_model):
-            with patch("src.services.embeddings_service.chromadb.Client", return_value=mock_chroma):
+        with patch(
+            "src.services.embeddings_service.SentenceTransformer",
+            return_value=mock_model,
+        ):
+            with patch(
+                "src.services.embeddings_service.chromadb.Client",
+                return_value=mock_chroma,
+            ):
                 mock_chroma.get_or_create_collection.return_value = mock_collection
 
                 await embeddings_service.initialize()
@@ -50,7 +61,6 @@ class TestEmbeddingsService:
                 assert embeddings_service.chroma_client == mock_chroma
                 assert embeddings_service.collection == mock_collection
 
-    @pytest.mark.asyncio
     async def test_initialize_failure(self, embeddings_service):
         """Test initialization failure handling"""
         with patch(
@@ -58,6 +68,22 @@ class TestEmbeddingsService:
             side_effect=Exception("Model load failed"),
         ):
             with pytest.raises(Exception) as exc:
+                await embeddings_service.initialize()
+            assert "Model load failed" in str(exc.value)
+            assert embeddings_service.is_initialized is False
+
+    @pytest.mark.asyncio
+    async def test_initialize_failure_b017(self, embeddings_service):
+        """Test initialization failure handling with specific exception (B017)"""
+
+        class CustomTestException(Exception):
+            pass
+
+        with patch(
+            "src.services.embeddings_service.SentenceTransformer",
+            side_effect=CustomTestException("Model load failed"),
+        ):
+            with pytest.raises(CustomTestException) as exc:
                 await embeddings_service.initialize()
             assert "Model load failed" in str(exc.value)
             assert embeddings_service.is_initialized is False

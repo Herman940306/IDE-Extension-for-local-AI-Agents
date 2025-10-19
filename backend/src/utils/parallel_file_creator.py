@@ -126,7 +126,10 @@ class ParallelFileCreator:
         self.total_errors = 0
 
     async def create_file(
-        self, file_name: str, content: str, loop: Optional[asyncio.AbstractEventLoop] = None
+        self,
+        file_name: str,
+        content: str,
+        loop: Optional[asyncio.AbstractEventLoop] = None,
     ) -> Optional[Path]:
         """
         Create a single file with embedding and metadata storage.
@@ -146,7 +149,9 @@ class ParallelFileCreator:
 
         try:
             # Write file
-            success_write = await loop.run_in_executor(None, self._write_file, file_path, content)
+            success_write = await loop.run_in_executor(
+                None, self._write_file, file_path, content
+            )
 
             if not success_write:
                 return None
@@ -158,7 +163,9 @@ class ParallelFileCreator:
 
             # Store in FAISS
             if vector is not None and self.faiss_index is not None:
-                await loop.run_in_executor(None, self._store_in_faiss, file_name, vector)
+                await loop.run_in_executor(
+                    None, self._store_in_faiss, file_name, vector
+                )
 
             # Store metadata in Redis
             if self.redis_client is not None:
@@ -172,7 +179,9 @@ class ParallelFileCreator:
             self.total_errors += 1
             return None
 
-    async def create_files_parallel(self, file_tasks: List[Dict[str, str]]) -> List[Optional[Path]]:
+    async def create_files_parallel(
+        self, file_tasks: List[Dict[str, str]]
+    ) -> List[Optional[Path]]:
         """
         Create multiple files in parallel.
 
@@ -356,10 +365,13 @@ if __name__ == "__main__":
 
     async def main():
         file_tasks = [
-            {"name": f"file_{i}.txt", "content": f"Content for file {i}"} for i in range(50)
+            {"name": f"file_{i}.txt", "content": f"Content for file {i}"}
+            for i in range(50)
         ]
 
-        creator = ParallelFileCreator(base_dir=Path("projects/output_files"), max_workers=8)
+        creator = ParallelFileCreator(
+            base_dir=Path("projects/output_files"), max_workers=8
+        )
 
         await creator.create_files_parallel(file_tasks)
         stats = creator.get_stats()

@@ -50,16 +50,23 @@ class SemanticStore:
         # Initialize ChromaDB
         try:
             self.chroma_client = chromadb.Client(
-                Settings(persist_directory=persist_directory, anonymized_telemetry=False)
+                Settings(
+                    persist_directory=persist_directory, anonymized_telemetry=False
+                )
             )
-            self.collection = self.chroma_client.get_or_create_collection(name=collection_name)
+            self.collection = self.chroma_client.get_or_create_collection(
+                name=collection_name
+            )
             logger.info(f"SemanticStore initialized with dimension={dimension}")
         except Exception as e:
             logger.error(f"Failed to initialize ChromaDB: {e}")
             raise
 
     def add_embedding(
-        self, embedding: np.ndarray, metadata: Dict[str, Any], doc_id: Optional[str] = None
+        self,
+        embedding: np.ndarray,
+        metadata: Dict[str, Any],
+        doc_id: Optional[str] = None,
     ) -> str:
         """
         Add code embedding to store.
@@ -93,7 +100,9 @@ class SemanticStore:
             self.next_index += 1
 
             # Add to ChromaDB
-            self.collection.add(embeddings=[embedding.tolist()], metadatas=[metadata], ids=[doc_id])
+            self.collection.add(
+                embeddings=[embedding.tolist()], metadatas=[metadata], ids=[doc_id]
+            )
 
             logger.debug(f"Added embedding: {doc_id}")
             return doc_id
@@ -121,11 +130,13 @@ class SemanticStore:
         try:
             # Search in FAISS
             query_2d = query_embedding.reshape(1, -1).astype("float32")
-            distances, indices = self.index.search(query_2d, min(k * 2, self.index.ntotal))
+            distances, indices = self.index.search(
+                query_2d, min(k * 2, self.index.ntotal)
+            )
 
             # Get metadata from ChromaDB
             results = []
-            for dist, idx in zip(distances[0], indices[0]):
+            for dist, idx in zip(distances[0], indices[0], strict=False):
                 if idx == -1:  # FAISS returns -1 for empty slots
                     continue
 
@@ -141,7 +152,9 @@ class SemanticStore:
 
                     # Apply filters if provided
                     if filter_metadata:
-                        if not all(metadata.get(k) == v for k, v in filter_metadata.items()):
+                        if not all(
+                            metadata.get(k) == v for k, v in filter_metadata.items()
+                        ):
                             continue
 
                     results.append((float(dist), metadata))
@@ -155,7 +168,9 @@ class SemanticStore:
             logger.error(f"Search failed: {e}")
             return []
 
-    def search_by_metadata(self, where: Dict[str, Any], limit: int = 10) -> List[Dict[str, Any]]:
+    def search_by_metadata(
+        self, where: Dict[str, Any], limit: int = 10
+    ) -> List[Dict[str, Any]]:
         """
         Search by metadata only (no embedding similarity).
 
@@ -168,7 +183,10 @@ class SemanticStore:
         """
         try:
             results = self.collection.query(
-                query_embeddings=None, where=where, n_results=limit, include=["metadatas"]
+                query_embeddings=None,
+                where=where,
+                n_results=limit,
+                include=["metadatas"],
             )
 
             return results.get("metadatas", [[]])[0]
@@ -187,12 +205,16 @@ class SemanticStore:
             Metadata dict or None
         """
         try:
-            result = self.collection.get(ids=[doc_id], include=["metadatas", "embeddings"])
+            result = self.collection.get(
+                ids=[doc_id], include=["metadatas", "embeddings"]
+            )
 
             if result["metadatas"]:
                 return {
                     "metadata": result["metadatas"][0],
-                    "embedding": result["embeddings"][0] if result["embeddings"] else None,
+                    "embedding": (
+                        result["embeddings"][0] if result["embeddings"] else None
+                    ),
                 }
             return None
         except Exception as e:

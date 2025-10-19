@@ -67,11 +67,13 @@ class AutoGPTAdapter(AgentAdapter):
             self.is_initialized = True
 
         except httpx.HTTPError as e:
-            raise AdapterExceptions.AdapterConnectionError(f"Failed to connect to AutoGPT: {e}")
+            raise AdapterExceptions.AdapterConnectionError(
+                f"Failed to connect to AutoGPT: {e}"
+            ) from e
         except Exception as e:
             raise AdapterExceptions.AdapterInitializationError(
                 f"Failed to initialize AutoGPT adapter: {e}"
-            )
+            ) from e
 
     async def execute_task(self, task: Task, context: CodeContext) -> AgentResponse:
         """
@@ -88,7 +90,9 @@ class AutoGPTAdapter(AgentAdapter):
             await self.initialize()
 
         if not self.http_client:
-            raise AdapterExceptions.AdapterExecutionError("HTTP client is not initialized")
+            raise AdapterExceptions.AdapterExecutionError(
+                "HTTP client is not initialized"
+            )
 
         try:
             # Prepare workspace with code context
@@ -207,7 +211,9 @@ class AutoGPTAdapter(AgentAdapter):
                 return
 
             if not self.http_client:
-                raise AdapterExceptions.AdapterExecutionError("HTTP client is not initialized")
+                raise AdapterExceptions.AdapterExecutionError(
+                    "HTTP client is not initialized"
+                )
 
             # Write code to workspace file
             workspace_data = {
@@ -241,7 +247,9 @@ class AutoGPTAdapter(AgentAdapter):
         formatted += f"- Language: {context.language}\n\n"
 
         if context.selected_text:
-            formatted += f"Focus Area:\n```{context.language}\n{context.selected_text}\n```\n\n"
+            formatted += (
+                f"Focus Area:\n```{context.language}\n{context.selected_text}\n```\n\n"
+            )
 
         formatted += "Requirements:\n"
         formatted += "1. Analyze the code thoroughly\n"
@@ -270,7 +278,9 @@ class AutoGPTAdapter(AgentAdapter):
         while elapsed < max_wait:
             try:
                 if not self.http_client:
-                    raise AdapterExceptions.AdapterExecutionError("HTTP client is not initialized")
+                    raise AdapterExceptions.AdapterExecutionError(
+                        "HTTP client is not initialized"
+                    )
 
                 response = await self.http_client.get(f"/tasks/{task_id}")
                 response.raise_for_status()
@@ -296,17 +306,25 @@ class AutoGPTAdapter(AgentAdapter):
                 poll_interval = min(poll_interval * backoff_multiplier, max_interval)
 
             except httpx.HTTPError as e:
-                raise AdapterExceptions.AdapterConnectionError(f"Failed to monitor task: {e}")
+                raise AdapterExceptions.AdapterConnectionError(
+                    f"Failed to monitor task: {e}"
+                ) from e
 
-        raise AdapterExceptions.AdapterTimeoutError(f"Task timed out after {max_wait} seconds")
+        raise AdapterExceptions.AdapterTimeoutError(
+            f"Task timed out after {max_wait} seconds"
+        )
 
     async def _provide_input(self, task_id: str, input_text: str) -> None:
         """Provide input to AutoGPT when requested"""
         try:
             if not self.http_client:
-                raise AdapterExceptions.AdapterExecutionError("HTTP client is not initialized")
+                raise AdapterExceptions.AdapterExecutionError(
+                    "HTTP client is not initialized"
+                )
 
-            await self.http_client.post(f"/tasks/{task_id}/input", json={"input": input_text})
+            await self.http_client.post(
+                f"/tasks/{task_id}/input", json={"input": input_text}
+            )
         except Exception as e:
             print(f"Failed to provide input: {e}")
 
@@ -398,13 +416,17 @@ class AutoGPTAdapter(AgentAdapter):
 
         return suggestions
 
-    def _calculate_confidence(self, result: Dict[str, Any], suggestions: List[Suggestion]) -> float:
+    def _calculate_confidence(
+        self, result: Dict[str, Any], suggestions: List[Suggestion]
+    ) -> float:
         """Calculate confidence score using shared utility"""
         # Use thought count as a proxy for thoroughness
         thoughts = result.get("thoughts", [])
         thoroughness_bonus = 0.1 if len(thoughts) > 5 else 0.0
 
-        success_rate = 1.0 if result.get("status") == "completed" and suggestions else 0.0
+        success_rate = (
+            1.0 if result.get("status") == "completed" and suggestions else 0.0
+        )
 
         base_confidence = AdapterUtils.calculate_base_confidence(
             status=result.get("status", "unknown"),
@@ -431,7 +453,9 @@ class AutoGPTAdapter(AgentAdapter):
                 }
                 for index, t in enumerate(thoughts)
             ]
-            reasoning += AdapterUtils.format_reasoning_steps(steps=thought_steps, max_steps=5)
+            reasoning += AdapterUtils.format_reasoning_steps(
+                steps=thought_steps, max_steps=5
+            )
             reasoning += "\n"
 
         # Add actions taken using shared utility
@@ -445,7 +469,9 @@ class AutoGPTAdapter(AgentAdapter):
                 }
                 for a in actions
             ]
-            reasoning += AdapterUtils.format_reasoning_steps(steps=action_steps, max_steps=5)
+            reasoning += AdapterUtils.format_reasoning_steps(
+                steps=action_steps, max_steps=5
+            )
             reasoning += "\n"
 
         # Add output summary using shared utility

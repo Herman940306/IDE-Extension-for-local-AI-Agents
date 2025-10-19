@@ -21,7 +21,9 @@ class CodeSmell(BaseModel):
     line_start: int = Field(..., description="Starting line number")
     line_end: int = Field(..., description="Ending line number")
     suggestion: str = Field(..., description="Suggested fix or refactoring")
-    confidence: float = Field(..., ge=0.0, le=1.0, description="Confidence score (0.0 to 1.0)")
+    confidence: float = Field(
+        ..., ge=0.0, le=1.0, description="Confidence score (0.0 to 1.0)"
+    )
 
     class Config:
         json_schema_extra = {
@@ -33,7 +35,7 @@ class CodeSmell(BaseModel):
                 "description": "Class 'UserManager' has 15 methods (threshold: 10)",
                 "line_start": 10,
                 "line_end": 250,
-                "suggestion": "Consider splitting into smaller, focused classes using Single Responsibility Principle",
+                "suggestion": "Consider splitting into smaller, focused classes using Single Responsibility Principle",  # noqa: E501
                 "confidence": 0.9,
             }
         }
