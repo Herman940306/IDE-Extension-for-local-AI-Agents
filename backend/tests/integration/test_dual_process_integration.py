@@ -6,8 +6,8 @@ Tests the full integration of System 1 + System 2 with real Ollama models.
 Requires Ollama to be running with llama3.2:3b and mistral:7b models.
 """
 
+import httpx
 import pytest
-import asyncio
 from src.orchestrator.dual_process_integration import DualProcessSystem
 from src.orchestrator.reasoning_coordinator import ProcessingMode
 
@@ -15,10 +15,17 @@ from src.orchestrator.reasoning_coordinator import ProcessingMode
 @pytest.fixture
 async def dual_system():
     """Create DualProcessSystem instance"""
+    ollama_url = "http://localhost:11434"
+
+    try:
+        async with httpx.AsyncClient(timeout=2.0) as client:
+            response = await client.get(f"{ollama_url}/api/tags")
+            response.raise_for_status()
+    except Exception as exc:  # noqa: BLE001 - skip on connection issues
+        pytest.skip(f"Ollama service not available: {exc}")
+
     system = DualProcessSystem(
-        ollama_url="http://localhost:11434",
-        reasoner_model="llama3.2:3b",
-        verifier_model="mistral:7b"
+        ollama_url=ollama_url, reasoner_model="llama3.2:3b", verifier_model="mistral:7b"
     )
     yield system
     await system.close()
@@ -38,9 +45,9 @@ def fibonacci(n):
     return fibonacci(n-1) + fibonacci(n-2)
 """,
         language="python",
-        mode=ProcessingMode.SYSTEM1_ONLY
+        mode=ProcessingMode.SYSTEM1_ONLY,
     )
-    
+
     assert result["success"] is True
     assert len(result["suggestions"]) > 0
     assert result["verification_skipped"] is True
@@ -64,9 +71,9 @@ def find_duplicates(arr):
     return duplicates
 """,
         language="python",
-        mode=ProcessingMode.DUAL_PROCESS
+        mode=ProcessingMode.DUAL_PROCESS,
     )
-    
+
     assert result["success"] is True
     assert result["system1_response"] is not None
     assert result["system2_response"] is not None
@@ -88,9 +95,9 @@ def calculate_average(numbers):
     return total / len(numbers)  # Bug: division by zero if empty list
 """,
         language="python",
-        mode=ProcessingMode.ADAPTIVE
+        mode=ProcessingMode.ADAPTIVE,
     )
-    
+
     assert result["success"] is True
     # Complex debugging task should trigger System 2
     assert result["metadata"]["complexity"] > 0.5
@@ -106,9 +113,9 @@ async def test_statistics_tracking(dual_system):
             task_type="explain",
             description=f"Explain function {i}",
             code_context=f"def func{i}(): pass",
-            language="python"
+            language="python",
         )
-    
+
     stats = dual_system.get_stats()
     assert stats["total_requests"] == 3
     assert "system1_stats" in stats
@@ -125,9 +132,9 @@ async def test_graph_state_updates(dual_system):
         description="Test task",
         code_context="def test(): pass",
         language="python",
-        mode=ProcessingMode.DUAL_PROCESS
+        mode=ProcessingMode.DUAL_PROCESS,
     )
-    
+
     graph_state = dual_system.get_graph_state()
     assert "nodes" in graph_state
     assert "edges" in graph_state

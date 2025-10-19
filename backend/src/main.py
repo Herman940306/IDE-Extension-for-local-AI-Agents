@@ -4,8 +4,9 @@ Project Creator: Herman Swanepoel
 """
 
 import asyncio
+import inspect
 from contextlib import asynccontextmanager
-from typing import Dict, Optional
+from typing import Any, Awaitable, Dict, Optional, cast
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
@@ -15,7 +16,7 @@ from src.api.middleware import CorrelationIDMiddleware, RateLimitMiddleware, Req
 from src.core.config import get_settings
 from src.core.container import Container
 from src.core.logging import configure_logging, get_logger
-from src.models import Task
+from src.models.session import TaskAcceptedPayload, TaskRequestPayload, TaskSessionResult
 from src.services.connection_manager import ConnectionManager
 
 # Configure structured logging
@@ -36,13 +37,19 @@ async def lifespan(app: FastAPI):
     logger.info("backend_starting", creator="Herman Swanepoel")
 
     # Initialize DI container
-    container = Container()
+    local_container = Container()
+    container = local_container
     logger.info("container_initialized")
 
     try:
-        redis = await container.redis_client()
+        redis = local_container.redis_client()
+        if inspect.isawaitable(redis):
+            redis = await cast(Awaitable[Any], redis)
+
         if redis:
-            await redis.ping()
+            ping_result = redis.ping()
+            if inspect.isawaitable(ping_result):
+                await ping_result
             logger.info("redis_connected")
     except Exception as e:
         logger.warning("redis_unavailable", error=str(e))
@@ -51,34 +58,19 @@ async def lifespan(app: FastAPI):
 
     logger.info("backend_shutting_down")
     try:
-        await container.redis_pool().close()
+        await local_container.redis_pool().close()
     except Exception as e:
         logger.warning(f"Error closing redis pool: {e}")
 
 
 # Create FastAPI application
+API_DESCRIPTION = (
+    "Backend service for multi-agent AI coding assistant with production-ready infrastructure."
+)
+
 app = FastAPI(
     title="Enterprise AI Agents API",
-    description="""
-    Backend service for multi-agent AI coding assistant with production-ready infrastructure.
-    
-    ## Features
-    - **Multi-Agent Orchestration**: CrewAI, SuperAGI, AutoGPT integration
-    - **Response Caching**: Redis-based LLM response caching (30-50% faster)
-    - **Rate Limiting**: Per-endpoint rate limiting with sliding window
-    - **Circuit Breakers**: Prevent cascading failures
-    - **Request Validation**: Automatic size and format validation
-    - **Correlation IDs**: Request tracing across services
-    - **Health Monitoring**: Component-level health checks
-    
-    ## Performance
-    - Cache hits: <5ms (vs 2000ms)
-    - Rate limiting overhead: ~2ms
-    - Request validation: <1ms
-    
-    ## Project Creator
-    Herman Swanepoel
-    """,
+    description=API_DESCRIPTION,
     version="1.0.0",
     lifespan=lifespan,
     docs_url="/docs",
@@ -164,11 +156,21 @@ async def health_check():
         "components": {},
     }
 
+    if container is None:
+        health_status["components"]["redis"] = "disabled"
+        health_status["components"]["cache"] = {"enabled": False}
+        return health_status
+
     try:
-        redis = await container.redis_client()
+        redis = container.redis_client()
+        if inspect.isawaitable(redis):
+            redis = await cast(Awaitable[Any], redis)
+
         if redis:
             try:
-                await redis.ping()
+                ping_result = redis.ping()
+                if inspect.isawaitable(ping_result):
+                    await ping_result
                 health_status["components"]["redis"] = "healthy"
             except Exception:
                 health_status["components"]["redis"] = "unhealthy"
@@ -190,8 +192,11 @@ async def health_check():
 @app.websocket("/ws/{client_id}")
 async def websocket_endpoint(websocket: WebSocket, client_id: str):
     """WebSocket endpoint for real-time communication"""
+    connected = False
+
     try:
         await connection_manager.connect(websocket, client_id)
+        connected = True
         logger.info("websocket_connected", client_id=client_id)
 
         # Send welcome message
@@ -209,6 +214,8 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
     except Exception as e:
         logger.error("websocket_connection_failed", client_id=client_id, error=str(e))
         return
+
+    disconnect_reason = "unknown"
 
     try:
         # Message handling loop
@@ -237,6 +244,25 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
                         client_id,
                     )
 
+            except WebSocketDisconnect:
+                disconnect_reason = "client_disconnected"
+                break
+            except RuntimeError as runtime_error:
+                message = str(runtime_error).lower()
+                disconnect_error = "disconnect message" in message
+                receive_after_disconnect = "receive" in message and "disconnect" in message
+
+                if disconnect_error or receive_after_disconnect:
+                    # Treat as clean disconnect without bubbling an exception to uvicorn
+                    disconnect_reason = "client_runtime_disconnect"
+                    logger.info(
+                        "websocket_receive_after_disconnect",
+                        client_id=client_id,
+                        error=str(runtime_error),
+                    )
+                    break
+
+                raise
             except ValidationError as e:
                 logger.error("validation_error", client_id=client_id, error=str(e))
                 await connection_manager.send_personal_message(
@@ -256,53 +282,68 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
                     client_id,
                 )
 
-    except WebSocketDisconnect:
-        logger.info("client_disconnected", client_id=client_id)
-        await connection_manager.disconnect(client_id)
     except Exception as e:
         logger.error("websocket_error", client_id=client_id, error=str(e))
-        await connection_manager.disconnect(client_id)
+        disconnect_reason = "server_error"
+    finally:
+        if connected:
+            logger.info("client_disconnected", client_id=client_id, reason=disconnect_reason)
+            await connection_manager.disconnect(client_id)
 
 
 async def handle_task_request(client_id: str, payload: Dict):
     """Handle task request from client"""
     try:
-        task = Task(**payload)
-        logger.info("task_processing", task_id=task.id, task_type=task.type, client_id=client_id)
+        request_payload = TaskRequestPayload(**payload)
+        logger.info(
+            "task_processing",
+            task_id=request_payload.id,
+            task_type=request_payload.type,
+            client_id=client_id,
+        )
 
         await connection_manager.send_personal_message(
             {
                 "type": "task_acknowledged",
-                "payload": {
-                    "task_id": task.id,
-                    "status": "received",
-                    "message": "Task received and queued for processing",
-                },
+                "payload": TaskAcceptedPayload(task_id=request_payload.id).model_dump(),
             },
             client_id,
         )
 
-        await asyncio.sleep(0.1)
-
-        await connection_manager.send_personal_message(
-            {
-                "type": "agent_response",
-                "payload": {
-                    "task_id": task.id,
-                    "agent_id": "mock_agent",
-                    "agent_name": "Mock Agent",
-                    "suggestions": [],
-                    "confidence": 0.0,
-                    "reasoning": "Agent orchestration not yet implemented",
+        if container is None:
+            logger.error("orchestrator_unavailable", client_id=client_id)
+            await connection_manager.send_personal_message(
+                {
+                    "type": "error",
+                    "payload": {
+                        "message": "Task orchestrator unavailable",
+                        "details": "Service container not initialized",
+                    },
                 },
-            },
-            client_id,
-        )
+                client_id,
+            )
+        else:
+            orchestrator = container.task_orchestrator()
+            result: TaskSessionResult = await orchestrator.execute(request_payload)
+
+            await connection_manager.send_personal_message(
+                {
+                    "type": "agent_response",
+                    "payload": result.model_dump(),
+                },
+                client_id,
+            )
 
     except ValidationError as e:
         logger.error("invalid_task_payload", client_id=client_id, error=str(e))
         await connection_manager.send_personal_message(
-            {"type": "error", "payload": {"message": "Invalid task format", "details": str(e)}},
+            {
+                "type": "error",
+                "payload": {
+                    "message": "Invalid task format",
+                    "details": str(e),
+                },
+            },
             client_id,
         )
 
@@ -344,6 +385,10 @@ if __name__ == "__main__":
 # Note: This needs to be done after rate_limiter is initialized in lifespan
 @app.on_event("startup")
 async def configure_rate_limiting():
+    if container is None:
+        logger.warning("rate_limiter_unavailable", reason="container_not_initialized")
+        return
+
     limiter = container.rate_limiter()
     if limiter._enabled:
         app.add_middleware(RateLimitMiddleware, rate_limiter=limiter, enabled=True)

@@ -263,6 +263,76 @@ async def analyze_code(request: AnalyzeRequest):
     return result
 ```
 
+### Configuring Cloud LLM Providers
+
+The backend can defer to OpenAI or Anthropic when Ollama is unavailable or when a cloud-only model is requested. Keep these prerequisites in mind before enabling the fallback:
+
+- Install the optional SDKs in the backend virtual environment:
+
+    ```bash
+    pip install openai anthropic
+    ```
+
+- Set the relevant API keys in `backend/.env` (lines are present but empty by default):
+
+    ```env
+    OPENAI_API_KEY=sk-...
+    ANTHROPIC_API_KEY=...
+    ```
+
+- When instantiating `LLMManager`, pass `allow_cloud=True` and the desired `LLMProvider` (`openai` or `anthropic`). Without this flag, any remote execution attempt raises `LLMError`.
+- The manager runs all prompts through `PrivacyManager` before dispatching them to the cloud. Inputs containing email addresses, phone numbers, secrets, or token-like substrings are blocked and logged. Sanitised prompts replace sensitive values with `[REDACTED]` markers.
+- Responses are cached under the selected provider so Ollama and cloud completions maintain independent cache entries.
+
+#### Verifying Cloud Connectivity
+
+With credentials in place, you can validate the integration manually:
+
+1. Run the targeted unit tests to ensure local mocking still succeeds:
+
+    ```bash
+    pytest backend/tests/unit/test_services_critical.py -k cloud -v
+    ```
+
+2. Exercise the real API with a short Python snippet (replace `provider` and `prompt` as needed):
+
+    ```python
+    import asyncio
+    import os
+
+    from src.services.llm_manager import LLMManager, LLMProvider
+
+
+    async def main() -> None:
+        manager = LLMManager(
+            provider=LLMProvider.OPENAI,
+            model="gpt-4o-mini",
+            api_key=os.environ["OPENAI_API_KEY"],
+            allow_cloud=True,
+        )
+
+        print(
+            await manager.generate(
+                "Say hello from the integration test.",
+                temperature=0.2,
+                max_tokens=60,
+            )
+        )
+
+
+    asyncio.run(main())
+    ```
+
+3. The `health_check` coroutine reaches out to the cloud provider client. Invoke it from a REPL or sanity-check it inside a monitoring task to confirm the SDK is correctly initialised.
+
+4. Example output from the live validation run (gpt-4o-mini, 2025-10-19):
+
+    ```text
+    The cloud fallback test has been successfully completed, confirming that all systems functioned as intended during the transition. We are now fully operational with the backup infrastructure in place.
+    ```
+
+> **Note:** Anthropic parity is optional. If your deployment does not provision `ANTHROPIC_API_KEY`, the Claude provider will remain inactive and `LLMManager` will continue operating with Ollama/OpenAI only. To enable Anthropic later, install the `anthropic` package, export the key, and rerun the smoke snippet above using `LLMProvider.ANTHROPIC`.
+
 ---
 
 ## 🤖 Creating Custom Agents
@@ -497,12 +567,14 @@ wsClient.on('error', (error) => {
 ### Code Style
 
 **TypeScript:**
+
 - Use ESLint configuration
 - Follow VS Code extension guidelines
 - Use async/await for promises
 - Add JSDoc comments
 
 **Python:**
+
 - Follow PEP 8
 - Use type hints
 - Add docstrings (Google style)
@@ -585,7 +657,8 @@ except SpecificException as e:
 
 ### REST Endpoints
 
-**POST /api/analyze**
+#### POST /api/analyze
+
 ```python
 Request:
 {
@@ -613,7 +686,7 @@ Response:
 
 ### Commit Message Format
 
-```
+```text
 type(scope): subject
 
 body
@@ -628,4 +701,3 @@ Types: `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`
 **Project Creator:** Herman Swanepoel  
 **Last Updated:** 2025-10-13  
 **Version:** 1.0.0
-

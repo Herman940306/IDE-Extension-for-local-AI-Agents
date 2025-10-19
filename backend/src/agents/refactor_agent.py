@@ -524,15 +524,30 @@ class RefactorAgent(AgentAdapter):
                     magic_numbers[value] = []
                 magic_numbers[value].append(node.lineno)
 
-        # Suggest constants for numbers used multiple times
+        # Suggest constants for numbers used multiple times or medium-risk single occurrences
         for value, lines in magic_numbers.items():
-            if len(lines) >= self.MAGIC_NUMBER_MIN_OCCURRENCES:
+            occurrences = len(lines)
+            min_occurrences = self.MAGIC_NUMBER_MIN_OCCURRENCES
+
+            if isinstance(value, float) or abs(value) >= 10:
+                min_occurrences = 1
+
+            if occurrences >= min_occurrences:
+                confidence = (
+                    ConfidenceLevel.HIGH
+                    if occurrences >= self.MAGIC_NUMBER_MIN_OCCURRENCES
+                    else ConfidenceLevel.MEDIUM
+                )
+
                 suggestions.append(
                     Suggestion(
                         id=f"magic_number_{value}_{uuid.uuid4().hex[:8]}",
                         code=f"# Define constant\nMAGIC_VALUE = {value}",
-                        description=f"Magic number {value} appears {len(lines)} times. Consider defining it as a named constant.",
-                        confidence=ConfidenceLevel.HIGH,
+                        description=(
+                            f"Magic number {value} appears {occurrences} time(s). "
+                            "Consider defining it as a named constant."
+                        ),
+                        confidence=confidence,
                         diff=None,
                         applicable_range={
                             "start": {"line": lines[0], "character": 0},
@@ -552,8 +567,13 @@ class RefactorAgent(AgentAdapter):
 
         for node in ast.walk(tree):
             if isinstance(node, ast.If):
-                # Count boolean operators in condition
-                bool_ops = sum(1 for _ in ast.walk(node.test) if isinstance(_, (ast.And, ast.Or)))
+                # Count boolean operations and negations in condition
+                bool_ops = 0
+                for sub_node in ast.walk(node.test):
+                    if isinstance(sub_node, ast.BoolOp):
+                        bool_ops += max(len(getattr(sub_node, "values", [])) - 1, 1)
+                    if isinstance(sub_node, ast.UnaryOp) and isinstance(sub_node.op, ast.Not):
+                        bool_ops += 1
 
                 if bool_ops >= self.COMPLEX_CONDITIONAL_THRESHOLD:
                     condition_line = lines[node.lineno - 1] if node.lineno <= len(lines) else ""
@@ -562,7 +582,10 @@ class RefactorAgent(AgentAdapter):
                         Suggestion(
                             id=f"complex_conditional_{node.lineno}_{uuid.uuid4().hex[:8]}",
                             code=condition_line.strip(),
-                            description=f"Complex conditional with {bool_ops} boolean operators. Consider extracting into a well-named boolean variable or method.",
+                            description=(
+                                f"Complex conditional with {bool_ops} boolean operators. "
+                                "Consider extracting into a well-named boolean variable or method."
+                            ),
                             confidence=ConfidenceLevel.MEDIUM,
                             diff=None,
                             applicable_range={
@@ -704,7 +727,10 @@ class RefactorAgent(AgentAdapter):
             # Generate LLM response
             response = await self.llm_manager.generate(
                 prompt=prompt,
-                system_prompt="You are an expert code refactoring assistant. Provide concise, actionable refactoring suggestions.",
+                system_prompt=(
+                    "You are an expert code refactoring assistant. "
+                    "Provide concise, actionable refactoring suggestions."
+                ),
                 temperature=0.3,  # Lower temperature for more focused suggestions
                 max_tokens=500,
             )
@@ -811,7 +837,10 @@ REASON: [why this improves the code]
         if not suggestions:
             return "No refactoring opportunities detected. Code appears to follow best practices."
 
-        reasoning = f"Analyzed {context.language} code and found {len(suggestions)} refactoring opportunities:\n"
+        reasoning = (
+            f"Analyzed {context.language} code and found "
+            f"{len(suggestions)} refactoring opportunities:\n"
+        )
 
         # Summarize by confidence level
         high_conf = sum(1 for s in suggestions if s.confidence == ConfidenceLevel.HIGH)

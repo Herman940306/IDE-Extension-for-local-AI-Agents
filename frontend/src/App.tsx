@@ -36,26 +36,35 @@ function App() {
             setChatHistory(JSON.parse(saved));
         }
 
-        wsService.connect()
-            .then(() => {
-                setConnected(true);
-                wsService.on('agent_response', (payload) => {
-                    const newMsg = {
-                        role: 'assistant' as const,
-                        content: payload.reasoning || 'Response received',
-                        timestamp: Date.now()
-                    };
-                    setMessages(prev => {
-                        const updated = [...prev, newMsg];
-                        saveCurrentChat(updated);
-                        return updated;
-                    });
-                    setIsLoading(false);
-                });
-            })
-            .catch(() => setConnected(false));
+        const handleConnectionChange = (status: boolean) => {
+            setConnected(status);
+            if (!status) {
+                setIsLoading(false);
+            }
+        };
 
-        return () => wsService.disconnect();
+        wsService.subscribeConnectionChange(handleConnectionChange);
+
+        wsService.on('agent_response', (payload) => {
+            const newMsg = {
+                role: 'assistant' as const,
+                content: payload.reasoning || 'Response received',
+                timestamp: Date.now()
+            };
+            setMessages(prev => {
+                const updated = [...prev, newMsg];
+                saveCurrentChat(updated);
+                return updated;
+            });
+            setIsLoading(false);
+        });
+
+        wsService.connect().catch(() => setConnected(false));
+
+        return () => {
+            wsService.unsubscribeConnectionChange(handleConnectionChange);
+            wsService.disconnect();
+        };
     }, []);
 
     const saveCurrentChat = (msgs: Message[]) => {
@@ -138,6 +147,7 @@ function App() {
             payload: {
                 id: `task-${Date.now()}`,
                 type: 'code_generation',
+                content: input,
                 context: {
                     description: input,
                     mode: mode
@@ -246,11 +256,10 @@ function App() {
                         <button className="attach-btn">+</button>
                         <input
                             type="text"
-                            placeholder="Ask anything"
+                            placeholder={connected ? 'Ask anything' : 'Connecting to backend...'}
                             value={input}
                             onChange={(e) => setInput(e.target.value)}
                             onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-                            disabled={!connected}
                         />
                         <button className="voice-btn">🎤</button>
                         <button

@@ -4,11 +4,11 @@ Project Creator: Herman Swanepoel
 """
 
 from dependency_injector import containers, providers
-
 from src.core.config import get_settings
 from src.core.connection_pool import RedisConnectionPool
 from src.services.rate_limiter import RateLimiter
 from src.services.response_cache import ResponseCache
+from src.services.task_orchestrator import TaskOrchestrator
 
 
 class Container(containers.DeclarativeContainer):
@@ -42,3 +42,5 @@ class Container(containers.DeclarativeContainer):
         default_limit=config.provided.rate_limit.requests_per_minute,
         default_window=60,
     )
+
+    task_orchestrator = providers.Singleton(TaskOrchestrator)

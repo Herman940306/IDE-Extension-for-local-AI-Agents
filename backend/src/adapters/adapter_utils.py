@@ -10,10 +10,12 @@ import asyncio
 import logging
 import random
 import time
+import uuid
 from datetime import datetime
 from functools import wraps
 from typing import Any, Callable, Dict, List, Optional
 
+from src.models import ConfidenceLevel
 from src.utils.exceptions import ValidationException
 
 logger = logging.getLogger(__name__)
@@ -25,26 +27,20 @@ class AdapterExceptions:
     class AdapterError(Exception):
         """Base exception for all adapter errors"""
 
-
     class AdapterInitializationError(AdapterError):
         """Raised when adapter initialization fails"""
-
 
     class AdapterExecutionError(AdapterError):
         """Raised when adapter execution fails"""
 
-
     class AdapterTimeoutError(AdapterError):
         """Raised when adapter operation times out"""
-
 
     class AdapterConnectionError(AdapterError):
         """Raised when adapter connection fails"""
 
-
     class AdapterAuthenticationError(AdapterError):
         """Raised when adapter authentication fails"""
-
 
 
 class AdapterUtils:
@@ -184,6 +180,20 @@ class AdapterUtils:
             return output
 
         return output[:max_length] + "..."
+
+    @staticmethod
+    def generate_suggestion_id(prefix: str = "sugg") -> str:
+        """Generate a short unique identifier for suggestions."""
+        return f"{prefix}-{uuid.uuid4().hex[:8]}"
+
+    @staticmethod
+    def map_confidence_score(score: float) -> ConfidenceLevel:
+        """Map a numeric score to a discrete confidence level."""
+        if score >= 0.75:
+            return ConfidenceLevel.HIGH
+        if score >= 0.4:
+            return ConfidenceLevel.MEDIUM
+        return ConfidenceLevel.LOW
 
     @staticmethod
     def calculate_step_success_rate(steps: List[Dict[str, Any]]) -> float:
