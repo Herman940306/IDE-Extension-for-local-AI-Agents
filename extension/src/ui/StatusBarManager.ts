@@ -80,6 +80,11 @@ export class StatusBarManager {
             this.statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.warningBackground');
             this.statusBarItem.color = new vscode.ThemeColor('statusBarItem.warningForeground');
         }
+
+        this.statusBarItem.accessibilityInformation = {
+            label: this.getStatusAccessibilityLabel(isConnected),
+            role: 'button'
+        };
     }
 
     /**
@@ -88,11 +93,16 @@ export class StatusBarManager {
     private updateSuggestionStats() {
         if (!this.inlineSuggestionProvider) {
             this.suggestionStatsItem.text = '$(lightbulb) --';
+            this.suggestionStatsItem.accessibilityInformation = {
+                label: 'AI suggestion statistics unavailable. Inline suggestions not active.',
+                role: 'button'
+            };
             return;
         }
 
         const stats = this.inlineSuggestionProvider.getStatistics();
         const acceptanceRate = Math.round(stats.acceptanceRate * 100);
+        const cacheHitRatePercent = Math.round((stats.cacheHitRate || 0) * 100);
 
         if (stats.generated === 0) {
             this.suggestionStatsItem.text = '$(lightbulb) No suggestions yet';
@@ -106,7 +116,12 @@ export class StatusBarManager {
             `Accepted: ${stats.accepted}\n` +
             `Rejected: ${stats.rejected}\n` +
             `Acceptance Rate: ${acceptanceRate}%\n` +
-            `Cache Hit Rate: ${Math.round(stats.cacheHitRate * 100)}%`;
+            `Cache Hit Rate: ${cacheHitRatePercent}%`;
+
+        this.suggestionStatsItem.accessibilityInformation = {
+            label: this.getSuggestionAccessibilityLabel(stats.generated, stats.accepted, stats.rejected, acceptanceRate, stats.cacheHitRate),
+            role: 'button'
+        };
     }
 
     /**
@@ -209,5 +224,26 @@ export class StatusBarManager {
         }
         this.statusBarItem.dispose();
         this.suggestionStatsItem.dispose();
+    }
+
+    private getStatusAccessibilityLabel(isConnected: boolean): string {
+        return isConnected
+            ? 'Enterprise AI Agents backend connected. Open quick actions to interact with agents.'
+            : 'Enterprise AI Agents backend offline. Open quick actions for troubleshooting or offline actions.';
+    }
+
+    private getSuggestionAccessibilityLabel(
+        generated: number,
+        accepted: number,
+        rejected: number,
+        acceptanceRate: number,
+        cacheHitRate: number | undefined
+    ): string {
+        if (generated === 0) {
+            return 'AI suggestion statistics. No suggestions generated yet.';
+        }
+
+        const cachePercent = Math.round((cacheHitRate || 0) * 100);
+        return `AI suggestion statistics. ${accepted} accepted, ${rejected} rejected, out of ${generated} suggestions. Acceptance rate ${acceptanceRate} percent. Cache hit rate ${cachePercent} percent.`;
     }
 }

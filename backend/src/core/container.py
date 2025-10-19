@@ -115,8 +115,8 @@ class Container(containers.DeclarativeContainer):
     )
 
     llm_provider = providers.Callable(
-        lambda value: _resolve_llm_provider(value),
-        config.provided.llm.provider,
+        lambda settings: _resolve_llm_provider(settings.llm.provider),
+        config,
     )
 
     llm_manager = providers.Singleton(
@@ -131,8 +131,8 @@ class Container(containers.DeclarativeContainer):
     )
 
     memory_backend = providers.Callable(
-        lambda value: _resolve_storage_backend(value),
-        config.provided.memory.backend,
+        lambda settings: _resolve_storage_backend(settings.memory.backend),
+        config,
     )
 
     memory_config = providers.Singleton(
@@ -170,8 +170,8 @@ class Container(containers.DeclarativeContainer):
     mode_manager = providers.Singleton(
         ModeManager,
         default_mode=providers.Callable(
-            lambda value: _resolve_operation_mode(value),
-            config.provided.mode.default_mode,
+            lambda settings: _resolve_operation_mode(settings.mode.default_mode),
+            config,
         ),
     )
 

@@ -1,0 +1,52 @@
+groups:
+  - name: auraia-availability
+    rules:
+      - alert: AuraIABackendDown
+        expr: up{job="auraia-backend"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          service: auraia-backend
+        annotations:
+          summary: AuraIA backend is not responding to Prometheus scrapes
+          description: |
+            The auraia-backend target has returned up=0 for more than two minutes.
+            Check the container logs, recent deployments, and upstream dependencies.
+
+      - alert: AuraIARedisDown
+        expr: up{job="auraia-backend", instance=~"redis:.*"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          service: auraia-redis
+        annotations:
+          summary: Redis cache endpoint is unreachable from Prometheus
+          description: |
+            Prometheus cannot scrape the Redis exporter target. Validate that the Redis
+            container or managed instance is online and that network policies allow access.
+
+      - alert: AuraIAPrometheusTargetMissing
+        expr: absent(up{job="auraia-backend"})
+        for: 1m
+        labels:
+          severity: warning
+          service: prometheus
+        annotations:
+          summary: Prometheus cannot find the auraia-backend scrape target
+          description: |
+            The auraia-backend job disappeared from the Prometheus target list. Check service discovery,
+            container names, and networking between Prometheus and the backend service.
+
+  - name: auraia-performance
+    rules:
+      - alert: AuraIABackendHighErrorRate
+        expr: increase(fastapi_requests_total{status=~"5.."}[5m]) / ignoring(status) increase(fastapi_requests_total[5m]) > 0.05
+        for: 10m
+        labels:
+          severity: warning
+          service: auraia-backend
+        annotations:
+          summary: Backend HTTP 5xx error rate exceeded 5% in the last 10 minutes
+          description: |
+            Investigate upstream LLM providers, Redis availability, and recent deployments. Review Grafana panels
+            for latency spikes and correlate with application logs.

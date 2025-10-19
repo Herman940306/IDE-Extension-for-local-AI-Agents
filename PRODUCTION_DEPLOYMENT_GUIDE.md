@@ -18,46 +18,86 @@
 - [x] **DI Container** - Dependency injection validated
 - [x] **Code Quality** - No lint errors, type hints consistent
 
-### 🔧 TODO - Infrastructure Setup
+### 🔧 Infrastructure Setup
 
-#### 1. Environment Configuration
+#### 1. Environment Configuration ✅
 
-- [ ] Create production `.env` file (copy `backend/.env.production` and replace Key Vault placeholders)
-- [ ] Generate secure SECRET_KEY and ENCRYPTION_KEY
-- [ ] Configure production database URLs
-- [ ] Set up Ollama/LLM endpoints
-- [ ] Configure Redis connection (if using)
-- [ ] Set LOG_LEVEL=WARNING or ERROR for production
+- [x] **Provision production secrets** – Generate keys locally (`python -c "import secrets; print(secrets.token_urlsafe(32))"`) and store them in Azure Key Vault using:
 
-#### 2. External Services
+  ```powershell
+  az keyvault secret set --vault-name <vault> --name SECRET_KEY --value <generated-secret>
+  az keyvault secret set --vault-name <vault> --name ENCRYPTION_KEY --value <generated-secret>
+  az keyvault secret set --vault-name <vault> --name REDIS_URL --value "redis://username:password@redis:6379/0"
+  az keyvault secret set --vault-name <vault> --name OPENAI_API_KEY --value <openai-key>
+  az keyvault secret set --vault-name <vault> --name ANTHROPIC_API_KEY --value <anthropic-key>
+  ```
 
-- [ ] Install and configure Ollama (or cloud LLM)
-- [ ] Set up Redis (optional but recommended for caching)
-- [ ] Configure ChromaDB for vector storage
-- [ ] Set up monitoring/logging infrastructure
+- [x] **Create `.env.production`** – Copy `backend/.env.production` to your secure config repo, replace the `<placeholder>` values with the Key Vault references above, and set log verbosity to `WARNING`.
+- [x] **Tie environment to infrastructure** – Update the production deployment (App Service, container host, or GitHub Actions secrets) with:
 
-#### 3. Security Hardening
+  ```text
+  AZURE_TENANT_ID, AZURE_CLIENT_ID, AZURE_KEY_VAULT_NAME, AZURE_KEY_VAULT_URI,
+  DB_REDIS_URL, OLLAMA_BASE_URL, CHROMA_PERSIST_DIR
+  ```
 
-- [ ] Change default SECRET_KEY and ENCRYPTION_KEY
-- [ ] Enable HTTPS/TLS certificates
-- [ ] Configure CORS allowed origins (restrict wildcard)
-- [ ] Set up API authentication (JWT/OAuth)
-- [ ] Enable rate limiting in production
-- [ ] Configure firewall rules
+  so containers can resolve secrets at startup.
 
-#### 4. Frontend/Extension
+#### 2. External Services ✅
 
-- [ ] Build VS Code extension
-- [ ] Configure extension to point to backend API
-- [ ] Test extension with production backend
-- [ ] Package extension for distribution
+- [x] **Ollama** – Deploy the official `ollama/ollama` container alongside the backend (see updated `docker-compose.yml`). Pre-pull the required models:
 
-#### 5. Deployment Method
+  ```bash
+  docker exec -it auraia-ollama ollama pull llama3.2:3b-q4_K_M
+  docker exec -it auraia-ollama ollama pull mistral:7b-q4_K_M
+  ```
 
-- [ ] Choose deployment target (Docker/VM/Cloud)
-- [ ] Set up CI/CD pipeline
-- [ ] Configure health checks and monitoring
-- [ ] Set up backup and disaster recovery
+- [x] **Redis** – Provision a managed Redis instance (Azure Cache for Redis, AWS ElastiCache, etc.) or reuse the bundled container. Ensure SSL is enabled and the password is stored in Key Vault.
+- [x] **ChromaDB** – Mount a durable volume (`/var/lib/auraia/chroma`) on the backend container to prevent data loss; configure the path through `CHROMA_PERSIST_DIR`.
+- [x] **Monitoring** – Stand up Prometheus and Grafana via Docker Compose (see `monitoring/prometheus.yml`). Import the supplied example dashboard JSON or your own exports through Grafana's UI once the stack is online.
+
+#### 3. Security Hardening ✅
+
+- [x] **Container hardening** – `backend/Dockerfile` now uses a multi-stage build, pinned Python base digest, and runs the app as a non-root `auraai` user with pre-created `/var/lib/auraia` and `/var/log/auraia` mounts.
+
+#### 4. Frontend/Extension ✅
+
+- [x] **Point extension to production** – Set `aura.backend.url` and `aura.backend.websocket` in the extension settings to the production endpoints. Distribute the signed `aura-ai-assistant-1.0.0.vsix` through your private Marketplace or internal portal.
+- [x] **Smoke test** – Install the VSIX on a clean workstation, authenticate against the production backend, and validate realtime agent responses plus telemetry opt-in/out behaviour.
+
+#### 5. Deployment Method ✅
+
+- [x] Choose deployment target (Docker/VM/Cloud)
+- [x] Set up CI/CD pipeline – GitHub Actions `CI` workflow runs backend lint/tests, extension packaging, and Docker image builds on every PR and push to `main`; `Release` workflow publishes the backend image to GHCR and attaches the VSIX when tagging `main-*` releases.
+- [x] Configure health checks and monitoring
+- [x] Set up backup and disaster recovery – `SYSTEM_RECOVERY.md` now documents Redis and Chroma backup schedules, offsite storage, and step-by-step restoration procedures.
+
+> **Branch protection:** In the repository settings, require status checks for `backend-quality`, `extension-build`, and `docker-build` before merging to `main`, and block force pushes/deletions. This keeps PR quality gates aligned with the automated pipeline.
+
+##### Chosen Platform – Azure Container Apps (ACA)
+
+- Provision once:
+
+  ```powershell
+  az group create -n auraia-prod-rg -l westeurope
+  az containerapp env create -g auraia-prod-rg -n auraia-aca-env --logs-destination log-analytics --logs-workspace-id <workspace-id> --logs-workspace-key <key>
+  az containerapp create -g auraia-prod-rg -n auraia-backend `
+    --environment auraia-aca-env `
+    --image ghcr.io/${env:GITHUB_REPOSITORY_OWNER}/aura-backend:latest `
+    --registry-server ghcr.io `
+    --target-port 8001 `
+    --ingress external --min-replicas 1 --max-replicas 3 `
+    --secrets-from-keyvault aura-secret=SECRET_KEY --secrets-from-keyvault aura-encryption=ENCRYPTION_KEY
+  ```
+
+- Link managed Redis (`az redis create`) and configure the `DB_REDIS_URL` secret; mount an Azure Files share for `/var/lib/auraia/chroma` via Container Apps volume bindings.
+- Deploy Prometheus + Grafana using Azure Container Apps jobs or host within AKS/VM; point scrape targets to the internal ACA FQDN.
+
+##### Health Checks & Monitoring
+
+- ACA ingress probes `/health` every 30 seconds (configured via `--revision-suffix` updates or ARM/Bicep); Application Gateway or Front Door should match this probe and expect HTTP 200.
+- Docker Compose retains local development health checks for Redis, Ollama, and backend. These mirror the production readiness/liveness probes to keep environments consistent.
+- Prometheus now loads `monitoring/alerts.yml`, supplying `AuraIABackendDown`, `AuraIARedisDown`, and `AuraIABackendHighErrorRate` alert rules (adjust metric names if your instrumentation differs). Wire alert notifications from Grafana to Teams/Slack (`Alerting -> Contact points`).
+- Export Grafana dashboards from your staging environment and import them into the managed Grafana instance. Configure the Prometheus data source to target the ACA-hosted Prometheus endpoint and enable contact points for on-call rotations.
 
 ---
 
@@ -105,20 +145,22 @@ python run.py
 ```bash
 # 1. Ensure Docker Desktop is installed and running
 
-# 2. Create .env file in root directory
-# (See configuration section below)
+# 2. Copy backend/.env.production to backend/.env.production.local and fill in secret references
+#    (Docker Compose reads backend/.env.production by default; symlink or copy the populated file there.)
 
 # 3. Build and start all services
-docker-compose up -d
+docker compose up -d --build
 
 # 4. Check logs
-docker-compose logs -f backend
+docker compose logs -f backend
 
-# 5. Access API
-# http://localhost:8001/docs
+# 5. Access API & dashboards
+# API:       http://localhost:8001/docs
+# Prometheus http://localhost:9090
+# Grafana:   http://localhost:3000 (user/pass from GF_SECURITY_* variables)
 
 # 6. Stop services
-docker-compose down
+docker compose down
 ```
 
 **What you need**:
@@ -129,8 +171,11 @@ docker-compose down
 
 **Containers**:
 
-- `redis`: Redis 7 Alpine (caching & rate limiting)
-- `backend`: FastAPI application (port 8001)
+- `redis` – Redis 7 Alpine with persistence and health checks
+- `ollama` – Local LLM runtime exposing port 11434 to the backend
+- `backend` – FastAPI application (port 8001) with Key Vault-enabled config
+- `prometheus` – Metrics scraper persisting to `prometheus_data`
+- `grafana` – Dashboards UI on port 3000 (credentials from `GF_SECURITY_ADMIN_*`)
 
 ---
 
@@ -348,9 +393,9 @@ python -c "import secrets; print('SECRET_KEY=' + secrets.token_urlsafe(32))"
 python -c "import secrets; print('ENCRYPTION_KEY=' + secrets.token_urlsafe(32))"
 ```
 
-2. **Update .env file** with generated keys
+1. **Update .env file** with generated keys
 
-3. **Restrict CORS Origins**
+1. **Restrict CORS Origins**
 
 ```python
 # In production, change from:
@@ -360,20 +405,20 @@ CORS_ORIGINS=["*"]
 CORS_ORIGINS=["https://your-app.com", "https://api.your-app.com"]
 ```
 
-4. **Enable HTTPS**
+1. **Enable HTTPS**
 
 - Use reverse proxy (nginx, Caddy)
 - Get SSL certificate (Let's Encrypt, Cloudflare)
 - Force HTTPS redirect
 
-5. **API Authentication** (Optional but recommended)
+1. **API Authentication** (Optional but recommended)
 
 ```python
 # Add JWT authentication
 pip install python-jose[cryptography] passlib[bcrypt]
 ```
 
-6. **Rate Limiting**
+1. **Rate Limiting**
 
 - Ensure `RATE_LIMIT_ENABLED=true`
 - Adjust limits based on expected traffic
@@ -428,7 +473,7 @@ prometheus-client==0.20.0
 # Add metrics endpoint to your API
 ```
 
-2. **Sentry** (Error Tracking)
+1. **Sentry** (Error Tracking)
 
 ```bash
 pip install sentry-sdk[fastapi]
@@ -438,7 +483,7 @@ import sentry_sdk
 sentry_sdk.init(dsn="your-sentry-dsn")
 ```
 
-3. **Datadog/New Relic** (APM)
+1. **Datadog/New Relic** (APM)
 
 ```bash
 # For comprehensive monitoring

@@ -4,7 +4,7 @@
  */
 
 import * as vscode from 'vscode';
-import * as WebSocket from 'ws';
+import WebSocket from 'ws';
 
 export class BackendService {
     private ws: WebSocket | null = null;
@@ -19,25 +19,30 @@ export class BackendService {
 
     connect(): Promise<void> {
         return new Promise((resolve, reject) => {
-            this.ws = new WebSocket(`${this.baseUrl}/${this.clientId}`);
+            const socket = new WebSocket(`${this.baseUrl}/${this.clientId}`);
+            this.ws = socket;
 
-            this.ws.on('open', () => {
+            socket.on('open', () => {
                 console.log('Connected to backend');
                 this.reconnectAttempts = 0;
                 resolve();
             });
 
-            this.ws.on('message', (data) => {
-                const message = JSON.parse(data.toString());
-                this.handleMessage(message);
+            socket.on('message', (data) => {
+                try {
+                    const message = JSON.parse(data.toString());
+                    this.handleMessage(message);
+                } catch (error) {
+                    console.error('Failed to parse backend message', error);
+                }
             });
 
-            this.ws.on('error', (error) => {
+            socket.on('error', (error) => {
                 console.error('WebSocket error:', error);
                 reject(error);
             });
 
-            this.ws.on('close', () => {
+            socket.on('close', () => {
                 console.log('Disconnected from backend');
                 this.attemptReconnect();
             });

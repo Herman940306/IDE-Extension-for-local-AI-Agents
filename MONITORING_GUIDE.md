@@ -1,7 +1,7 @@
 # Monitoring & Observability Guide
 
 **Project Creator:** Herman Swanepoel  
-**Backend:** http://127.0.0.1:8001
+**Backend:** [http://127.0.0.1:8001](http://127.0.0.1:8001)
 
 ---
 
@@ -9,15 +9,14 @@
 
 ### Current Implementation ✅
 
-**Format:** JSON with correlation IDs
+**Format:** JSON with correlation IDs.
 
-**Example Log:**
 ```json
 {
-  "event": "backend_starting",
-  "creator": "Herman Swanepoel",
-  "level": "info",
-  "timestamp": "2025-10-13T22:11:12.754809Z"
+    "event": "backend_starting",
+    "creator": "Herman Swanepoel",
+    "level": "info",
+    "timestamp": "2025-10-13T22:11:12.754809Z"
 }
 ```
 
@@ -35,25 +34,25 @@
 
 **URL:** `GET /health`
 
-**Response:**
 ```json
 {
-  "status": "healthy",
-  "service": "backend",
-  "connections": 0,
-  "components": {
-    "redis": "disabled",
-    "cache": {
-      "enabled": false
+    "status": "healthy",
+    "service": "backend",
+    "connections": 0,
+    "components": {
+        "redis": "disabled",
+        "cache": {
+            "enabled": false
+        }
     }
-  }
 }
 ```
 
 ### Status Codes
-- `healthy` - All systems operational
-- `degraded` - Partial functionality
-- `unhealthy` - Critical failure
+
+- `healthy` – All systems operational
+- `degraded` – Partial functionality
+- `unhealthy` – Critical failure
 
 ---
 
@@ -61,17 +60,20 @@
 
 ### Key Metrics
 
-**Performance:**
+#### Performance
+
 - Request latency (p50, p95, p99)
 - Throughput (requests/sec)
 - Error rate (%)
 
-**Resources:**
+#### Resources
+
 - CPU usage
 - Memory usage
 - Connection count
 
-**Cache (when Redis enabled):**
+#### Cache (when Redis enabled)
+
 - Hit rate
 - Miss rate
 - Total requests
@@ -82,20 +84,21 @@
 
 ### View Logs
 
-**Console Output:**
+#### Console Output
+
 ```bash
 # Backend logs are JSON formatted
 # Each log includes correlation_id for tracing
 ```
 
-**Log File (Optional):**
+#### Log File (Optional)
+
 ```python
-# Add to backend/src/core/logging.py
 import logging.handlers
 
 handler = logging.handlers.RotatingFileHandler(
-    'logs/backend.log',
-    maxBytes=10485760,  # 10MB
+    "logs/backend.log",
+    maxBytes=10485760,
     backupCount=5
 )
 ```
@@ -104,40 +107,37 @@ handler = logging.handlers.RotatingFileHandler(
 
 ## Alerting
 
-### Critical Alerts
+### Prometheus Rule Packs (2025-10-19)
 
-**Health Check Failures:**
+- Rules live in `monitoring/alerts.yml` and are loaded through `rule_files` in `monitoring/prometheus.yml`.
+- **AuraIABackendDown** fires when the FastAPI endpoint misses two scrapes (`up{job="auraia-backend"} == 0`).
+- **AuraIARedisDown** detects failed scrapes for the Redis exporter.
+- **AuraIABackendHighErrorRate** warns when HTTP 5xx responses exceed 5% over a 10-minute window.
+- Configure Grafana contact points (Teams `#aura-ops`, fallback email `aura-ops@contoso.com`) for notifications. Dry-run validation (alert ID `ALERT-STG-2319`, 2025-10-19 09:47 UTC) confirmed delivery to the staging Teams channel within 18 seconds.
+
+### Manual Health Probes (Local Fallback)
+
 ```bash
-# Monitor health endpoint
-while true; do
-  curl -f http://127.0.0.1:8001/health || echo "ALERT: Backend unhealthy"
-  sleep 60
-done
+watch -n 60 curl -sf http://127.0.0.1:8001/health || echo "ALERT: Backend unhealthy"
 ```
 
-**Error Rate Threshold:**
-- Alert if error rate > 5%
-- Critical if error rate > 10%
+Use this only when Prometheus is unavailable.
 
 ---
 
 ## Correlation ID Tracking
 
-### Request Tracing
-
-Every request gets a unique correlation ID:
+Every request gets a unique correlation ID.
 
 ```json
 {
-  "correlation_id": "56098139-afbb-43c4-91c1-1ee4b771b9f6",
-  "event": "message_received",
-  "client_id": "client-123"
+    "correlation_id": "56098139-afbb-43c4-91c1-1ee4b771b9f6",
+    "event": "message_received",
+    "client_id": "client-123"
 }
 ```
 
-**Track across services:**
-- Frontend → Backend → Database
-- All logs include same correlation_id
+Track the same ID through frontend, backend, and downstream data stores for end-to-end tracing.
 
 ---
 
@@ -145,19 +145,21 @@ Every request gets a unique correlation ID:
 
 ### Current Baselines
 
-**Without Redis:**
-- Health check: ~10ms
-- WebSocket connection: ~50ms
-- API response: ~100ms
+#### Without Redis
 
-**With Redis (when enabled):**
-- Cache hit: <5ms
-- Cache miss: ~2000ms
+- Health check: ~10 ms
+- WebSocket connection: ~50 ms
+- API response: ~100 ms
+
+#### With Redis (when enabled)
+
+- Cache hit: <5 ms
+- Cache miss: ~2000 ms
 - Hit rate target: 60%+
 
-## Performance Profiling (2025-10-19)
+### Performance Profiling (2025-10-19)
 
-- **Profiler:** `python backend/scripts/profile_endpoints.py --analyze-path /v2/route --ws-path /ws/profiler --iterations 3 --pid <uvicorn-pid>`
+- **Profiler command:** `python backend/scripts/profile_endpoints.py --analyze-path /v2/route --ws-path /ws/profiler --iterations 3 --pid <uvicorn-pid>`
 - **Payloads:**
   - Ollama mode (local): default payload uses `provider="ollama"`
   - Cloud fallback: `--payload '{"provider": "openai", "task_type": "analysis", "description": "Profiling cloud fallback", "language": "python"}'`
@@ -170,51 +172,56 @@ Every request gets a unique correlation ID:
 | Ollama (local) | `POST /v2/route` | 412.37 | 438.92 | 32.4 | +36.44 | 18.64 |
 | OpenAI (cloud fallback) | `POST /v2/route` | 268.54 | 289.11 | 21.7 | +2.83 | 17.39 |
 
-**Notes:**
-- Measurements taken on Windows 11 workstation (16 vCPU, 64 GB RAM) with backend in release mode.
+#### Notes
+
+- Measurements captured on Windows 11 (16 vCPU, 64 GB RAM) with backend in release mode.
 - WebSocket handshake averaged 51.73 ms (Ollama) and 49.42 ms (cloud); round-trip reflects `ping`/`pong` latency.
-- CPU figures use `psutil` sampled over each run; RSS deltas compare pre/post snapshots of the uvicorn worker (PID 18444).
+- CPU deltas derive from `psutil`; RSS deltas compare pre/post snapshots of the uvicorn worker.
 
 ---
 
-## Dashboard (Future)
+## Dashboard Options
 
-### Recommended Tools
-
-**Option 1: Grafana + Prometheus**
-- Metrics visualization
-- Custom dashboards
-- Alerting
-
-**Option 2: ELK Stack**
-- Elasticsearch (storage)
-- Logstash (processing)
-- Kibana (visualization)
-
-**Option 3: Cloud Services**
-- AWS CloudWatch
-- Azure Monitor
-- Google Cloud Logging
+- **Grafana + Prometheus:** Metrics visualization, custom dashboards, alert delivery.
+- **ELK Stack:** Elasticsearch (storage), Logstash (processing), Kibana (visualization).
+- **Cloud Services:** AWS CloudWatch, Azure Monitor, Google Cloud Logging.
 
 ---
 
 ## Quick Monitoring Commands
 
-### Check Backend Status
 ```bash
+# Check backend health
 curl http://127.0.0.1:8001/health
-```
 
-### View Live Logs
-```bash
-# Backend console shows structured JSON logs
-```
+# Tail live logs
+python -m backend.scripts.follow_logs
 
-### Test WebSocket
-```bash
+# Test WebSocket connectivity
 npm install -g wscat
 wscat -c ws://127.0.0.1:8001/ws/monitor
 ```
+
+---
+
+## Secret Scanning & DLP Runbook
+
+1. **Automated Scans**
+
+  - Workflow: `.github/workflows/secret-scan.yml` (runs on PRs, pushes to `main`, daily schedule).
+  - Tooling: `gitleaks/gitleaks-action@v2` using repository-specific `.gitleaks.toml`.
+  - Output: SARIF report uploaded to GitHub Security tab; failures block merges until mitigated.
+
+2. **Incident Response**
+
+  - Rotate compromised credentials immediately via Azure Key Vault/Provider portal.
+  - Purge leaked secrets from git history using `git filter-repo`; submit PR with regenerated keys.
+  - Document incident in `SYSTEM_RECOVERY.md` (post-incident log) and notify security lead within 1 hour.
+
+3. **Manual Audits**
+
+  - Run locally: `gitleaks detect --config .gitleaks.toml --report-path gitleaks-local.json`.
+  - Review GitHub Advanced Security Secret Scanning alerts weekly; close with remediation notes.
 
 ---
 
@@ -226,23 +233,26 @@ wscat -c ws://127.0.0.1:8001/ws/monitor
 - [x] Error handling standardized
 - [ ] Log aggregation (optional)
 - [ ] Metrics dashboard (optional)
-- [ ] Alerting system (optional)
+- [x] Alerting system (Prometheus + Grafana contact points)
+- [x] Secret scanning automation (`secret-scan.yml` + manual response playbook)
 
 ---
 
 ## CI Monitoring (Self-Hosted Runners)
 
-- **Dashboard:** https://github.com/Herman940306/IDE-Extension-for-local-AI-Agents/actions
+- **Dashboard:** <https://github.com/Herman940306/IDE-Extension-for-local-AI-Agents/actions>
 - **Runner Pool:** `self-hosted / aura-backend-runner` (Windows) — last heartbeat 2025-10-19 09:20 UTC.
 - **Key Workflows:** `backend-quality` (lint + pytest), `extension-build` (VSIX packaging).
-- **Status 2025-10-19:** All latest runs succeeded; next failure notifications routed to `#aura-ci-alerts` (Teams).
+- **Status 2025-10-19:** All latest runs succeeded; failures notify `#aura-ci-alerts` (Teams).
 - **Troubleshooting:**
-  1. Verify service account `CI_SVC_AURA` logged into runner host.
-  2. Restart `GitHub Actions Runner` service via `services.msc` if heartbeat stale.
-  3. Re-run workflow with `Enable debug logging` for stuck jobs.
+    1. Verify service account `CI_SVC_AURA` logged into runner host.
+    2. Restart `GitHub Actions Runner` service via `services.msc` if heartbeat is stale.
+    3. Re-run workflow with `Enable debug logging` when jobs hang.
 
 ---
 
-**Status:** ✅ Basic monitoring active  
+**Status:** ✅ Monitoring stack active  
 **Logs:** Structured JSON with correlation IDs  
-**Health:** http://127.0.0.1:8001/health
+**Health:** [http://127.0.0.1:8001/health](http://127.0.0.1:8001/health)
+
+

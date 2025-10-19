@@ -4,8 +4,10 @@ Project Creator: Herman Swanepoel
 """
 
 from functools import lru_cache
+from pathlib import Path
 from typing import Optional
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -98,6 +100,14 @@ class ObservabilitySettings(BaseSettings):
     provenance_db_path: str = "./data/provenance.db"
     encryption_key: Optional[str] = None
     telemetry_max_metrics: int = 10000
+
+    @field_validator("trace_log_path", "provenance_db_path", mode="after")
+    @classmethod
+    def _normalize_path(cls, value: str) -> str:
+        """Normalize paths for cross-platform consistency"""
+        if value.startswith("./"):
+            return value
+        return str(Path(value))
 
 
 class PredictiveCacheSettings(BaseSettings):

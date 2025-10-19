@@ -52,7 +52,7 @@ export class AnalyticsService {
     private events: SuggestionEvent[] = [];
     private readonly MAX_EVENTS = 10000;
     private readonly RETENTION_DAYS = 90;
-    private enabled: boolean = true;
+    private enabled: boolean = false;
 
     // Predictive caching
     private cache: Map<string, CacheEntry> = new Map();
@@ -71,16 +71,24 @@ export class AnalyticsService {
     constructor(context: vscode.ExtensionContext) {
         this.context = context;
         this.loadEvents();
-        this.checkOptOut();
+        this.refreshConfiguration();
         this.startCacheCleanup();
     }
 
     /**
      * Check if user has opted out of analytics
      */
-    private checkOptOut() {
+    public refreshConfiguration() {
         const config = vscode.workspace.getConfiguration('enterpriseAI');
-        this.enabled = config.get<boolean>('privacy.allowTelemetry', false);
+        const allowTelemetry = config.get<boolean>('privacy.allowTelemetry', false);
+
+        if (!allowTelemetry && this.events.length > 0) {
+            this.events = [];
+            this.invalidateCache();
+            void this.saveEvents();
+        }
+
+        this.enabled = allowTelemetry;
     }
 
     /**
@@ -412,12 +420,22 @@ export class AnalyticsService {
     /**
      * Enable/disable analytics
      */
-    public setEnabled(enabled: boolean) {
+    public async setEnabled(enabled: boolean, options: { persist?: boolean } = {}) {
         this.enabled = enabled;
+
+        if (!enabled) {
+            this.events = [];
+            this.invalidateCache();
+            await this.saveEvents();
+        }
+
+        if (options.persist === false) {
+            return;
+        }
 
         // Update configuration
         const config = vscode.workspace.getConfiguration('enterpriseAI');
-        config.update('privacy.allowTelemetry', enabled, vscode.ConfigurationTarget.Global);
+        await config.update('privacy.allowTelemetry', enabled, vscode.ConfigurationTarget.Global);
     }
 
     /**

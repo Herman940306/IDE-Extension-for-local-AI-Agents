@@ -18,6 +18,12 @@ npm install
 npm run compile
 ```
 
+To enable live TypeScript rebuilds during development:
+
+```bash
+npm run watch
+```
+
 ## Development
 
 1. Open in VS Code
@@ -33,5 +39,22 @@ npm run compile
 
 ## Requirements
 
-- Backend running: http://127.0.0.1:8001
-- WebSocket: ws://127.0.0.1:8001/ws
+- Backend running: <http://127.0.0.1:8001>
+- WebSocket: `ws://127.0.0.1:8001/ws`
+
+## Packaging
+
+- `npm run package` builds the extension and produces a `.vsix` file in the `extension` directory using the local `vsce` binary.
+- `npm run package:publish` publishes directly to the VS Code Marketplace. Set the `VSCE_PAT` environment variable to a Personal Access Token with the **Marketplace** publish scope before running this command.
+- Both commands run `npm run compile` first, ensuring the TypeScript output is up to date.
+
+## Accessibility
+
+- Status bar items announce connection state and suggestion statistics through screen readers.
+- Agent status tree items expose descriptive labels for status, task counts, success rate, and last activity timestamps.
+
+## Privacy & Telemetry
+
+- Telemetry is **disabled by default**. The extension respects a privacy-first posture.
+- Enable or disable anonymous productivity metrics from VS Code Settings via `enterpriseAI.privacy.allowTelemetry` or run the command `Aura: Toggle Telemetry` from the Command Palette.
+- When disabled, analytics data is neither collected nor stored; toggling the setting immediately clears the in-memory trackers.

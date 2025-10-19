@@ -111,7 +111,7 @@ export class AgentStatusTreeProvider implements vscode.TreeDataProvider<AgentTre
         if (!element) {
             // Root level - show all agents
             const items: AgentTreeItem[] = [];
-            
+
             for (const [id, agent] of this.agents) {
                 items.push(new AgentTreeItem(
                     agent.name,
@@ -121,6 +121,10 @@ export class AgentStatusTreeProvider implements vscode.TreeDataProvider<AgentTre
                         command: 'enterpriseAI.showAgentDetails',
                         title: 'Show Agent Details',
                         arguments: [agent]
+                    },
+                    {
+                        description: this.getStatusDescription(agent.status),
+                        accessibilityLabel: this.buildAgentAccessibilityLabel(agent)
                     }
                 ));
             }
@@ -129,7 +133,7 @@ export class AgentStatusTreeProvider implements vscode.TreeDataProvider<AgentTre
         } else {
             // Show agent details
             const agentId = element.label?.toString().toLowerCase().replace(' agent', '').replace(' ', '_');
-            const agent = Array.from(this.agents.values()).find(a => 
+            const agent = Array.from(this.agents.values()).find(a =>
                 a.name.toLowerCase() === element.label?.toString().toLowerCase()
             );
 
@@ -141,17 +145,29 @@ export class AgentStatusTreeProvider implements vscode.TreeDataProvider<AgentTre
                 new AgentTreeItem(
                     `Status: ${agent.status}`,
                     agent.status,
-                    vscode.TreeItemCollapsibleState.None
+                    vscode.TreeItemCollapsibleState.None,
+                    undefined,
+                    {
+                        accessibilityLabel: `${agent.name} status ${this.getStatusDescription(agent.status)}`
+                    }
                 ),
                 new AgentTreeItem(
                     `Tasks Completed: ${agent.tasksCompleted || 0}`,
                     agent.status,
-                    vscode.TreeItemCollapsibleState.None
+                    vscode.TreeItemCollapsibleState.None,
+                    undefined,
+                    {
+                        accessibilityLabel: `${agent.name} has completed ${agent.tasksCompleted || 0} tasks.`
+                    }
                 ),
                 new AgentTreeItem(
                     `Success Rate: ${Math.round((agent.successRate || 0) * 100)}%`,
                     agent.status,
-                    vscode.TreeItemCollapsibleState.None
+                    vscode.TreeItemCollapsibleState.None,
+                    undefined,
+                    {
+                        accessibilityLabel: `${agent.name} success rate ${Math.round((agent.successRate || 0) * 100)} percent.`
+                    }
                 )
             ];
 
@@ -160,12 +176,37 @@ export class AgentStatusTreeProvider implements vscode.TreeDataProvider<AgentTre
                 details.push(new AgentTreeItem(
                     `Last Activity: ${lastActivityTime}`,
                     agent.status,
-                    vscode.TreeItemCollapsibleState.None
+                    vscode.TreeItemCollapsibleState.None,
+                    undefined,
+                    {
+                        accessibilityLabel: `${agent.name} last activity at ${lastActivityTime}`
+                    }
                 ));
             }
 
             return Promise.resolve(details);
         }
+    }
+
+    private getStatusDescription(status: AgentStatus['status']): string {
+        switch (status) {
+            case 'active':
+                return 'Active';
+            case 'error':
+                return 'Error';
+            case 'offline':
+                return 'Offline';
+            case 'idle':
+            default:
+                return 'Idle';
+        }
+    }
+
+    private buildAgentAccessibilityLabel(agent: AgentStatus): string {
+        const statusDescription = this.getStatusDescription(agent.status);
+        const tasks = agent.tasksCompleted || 0;
+        const successRate = Math.round((agent.successRate || 0) * 100);
+        return `${agent.name}. Status ${statusDescription}. ${tasks} tasks completed. Success rate ${successRate} percent.`;
     }
 }
 
@@ -174,12 +215,21 @@ class AgentTreeItem extends vscode.TreeItem {
         public readonly label: string,
         private status: string,
         public readonly collapsibleState: vscode.TreeItemCollapsibleState,
-        public readonly command?: vscode.Command
+        public readonly command?: vscode.Command,
+        options: {
+            description?: string;
+            tooltip?: string;
+            accessibilityLabel?: string;
+        } = {}
     ) {
         super(label, collapsibleState);
 
-        this.tooltip = `${this.label}`;
+        this.tooltip = options.tooltip || `${this.label}`;
+        this.description = options.description;
         this.iconPath = this.getIcon(status);
+        this.accessibilityInformation = {
+            label: options.accessibilityLabel || this.buildDefaultAccessibilityLabel(options.description)
+        };
     }
 
     private getIcon(status: string): vscode.ThemeIcon {
@@ -195,6 +245,13 @@ class AgentTreeItem extends vscode.TreeItem {
             default:
                 return new vscode.ThemeIcon('circle-outline');
         }
+    }
+
+    private buildDefaultAccessibilityLabel(description?: string): string {
+        if (description) {
+            return `${this.label}, ${description}`;
+        }
+        return `${this.label}`;
     }
 
     contextValue = 'agent';

@@ -4,15 +4,18 @@
  */
 
 import * as vscode from 'vscode';
+import { AnalyticsService } from './services/AnalyticsService';
 import { BackendService } from './services/backendService';
 
 let backendService: BackendService;
 let statusBarItem: vscode.StatusBarItem;
+let analyticsService: AnalyticsService | undefined;
 
 export async function activate(context: vscode.ExtensionContext) {
     console.log('Aura AI Assistant activated');
 
     backendService = new BackendService();
+    analyticsService = new AnalyticsService(context);
 
     try {
         await backendService.connect();
@@ -26,6 +29,38 @@ export async function activate(context: vscode.ExtensionContext) {
     statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
     statusBarItem.show();
     context.subscriptions.push(statusBarItem);
+
+    const telemetryCommand = vscode.commands.registerCommand('enterpriseAI.toggleTelemetry', async () => {
+        if (!analyticsService) {
+            return;
+        }
+
+        const newValue = !analyticsService.isEnabled();
+        await analyticsService.setEnabled(newValue);
+
+        vscode.window.showInformationMessage(
+            newValue
+                ? 'Aura AI telemetry enabled. Anonymous usage metrics will be recorded.'
+                : 'Aura AI telemetry disabled. No anonymous usage metrics will be recorded.'
+        );
+    });
+
+    const configListener = vscode.workspace.onDidChangeConfiguration(event => {
+        if (!analyticsService || !event.affectsConfiguration('enterpriseAI.privacy.allowTelemetry')) {
+            return;
+        }
+
+        const config = vscode.workspace.getConfiguration('enterpriseAI');
+        const enabled = config.get<boolean>('privacy.allowTelemetry', false);
+
+        if (enabled === analyticsService.isEnabled()) {
+            return;
+        }
+
+        void analyticsService.setEnabled(enabled, { persist: false });
+    });
+
+    context.subscriptions.push(telemetryCommand, configListener);
 
     // Commands
     context.subscriptions.push(
@@ -127,5 +162,10 @@ function updateStatusBar(text: string, tooltip: string) {
 export function deactivate() {
     if (backendService) {
         backendService.disconnect();
+    }
+
+    if (analyticsService) {
+        analyticsService.dispose();
+        analyticsService = undefined;
     }
 }

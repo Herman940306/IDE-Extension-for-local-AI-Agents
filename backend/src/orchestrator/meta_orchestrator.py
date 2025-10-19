@@ -227,7 +227,9 @@ class MetaOrchestrator:
             reverse=True,
         )
 
-        return healthy_agents[:2]  # Max 2 agents for multi-agent tasks
+        # Prioritize the leading candidate; additional agents are considered
+        # only when no primary remains healthy (fallback handled separately).
+        return healthy_agents[:1]
 
     async def _execute_single_agent(self, task: Task, agent_name: str) -> AgentResponse:
         """
@@ -288,6 +290,12 @@ class MetaOrchestrator:
 
         if not valid_responses:
             return self._create_fallback_response(task)
+
+        unique_agents = {response.agent_id for response in valid_responses}
+        if len(unique_agents) == 1:
+            # If all successful responses come from the same agent (e.g., a fallback),
+            # prefer returning the agent's own output instead of aggregating.
+            return valid_responses[0]
 
         # Aggregate responses
         return await self._aggregate_responses(valid_responses, task)

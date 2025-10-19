@@ -5,6 +5,25 @@
 
 ---
 
+## Packaging Workflow
+
+The extension repository already contains the compiled TypeScript output configuration and local `@vscode/vsce` tooling. Package or publish from the `extension/` directory using the existing npm scripts:
+
+```bash
+cd extension
+npm install
+npm run package        # generate aura-ai-assistant-x.y.z.vsix
+npm run package:publish # publish to Marketplace (requires VSCE_PAT)
+```
+
+- `npm run package` compiles sources (`npm run compile`) and invokes `vsce package`, emitting a `.vsix` artifact next to `package.json`.
+- `npm run package:publish` targets the Marketplace. Export a `VSCE_PAT` token with the Marketplace `Publish` scope before running the script.
+- To iterate locally during development use `npm run watch` for continuous TypeScript builds while debugging via `F5`.
+
+Accessibility improvements ensure packaged builds expose descriptive labels for the status bar and agent tree view, so screen reader users receive the same telemetry that sighted users do.
+
+---
+
 ## Quick Start
 
 ### 1. Create Extension
