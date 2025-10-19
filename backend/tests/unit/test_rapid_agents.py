@@ -3,7 +3,6 @@ Herman Swanepoel
 """
 
 
-
 class TestAgents:
     def test_bug_agent_import(self):
         from src.agents.bug_agent import BugAgent

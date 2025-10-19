@@ -83,9 +83,9 @@ class VerifierEnsemble:
         result = {
             "valid": is_valid,
             "confidence": final_confidence,
-            "reason": "Passed all verification checks"
-            if is_valid
-            else "Confidence below threshold",
+            "reason": (
+                "Passed all verification checks" if is_valid else "Confidence below threshold"
+            ),
             "details": {"ast": ast_result, "llm_confidence": llm_confidence},
             "stage": "complete",
         }

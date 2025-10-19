@@ -3,7 +3,6 @@ Herman Swanepoel - 2025-10-13
 """
 
 
-
 # Prompt Templates Tests
 class TestPromptTemplates:
     def test_import(self):

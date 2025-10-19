@@ -3,7 +3,6 @@ Herman Swanepoel
 """
 
 
-
 class TestBaseAdapter:
     def test_import(self):
         from src.adapters.base_adapter import AgentAdapter
