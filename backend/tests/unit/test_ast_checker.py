@@ -3,18 +3,17 @@ Unit tests for AST Checker
 Project Creator: Herman Swanepoel
 """
 
-import pytest
 from src.verifier.ast_checker import ASTChecker
 
 
 class TestASTChecker:
     """Test suite for ASTChecker"""
-    
+
     def test_initialization(self):
         """Test AST checker initialization"""
         checker = ASTChecker()
         assert "python" in checker.supported_languages
-    
+
     def test_valid_python_code(self):
         """Test validation of valid Python code"""
         checker = ASTChecker()
@@ -28,7 +27,7 @@ def hello_world():
         assert result["language"] == "python"
         assert "ast_depth" in result
         assert "node_count" in result
-    
+
     def test_invalid_python_code(self):
         """Test validation of invalid Python code"""
         checker = ASTChecker()
@@ -40,16 +39,16 @@ def broken_function(
         assert result["valid"] is False
         assert result["error_type"] == "SyntaxError"
         assert "message" in result
-    
+
     def test_ast_depth_calculation(self):
         """Test AST depth calculation"""
         checker = ASTChecker()
-        
+
         # Simple code (shallow AST)
         simple_code = "x = 1"
         result = checker.validate(simple_code, "python")
         assert result["ast_depth"] < 5
-        
+
         # Complex code (deeper AST)
         complex_code = """
 def outer():
@@ -61,11 +60,11 @@ def outer():
 """
         result = checker.validate(complex_code, "python")
         assert result["ast_depth"] > 5
-    
+
     def test_common_issues_detection(self):
         """Test detection of common code issues"""
         checker = ASTChecker()
-        
+
         # Code with bare except
         code_with_issues = """
 try:
@@ -77,7 +76,7 @@ except:
         assert result["valid"] is True
         assert len(result["issues"]) > 0
         assert any(issue["type"] == "bare_except" for issue in result["issues"])
-    
+
     def test_get_ast_info(self):
         """Test AST information extraction"""
         checker = ASTChecker()
@@ -98,7 +97,7 @@ def standalone_function(x, y):
         assert info["classes"][0]["name"] == "MyClass"
         assert len(info["functions"]) == 1
         assert info["functions"][0]["name"] == "standalone_function"
-    
+
     def test_unsupported_language(self):
         """Test handling of unsupported languages"""
         checker = ASTChecker()

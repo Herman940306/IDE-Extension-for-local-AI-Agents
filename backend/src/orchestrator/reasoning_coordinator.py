@@ -39,7 +39,6 @@ class ReasoningResult(Dict[str, Any]):
     """Result from reasoning coordinator"""
 
 
-
 class ReasoningCoordinator:
     """
     Coordinates dual-process reasoning between System 1 and System 2.

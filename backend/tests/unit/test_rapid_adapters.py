@@ -2,8 +2,6 @@
 Herman Swanepoel
 """
 
-import pytest
-from unittest.mock import Mock
 
 
 class TestBaseAdapter:

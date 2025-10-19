@@ -8,7 +8,6 @@ Target Coverage: 90%
 
 import pytest
 import json
-from unittest.mock import AsyncMock, patch
 from src.services.response_cache import ResponseCache
 
 

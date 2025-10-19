@@ -3,9 +3,17 @@
  * Project Creator: Herman Swanepoel
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import './App.css';
-import { wsService } from './services/websocket';
+import { wsService, type ConnectionState } from './services/websocket';
+import type {
+    ClientMessageMap,
+    ConnectionEstablishedPayload,
+    ErrorPayload,
+    ModeChangedPayload,
+    TaskAcknowledgedPayload,
+    TaskSessionResultPayload
+} from './types/websocket';
 
 interface Message {
     role: 'user' | 'assistant';
@@ -21,13 +29,22 @@ interface ChatSession {
 }
 
 function App() {
-    const [connected, setConnected] = useState(false);
+    const [connectionState, setConnectionState] = useState<ConnectionState>('connecting');
     const [messages, setMessages] = useState<Message[]>([]);
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [chatHistory, setChatHistory] = useState<ChatSession[]>([]);
     const [currentChatId, setCurrentChatId] = useState<string | null>(null);
     const [mode, setMode] = useState<'local' | 'cloud'>('local');
+    const [banner, setBanner] = useState<{ type: 'info' | 'error' | 'warning'; message: string } | null>(null);
+    const [lastPingAt, setLastPingAt] = useState<number | null>(null);
+    const currentChatIdRef = useRef<string | null>(null);
+
+    const connected = connectionState === 'connected';
+
+    useEffect(() => {
+        currentChatIdRef.current = currentChatId;
+    }, [currentChatId]);
 
     useEffect(() => {
         // Load chat history from localStorage
@@ -36,41 +53,94 @@ function App() {
             setChatHistory(JSON.parse(saved));
         }
 
-        const handleConnectionChange = (status: boolean) => {
-            setConnected(status);
-            if (!status) {
+        const handleConnectionChange = (state: ConnectionState) => {
+            setConnectionState(state);
+            if (state !== 'connected') {
                 setIsLoading(false);
+            }
+
+            if (state === 'connecting') {
+                setBanner({ type: 'info', message: 'Connecting to AuraIA backend…' });
+            } else if (state === 'disconnected') {
+                setBanner({ type: 'error', message: 'Connection lost. Attempting to reconnect…' });
             }
         };
 
-        wsService.subscribeConnectionChange(handleConnectionChange);
+        const handleConnectionEstablished = (payload: ConnectionEstablishedPayload) => {
+            setBanner({ type: 'info', message: payload.message });
+        };
 
-        wsService.on('agent_response', (payload) => {
+        const handleTaskAcknowledged = (payload: TaskAcknowledgedPayload) => {
+            setBanner({ type: 'info', message: payload.message });
+        };
+
+        const handleAgentResponse = (payload: TaskSessionResultPayload) => {
+            const summary = payload.reasoning || payload.summary || 'Response received';
             const newMsg = {
                 role: 'assistant' as const,
-                content: payload.reasoning || 'Response received',
+                content: summary,
                 timestamp: Date.now()
             };
+
             setMessages(prev => {
                 const updated = [...prev, newMsg];
                 saveCurrentChat(updated);
                 return updated;
             });
             setIsLoading(false);
-        });
+        };
 
-        wsService.connect().catch(() => setConnected(false));
+        const handleError = (payload: ErrorPayload) => {
+            setBanner({ type: 'error', message: payload.message });
+            setIsLoading(false);
+        };
+
+        const handleModeChanged = (payload: ModeChangedPayload) => {
+            const normalizedMode = payload.mode === 'cloud' ? 'cloud' : 'local';
+            setMode(normalizedMode);
+            setBanner({ type: 'info', message: payload.message });
+        };
+
+        const handlePong = () => {
+            setLastPingAt(Date.now());
+        };
+
+        wsService.subscribeConnectionChange(handleConnectionChange);
+        wsService.on('connection_established', handleConnectionEstablished);
+        wsService.on('task_acknowledged', handleTaskAcknowledged);
+        wsService.on('agent_response', handleAgentResponse);
+        wsService.on('error', handleError);
+        wsService.on('mode_changed', handleModeChanged);
+        wsService.on('pong', handlePong);
+
+        wsService.connect().catch(() => setConnectionState('disconnected'));
 
         return () => {
             wsService.unsubscribeConnectionChange(handleConnectionChange);
+            wsService.off('connection_established', handleConnectionEstablished);
+            wsService.off('task_acknowledged', handleTaskAcknowledged);
+            wsService.off('agent_response', handleAgentResponse);
+            wsService.off('error', handleError);
+            wsService.off('mode_changed', handleModeChanged);
+            wsService.off('pong', handlePong);
             wsService.disconnect();
         };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
+
+    useEffect(() => {
+        if (!banner) {
+            return;
+        }
+        const timer = window.setTimeout(() => setBanner(null), 5000);
+        return () => window.clearTimeout(timer);
+    }, [banner]);
 
     const saveCurrentChat = (msgs: Message[]) => {
         if (msgs.length === 0) return;
 
-        const chatId = currentChatId || `chat-${Date.now()}`;
+        const existingChatId = currentChatIdRef.current || currentChatId;
+        const chatId = existingChatId || `chat-${Date.now()}`;
         const title = msgs[0]?.content.substring(0, 30) + '...' || 'New Chat';
 
         setChatHistory(prev => {
@@ -83,7 +153,10 @@ function App() {
             return updated;
         });
 
-        if (!currentChatId) setCurrentChatId(chatId);
+        if (!existingChatId) {
+            setCurrentChatId(chatId);
+            currentChatIdRef.current = chatId;
+        }
     };
 
     const startNewChat = () => {
@@ -117,13 +190,8 @@ function App() {
         setMode(newMode);
         console.log('🔄 Switching mode to:', newMode);
 
-        if (wsService && connected) {
-            wsService.sendTask({
-                type: 'mode_change',
-                payload: {
-                    mode: newMode
-                }
-            });
+        if (connected) {
+            wsService.changeMode(newMode);
         }
     };
 
@@ -142,22 +210,37 @@ function App() {
             return updated;
         });
 
-        wsService.sendTask({
-            type: 'task_request',
-            payload: {
-                id: `task-${Date.now()}`,
-                type: 'code_generation',
-                content: input,
-                context: {
-                    description: input,
-                    mode: mode
-                }
+        const payload: ClientMessageMap['task_request'] = {
+            id: `task-${Date.now()}`,
+            type: 'code_generation',
+            description: input,
+            content: input,
+            context: {
+                description: input,
+                mode
+            },
+            mode,
+            metadata: {
+                source: 'frontend'
             }
-        });
+        };
+
+        wsService.sendTask(payload);
 
         setInput('');
         setIsLoading(true);
     };
+
+    const connectionLabel = useMemo(() => {
+        switch (connectionState) {
+            case 'connected':
+                return '🟢 Connected';
+            case 'connecting':
+                return '🟡 Connecting…';
+            default:
+                return '🔴 Disconnected';
+        }
+    }, [connectionState]);
 
     return (
         <div className="app">
@@ -203,8 +286,13 @@ function App() {
                 <header className="header">
                     <h1>AuraIA</h1>
                     <div className="header-controls">
-                        <div className="status">
-                            {connected ? '🟢 Connected' : '🔴 Disconnected'}
+                        <div className={`status status-${connectionState}`}>
+                            {connectionLabel}
+                            {lastPingAt && connected ? (
+                                <span className="status-latency" title="Last heartbeat">
+                                    • {new Date(lastPingAt).toLocaleTimeString()}
+                                </span>
+                            ) : null}
                         </div>
                         <div className="mode-toggle">
                             <span style={{ fontSize: '14px', marginRight: '8px' }}>
@@ -222,8 +310,19 @@ function App() {
                     </div>
                 </header>
 
+                {banner ? (
+                    <div className={`status-banner status-${banner.type}`} role="status">
+                        {banner.message}
+                    </div>
+                ) : null}
+
                 <div className="chat-container">
-                    {messages.length === 0 ? (
+                    {!connected ? (
+                        <div className="connection-placeholder" role="alert">
+                            <h2>{connectionState === 'connecting' ? 'Connecting…' : 'Unable to reach backend'}</h2>
+                            <p>We will keep retrying automatically. Please check your backend status.</p>
+                        </div>
+                    ) : messages.length === 0 ? (
                         <div className="welcome">
                             <h2>Ready when you are.</h2>
                         </div>
@@ -256,7 +355,9 @@ function App() {
                         <button className="attach-btn">+</button>
                         <input
                             type="text"
-                            placeholder={connected ? 'Ask anything' : 'Connecting to backend...'}
+                            placeholder={
+                                connected ? 'Ask anything' : connectionState === 'connecting' ? 'Connecting to backend…' : 'Backend unavailable'
+                            }
                             value={input}
                             onChange={(e) => setInput(e.target.value)}
                             onKeyPress={(e) => e.key === 'Enter' && handleSend()}

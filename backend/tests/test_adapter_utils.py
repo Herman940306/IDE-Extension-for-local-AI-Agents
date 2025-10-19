@@ -53,27 +53,21 @@ const y = 2;
     def test_calculate_base_confidence_completed(self):
         """Test confidence calculation for completed task"""
         confidence = AdapterUtils.calculate_base_confidence(
-            status="completed",
-            has_suggestions=True,
-            success_rate=1.0
+            status="completed", has_suggestions=True, success_rate=1.0
         )
         assert confidence == 1.0
 
     def test_calculate_base_confidence_failed(self):
         """Test confidence calculation for failed task"""
         confidence = AdapterUtils.calculate_base_confidence(
-            status="failed",
-            has_suggestions=False,
-            success_rate=0.0
+            status="failed", has_suggestions=False, success_rate=0.0
         )
         assert confidence == 0.5
 
     def test_calculate_base_confidence_partial(self):
         """Test confidence calculation for partial success"""
         confidence = AdapterUtils.calculate_base_confidence(
-            status="completed",
-            has_suggestions=True,
-            success_rate=0.5
+            status="completed", has_suggestions=True, success_rate=0.5
         )
         assert 0.85 <= confidence <= 0.95
 
@@ -81,7 +75,7 @@ const y = 2;
         """Test formatting reasoning steps"""
         steps = [
             {"tool": "analyzer", "thought": "Analyzing code", "status": "success"},
-            {"tool": "generator", "thought": "Generating fix", "status": "success"}
+            {"tool": "generator", "thought": "Generating fix", "status": "success"},
         ]
         reasoning = AdapterUtils.format_reasoning_steps(steps)
         assert "Executed 2 steps" in reasoning
@@ -90,7 +84,9 @@ const y = 2;
 
     def test_format_reasoning_steps_max_limit(self):
         """Test reasoning steps respects max limit"""
-        steps = [{"tool": f"tool{i}", "thought": f"thought{i}", "status": "success"} for i in range(10)]
+        steps = [
+            {"tool": f"tool{i}", "thought": f"thought{i}", "status": "success"} for i in range(10)
+        ]
         reasoning = AdapterUtils.format_reasoning_steps(steps, max_steps=3)
         assert "and 7 more steps" in reasoning
 
@@ -114,21 +110,13 @@ const y = 2;
 
     def test_calculate_step_success_rate_all_success(self):
         """Test success rate with all successful steps"""
-        steps = [
-            {"status": "success"},
-            {"status": "completed"},
-            {"status": "success"}
-        ]
+        steps = [{"status": "success"}, {"status": "completed"}, {"status": "success"}]
         rate = AdapterUtils.calculate_step_success_rate(steps)
         assert rate == 1.0
 
     def test_calculate_step_success_rate_partial(self):
         """Test success rate with partial success"""
-        steps = [
-            {"status": "success"},
-            {"status": "failed"},
-            {"status": "success"}
-        ]
+        steps = [{"status": "success"}, {"status": "failed"}, {"status": "success"}]
         rate = AdapterUtils.calculate_step_success_rate(steps)
         assert rate == pytest.approx(0.666, rel=0.01)
 
@@ -173,6 +161,8 @@ class TestAdapterExceptions:
 
     def test_exception_inheritance(self):
         """Test exception inheritance chain"""
-        assert issubclass(AdapterExceptions.AdapterInitializationError, AdapterExceptions.AdapterError)
+        assert issubclass(
+            AdapterExceptions.AdapterInitializationError, AdapterExceptions.AdapterError
+        )
         assert issubclass(AdapterExceptions.AdapterExecutionError, AdapterExceptions.AdapterError)
         assert issubclass(AdapterExceptions.AdapterTimeoutError, AdapterExceptions.AdapterError)

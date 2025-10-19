@@ -2,7 +2,6 @@
 Herman Swanepoel
 """
 
-import pytest
 
 
 class TestAgents:

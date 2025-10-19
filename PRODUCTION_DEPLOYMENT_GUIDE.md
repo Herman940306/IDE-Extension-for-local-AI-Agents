@@ -10,6 +10,7 @@
 ## 📋 Pre-Deployment Checklist
 
 ### ✅ COMPLETED - Testing & Quality
+
 - [x] **100% Test Coverage** - 297/297 tests passing
 - [x] **Zero Collection Errors** - All tests discoverable
 - [x] **Exception Handlers** - All error paths tested
@@ -20,7 +21,8 @@
 ### 🔧 TODO - Infrastructure Setup
 
 #### 1. Environment Configuration
-- [ ] Create production `.env` file
+
+- [ ] Create production `.env` file (copy `backend/.env.production` and replace Key Vault placeholders)
 - [ ] Generate secure SECRET_KEY and ENCRYPTION_KEY
 - [ ] Configure production database URLs
 - [ ] Set up Ollama/LLM endpoints
@@ -28,12 +30,14 @@
 - [ ] Set LOG_LEVEL=WARNING or ERROR for production
 
 #### 2. External Services
+
 - [ ] Install and configure Ollama (or cloud LLM)
 - [ ] Set up Redis (optional but recommended for caching)
 - [ ] Configure ChromaDB for vector storage
 - [ ] Set up monitoring/logging infrastructure
 
 #### 3. Security Hardening
+
 - [ ] Change default SECRET_KEY and ENCRYPTION_KEY
 - [ ] Enable HTTPS/TLS certificates
 - [ ] Configure CORS allowed origins (restrict wildcard)
@@ -42,12 +46,14 @@
 - [ ] Configure firewall rules
 
 #### 4. Frontend/Extension
+
 - [ ] Build VS Code extension
 - [ ] Configure extension to point to backend API
 - [ ] Test extension with production backend
 - [ ] Package extension for distribution
 
 #### 5. Deployment Method
+
 - [ ] Choose deployment target (Docker/VM/Cloud)
 - [ ] Set up CI/CD pipeline
 - [ ] Configure health checks and monitoring
@@ -85,6 +91,7 @@ python run.py
 ```
 
 **What you need**:
+
 - ✅ Python 3.11+ (you have 3.11.9)
 - ✅ Ollama installed and running
 - ❌ Redis (optional, but recommended)
@@ -115,11 +122,13 @@ docker-compose down
 ```
 
 **What you need**:
+
 - ✅ Docker Desktop installed
 - ✅ docker-compose.yml (already exists)
 - ✅ Dockerfile (already exists)
 
 **Containers**:
+
 - `redis`: Redis 7 Alpine (caching & rate limiting)
 - `backend`: FastAPI application (port 8001)
 
@@ -130,6 +139,7 @@ docker-compose down
 **Best for**: Production, scalability, high availability
 
 #### AWS Deployment
+
 ```bash
 # 1. Install AWS CLI
 # Download from: https://aws.amazon.com/cli/
@@ -149,6 +159,7 @@ eb status
 ```
 
 #### Azure Deployment
+
 ```bash
 # 1. Install Azure CLI
 # Download from: https://aka.ms/installazurecliwindows
@@ -165,6 +176,7 @@ git push azure main
 ```
 
 #### GCP Deployment
+
 ```bash
 # 1. Install Google Cloud SDK
 # Download from: https://cloud.google.com/sdk/docs/install
@@ -180,7 +192,11 @@ gcloud run deploy aura-ia-backend --source ./backend --region us-central1
 
 ## ⚙️ Production Configuration
 
-### Required `.env` File
+### Required Environment Files
+
+Use `backend/.env` for local and staging workflows, and `backend/.env.production` for live deployments. The production template is pre-wired for Azure Key Vault so secrets never live in source control.
+
+#### Local / Development `.env`
 
 Create `backend/.env` with the following:
 
@@ -292,6 +308,32 @@ LOGS_DIR=./logs
 CACHE_DIR=./cache
 ```
 
+#### Production `.env.production` (Key Vault-backed)
+
+Copy `backend/.env.production` and substitute the `<placeholder>` values with your Azure Key Vault identifiers. The template uses App Service style Key Vault references so secrets resolve automatically at runtime:
+
+```bash
+# Azure identity used to fetch secrets
+AZURE_TENANT_ID=<your-tenant-id>
+AZURE_CLIENT_ID=<managed-identity-or-app-registration-id>
+
+# Key Vault endpoint that stores production secrets
+AZURE_KEY_VAULT_NAME=<your-key-vault-name>
+AZURE_KEY_VAULT_URI=https://<your-key-vault-name>.vault.azure.net/
+
+# Secrets resolved via Key Vault references (no secrets committed to git)
+SECRET_KEY=@Microsoft.KeyVault(SecretUri=https://<your-key-vault-name>.vault.azure.net/secrets/SECRET_KEY/)
+ENCRYPTION_KEY=@Microsoft.KeyVault(SecretUri=https://<your-key-vault-name>.vault.azure.net/secrets/ENCRYPTION_KEY/)
+OPENAI_API_KEY=@Microsoft.KeyVault(SecretUri=https://<your-key-vault-name>.vault.azure.net/secrets/OPENAI_API_KEY/)
+ANTHROPIC_API_KEY=@Microsoft.KeyVault(SecretUri=https://<your-key-vault-name>.vault.azure.net/secrets/ANTHROPIC_API_KEY/)
+
+# Runtime tuning
+LLM_PROVIDER=openai
+LLM_ALLOW_CLOUD=true
+MODE_DEFAULT_MODE=hybrid
+LOG_LEVEL=INFO
+```
+
 ---
 
 ## 🔐 Security Checklist
@@ -299,6 +341,7 @@ CACHE_DIR=./cache
 ### Critical Security Steps
 
 1. **Generate Secure Keys**
+
 ```powershell
 # Run this in PowerShell
 python -c "import secrets; print('SECRET_KEY=' + secrets.token_urlsafe(32))"
@@ -308,6 +351,7 @@ python -c "import secrets; print('ENCRYPTION_KEY=' + secrets.token_urlsafe(32))"
 2. **Update .env file** with generated keys
 
 3. **Restrict CORS Origins**
+
 ```python
 # In production, change from:
 CORS_ORIGINS=["*"]
@@ -317,17 +361,20 @@ CORS_ORIGINS=["https://your-app.com", "https://api.your-app.com"]
 ```
 
 4. **Enable HTTPS**
+
 - Use reverse proxy (nginx, Caddy)
 - Get SSL certificate (Let's Encrypt, Cloudflare)
 - Force HTTPS redirect
 
 5. **API Authentication** (Optional but recommended)
+
 ```python
 # Add JWT authentication
 pip install python-jose[cryptography] passlib[bcrypt]
 ```
 
 6. **Rate Limiting**
+
 - Ensure `RATE_LIMIT_ENABLED=true`
 - Adjust limits based on expected traffic
 - Monitor for abuse
@@ -373,6 +420,7 @@ docker-compose logs -f backend
 ### Monitoring Tools (Recommended)
 
 1. **Prometheus + Grafana** (Metrics)
+
 ```bash
 # Add to requirements.txt:
 prometheus-client==0.20.0
@@ -381,6 +429,7 @@ prometheus-client==0.20.0
 ```
 
 2. **Sentry** (Error Tracking)
+
 ```bash
 pip install sentry-sdk[fastapi]
 
@@ -390,6 +439,7 @@ sentry_sdk.init(dsn="your-sentry-dsn")
 ```
 
 3. **Datadog/New Relic** (APM)
+
 ```bash
 # For comprehensive monitoring
 pip install ddtrace  # Datadog
@@ -594,6 +644,7 @@ vsce publish
 ### Configure Extension
 
 Create `extension/config.json`:
+
 ```json
 {
   "apiEndpoint": "https://api.your-domain.com",
@@ -702,6 +753,7 @@ ENABLE_PREDICTIVE_CACHING=true
 ### Common Issues
 
 #### Issue: "Redis connection failed"
+
 ```bash
 # Check Redis is running
 redis-cli ping
@@ -713,6 +765,7 @@ sudo systemctl start redis
 ```
 
 #### Issue: "Ollama model not found"
+
 ```bash
 # Pull required models
 ollama pull llama3.2:3b-q4_K_M
@@ -724,6 +777,7 @@ ollama list
 ```
 
 #### Issue: "Port already in use"
+
 ```bash
 # Find process using port 8000
 netstat -ano | findstr :8000
@@ -736,6 +790,7 @@ API_PORT=8001
 ```
 
 #### Issue: "Import errors"
+
 ```bash
 # Ensure in correct virtual environment
 .venv_new\Scripts\activate
@@ -751,6 +806,7 @@ pip install -r requirements.txt --force-reinstall
 Before going live, verify:
 
 ### Infrastructure
+
 - [ ] Server/VM provisioned and accessible
 - [ ] Domain name configured (if using)
 - [ ] SSL certificate installed
@@ -758,6 +814,7 @@ Before going live, verify:
 - [ ] Backup strategy in place
 
 ### Application
+
 - [ ] `.env` file created with production values
 - [ ] SECRET_KEY and ENCRYPTION_KEY changed
 - [ ] All dependencies installed
@@ -766,6 +823,7 @@ Before going live, verify:
 - [ ] Log directory writable
 
 ### Security
+
 - [ ] HTTPS enabled
 - [ ] CORS origins restricted
 - [ ] Rate limiting enabled
@@ -773,6 +831,7 @@ Before going live, verify:
 - [ ] Security headers added
 
 ### Testing
+
 - [ ] All unit tests passing (297/297 ✅)
 - [ ] Health check endpoint accessible
 - [ ] API documentation loads (/docs)
@@ -780,12 +839,14 @@ Before going live, verify:
 - [ ] Load testing completed
 
 ### Monitoring
+
 - [ ] Logging configured
 - [ ] Error tracking set up (Sentry/etc)
 - [ ] Health checks automated
 - [ ] Alerts configured
 
 ### Documentation
+
 - [ ] Deployment runbook created
 - [ ] API documentation published
 - [ ] Troubleshooting guide available
@@ -798,6 +859,7 @@ Before going live, verify:
 For Herman Swanepoel, I recommend:
 
 ### Phase 1: Local Production Test (This Week)
+
 1. ✅ Install Ollama and pull models
 2. ✅ Create production `.env` file
 3. ✅ Run backend locally: `python run.py`
@@ -806,12 +868,14 @@ For Herman Swanepoel, I recommend:
 6. ✅ Test extension with local backend
 
 ### Phase 2: Docker Deployment (Next Week)
+
 1. ✅ Install Docker Desktop
 2. ✅ Test `docker-compose up`
 3. ✅ Verify all services working
 4. ✅ Configure extension for Docker backend
 
 ### Phase 3: Cloud Deployment (Future)
+
 1. Choose cloud provider (AWS/Azure/GCP)
 2. Set up infrastructure
 3. Deploy with CI/CD
@@ -822,11 +886,11 @@ For Herman Swanepoel, I recommend:
 
 ## 📞 Support & Resources
 
-- **Project Repository**: https://github.com/Herman940306/IDE-Extension-for-local-AI-Agents
-- **Issue Tracker**: https://github.com/Herman940306/IDE-Extension-for-local-AI-Agents/issues
-- **FastAPI Docs**: https://fastapi.tiangolo.com/
-- **Ollama Docs**: https://github.com/ollama/ollama
-- **Docker Docs**: https://docs.docker.com/
+- **Project Repository**: <https://github.com/Herman940306/IDE-Extension-for-local-AI-Agents>
+- **Issue Tracker**: <https://github.com/Herman940306/IDE-Extension-for-local-AI-Agents/issues>
+- **FastAPI Docs**: <https://fastapi.tiangolo.com/>
+- **Ollama Docs**: <https://github.com/ollama/ollama>
+- **Docker Docs**: <https://docs.docker.com/>
 
 ---
 

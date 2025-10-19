@@ -8,8 +8,6 @@ Target Coverage: 90%
 
 import pytest
 import asyncio
-from datetime import datetime, timedelta
-from unittest.mock import AsyncMock
 from src.utils.circuit_breaker import CircuitBreaker, CircuitState
 from src.utils.exceptions import CircuitBreakerOpenException
 

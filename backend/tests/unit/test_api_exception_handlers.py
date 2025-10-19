@@ -7,10 +7,10 @@ Target Coverage: 95%
 GODMODE: AUTONOMOUS EXECUTION
 """
 
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
 import pytest
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from src.api.exception_handlers import register_exception_handlers
 from src.utils.exceptions import (

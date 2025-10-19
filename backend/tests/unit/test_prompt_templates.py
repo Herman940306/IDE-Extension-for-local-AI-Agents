@@ -2,7 +2,6 @@
 Prompt Templates Tests
 """
 
-import pytest
 from src.models import TaskType
 from src.services.prompt_templates import PromptTemplates
 

@@ -4,6 +4,7 @@ Project Creator: Herman Swanepoel
 """
 
 from functools import lru_cache
+from typing import Optional
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -24,10 +25,14 @@ class LLMSettings(BaseSettings):
 
     model_config = SettingsConfigDict(env_prefix="LLM_", extra="allow")
 
+    provider: str = "ollama"
     ollama_url: str = "http://localhost:11434"
     default_model: str = "codellama:7b"
     timeout: int = 30
     max_retries: int = 3
+    allow_cloud: bool = False
+    api_key: Optional[str] = None
+    enable_cache: bool = True
 
 
 class CacheSettings(BaseSettings):
@@ -50,11 +55,77 @@ class RateLimitSettings(BaseSettings):
     burst_size: int = 10
 
 
+class WorkspaceSettings(BaseSettings):
+    """Workspace configuration"""
+
+    model_config = SettingsConfigDict(env_prefix="WORKSPACE_", extra="allow")
+
+    root_path: str = "."
+    enable_file_watcher: bool = False
+
+
+class MemorySettings(BaseSettings):
+    """Memory service configuration"""
+
+    model_config = SettingsConfigDict(env_prefix="MEMORY_", extra="allow")
+
+    backend: str = "hybrid"
+    redis_url: Optional[str] = None
+    sqlite_path: str = "data/sessions/memory.db"
+    max_messages_per_session: int = 1000
+    session_ttl_days: int = 30
+    hot_data_ttl_hours: int = 24
+    enable_compression: bool = True
+    enable_encryption: bool = False
+
+
+class EmbeddingsSettings(BaseSettings):
+    """Embeddings service configuration"""
+
+    model_config = SettingsConfigDict(env_prefix="EMBEDDINGS_", extra="allow")
+
+    model_name: str = "microsoft/codebert-base"
+    persist_dir: str = "./data/chroma"
+    collection_name: str = "code_embeddings"
+
+
+class ObservabilitySettings(BaseSettings):
+    """Observability and logging configuration"""
+
+    model_config = SettingsConfigDict(env_prefix="OBS_", extra="allow")
+
+    trace_log_path: str = "./data/trace_logs.jsonl"
+    provenance_db_path: str = "./data/provenance.db"
+    encryption_key: Optional[str] = None
+    telemetry_max_metrics: int = 10000
+
+
+class PredictiveCacheSettings(BaseSettings):
+    """Predictive caching configuration"""
+
+    model_config = SettingsConfigDict(env_prefix="PREDICTIVE_CACHE_", extra="allow")
+
+    enabled: bool = True
+    prediction_threshold: float = 0.6
+    preload_window: float = 60.0
+    background_interval: float = 30.0
+
+
+class ModeSettings(BaseSettings):
+    """Operation mode configuration"""
+
+    model_config = SettingsConfigDict(env_prefix="MODE_", extra="allow")
+
+    default_mode: str = "offline"
+
+
 class AppSettings(BaseSettings):
     """Application settings"""
 
     model_config = SettingsConfigDict(
-        env_file=".env", env_nested_delimiter="__", extra="allow"  # Allow extra fields from .env
+        env_file=(".env", ".env.production"),
+        env_nested_delimiter="__",
+        extra="allow",  # Allow extra fields from env files
     )
 
     app_name: str = "Enterprise AI Agents API"
@@ -62,12 +133,19 @@ class AppSettings(BaseSettings):
     debug: bool = False
     log_level: str = "INFO"
     max_request_size: int = 10 * 1024 * 1024  # 10MB
+    cors_allowed_origins: list[str] = ["http://localhost:3000", "http://localhost:5173"]
 
     # Component settings
     database: DatabaseSettings = DatabaseSettings()
     llm: LLMSettings = LLMSettings()
     cache: CacheSettings = CacheSettings()
     rate_limit: RateLimitSettings = RateLimitSettings()
+    workspace: WorkspaceSettings = WorkspaceSettings()
+    memory: MemorySettings = MemorySettings()
+    embeddings: EmbeddingsSettings = EmbeddingsSettings()
+    observability: ObservabilitySettings = ObservabilitySettings()
+    predictive_cache: PredictiveCacheSettings = PredictiveCacheSettings()
+    mode: ModeSettings = ModeSettings()
 
 
 @lru_cache()

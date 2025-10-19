@@ -5,11 +5,13 @@ Project Creator: Herman Swanepoel
 
 from abc import ABC, abstractmethod
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field
-
 from src.models import AgentResponse, CodeContext, Task
+
+if TYPE_CHECKING:
+    from src.services.response_cache import ResponseCache
 
 
 class Capability(str, Enum):
@@ -67,6 +69,8 @@ class AgentAdapter(ABC):
     @property
     def response_cache(self) -> "ResponseCache":
         """Get shared response cache"""
+        if AgentAdapter._response_cache is None:  # pragma: no cover - defensive guard
+            raise RuntimeError("Response cache not initialized")
         return AgentAdapter._response_cache
 
     @abstractmethod

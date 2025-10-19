@@ -7,11 +7,19 @@ import ast
 import logging
 import re
 import uuid
-from typing import List, Optional
+from typing import List, Optional, Union
 
 from src.adapters.base_adapter import AgentAdapter, AgentConfig, Capability
 from src.adapters.crewai_adapter import CrewAIDocAgent
-from src.models import AgentResponse, CodeContext, ConfidenceLevel, Suggestion, Task
+from src.models import (
+    AgentResponse,
+    CodeContext,
+    ConfidenceLevel,
+    Priority,
+    Suggestion,
+    Task,
+    TaskType,
+)
 from src.services.llm_manager import LLMManager
 
 logger = logging.getLogger(__name__)
@@ -125,7 +133,7 @@ class DocAgent(AgentAdapter):
 
     def _determine_doc_type(self, task: Task, context: CodeContext) -> str:
         """Determine what type of documentation to generate"""
-        description_lower = task.description.lower()
+        description_lower = (task.description or "").lower()
 
         if "docstring" in description_lower or "function doc" in description_lower:
             return "docstring"
@@ -151,45 +159,52 @@ class DocAgent(AgentAdapter):
 
     async def _generate_python_docstrings(self, context: CodeContext) -> List[Suggestion]:
         """Generate Python docstrings"""
-        suggestions = []
+        if not context.code:
+            return []
 
         try:
-            # Parse Python code
             tree = ast.parse(context.code)
-
-            # Find functions and classes without docstrings
-            for node in ast.walk(tree):
-                if isinstance(node, (ast.FunctionDef, ast.ClassDef)):
-                    if not ast.get_docstring(node):
-                        docstring = self._create_python_docstring(node, context)
-
-                        # Find insertion point
-                        node.lineno
-
-                        suggestions.append(
-                            Suggestion(
-                                code=docstring,
-                                description=f"Add docstring for {node.name}",
-                                confidence=0.85,
-                                reasoning=f"Generated Google-style docstring for {type(node).__name__} '{node.name}'",
-                            )
-                        )
-
         except SyntaxError:
-            # If parsing fails, use CrewAI
-            pass
+            # If parsing fails we cannot offer structured docstrings
+            return []
+
+        suggestions: List[Suggestion] = []
+
+        for node in ast.walk(tree):
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+                if not ast.get_docstring(node):
+                    docstring = self._create_python_docstring(node)
+                    start_line = getattr(node, "lineno", 1)
+                    end_line = getattr(node, "end_lineno", start_line)
+
+                    suggestions.append(
+                        Suggestion(
+                            id=f"docstring_{node.name}_{uuid.uuid4().hex[:8]}",
+                            code=docstring,
+                            description=(
+                                "Add Google-style docstring for "
+                                f"{type(node).__name__} '{node.name}'"
+                            ),
+                            confidence=ConfidenceLevel.MEDIUM,
+                            diff=None,
+                            applicable_range={
+                                "start": {"line": start_line, "character": 0},
+                                "end": {"line": end_line, "character": 0},
+                            },
+                        )
+                    )
 
         return suggestions
 
-    def _create_python_docstring(self, node: ast.AST, context: CodeContext) -> str:
+    def _create_python_docstring(self, node: ast.AST) -> str:
         """Create a Python docstring for a function or class"""
-        if isinstance(node, ast.FunctionDef):
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
             return self._create_function_docstring(node)
-        elif isinstance(node, ast.ClassDef):
+        if isinstance(node, ast.ClassDef):
             return self._create_class_docstring(node)
-        return '"""TODO: Add docstring"""'
+        return '    """TODO: Add docstring"""\n'
 
-    def _create_function_docstring(self, node: ast.FunctionDef) -> str:
+    def _create_function_docstring(self, node: Union[ast.FunctionDef, ast.AsyncFunctionDef]) -> str:
         """Create docstring for a function"""
         # Extract parameters
         params = []
@@ -206,36 +221,53 @@ class DocAgent(AgentAdapter):
             return_type = ast.unparse(node.returns)
 
         # Build docstring
-        docstring = f'    """\n'
-        docstring += f'    {node.name.replace("_", " ").title()}\n\n'
+        docstring_lines = [
+            '    """',
+            f"    {node.name.replace('_', ' ').title()}",
+            "",
+        ]
 
         if params:
-            docstring += "    Args:\n"
+            docstring_lines.append("    Args:")
             for param_name, param_type in params:
                 if param_name != "self":
-                    docstring += (
-                        f"        {param_name} ({param_type}): Description of {param_name}\n"
+                    docstring_lines.append(
+                        f"        {param_name} ({param_type}): Description of {param_name}"
                     )
 
         if return_type != "None":
-            docstring += f"\n    Returns:\n"
-            docstring += f"        {return_type}: Description of return value\n"
+            docstring_lines.extend(
+                [
+                    "",
+                    "    Returns:",
+                    f"        {return_type}: Description of return value",
+                ]
+            )
 
         # Check for exceptions
         has_raises = any(isinstance(n, ast.Raise) for n in ast.walk(node))
         if has_raises:
-            docstring += "\n    Raises:\n"
-            docstring += "        Exception: Description of exception\n"
+            docstring_lines.extend(
+                [
+                    "",
+                    "    Raises:",
+                    "        Exception: Description of exception",
+                ]
+            )
 
-        docstring += '    """\n'
+        docstring_lines.append('    """')
 
-        return docstring
+        return "\n".join(docstring_lines) + "\n"
 
     def _create_class_docstring(self, node: ast.ClassDef) -> str:
         """Create docstring for a class"""
-        docstring = f'    """\n'
-        docstring += f'    {node.name.replace("_", " ").title()}\n\n'
-        docstring += f"    Description of {node.name} class.\n\n"
+        docstring_lines = [
+            '    """',
+            f"    {node.name.replace('_', ' ').title()}",
+            "",
+            f"    Description of {node.name} class.",
+            "",
+        ]
 
         # Find __init__ method
         init_method = None
@@ -245,28 +277,32 @@ class DocAgent(AgentAdapter):
                 break
 
         if init_method and init_method.args.args:
-            docstring += "    Attributes:\n"
+            docstring_lines.append("    Attributes:")
             for arg in init_method.args.args:
                 if arg.arg != "self":
                     arg_type = "Any"
                     if arg.annotation:
                         arg_type = ast.unparse(arg.annotation)
-                    docstring += f"        {arg.arg} ({arg_type}): Description of {arg.arg}\n"
+                    docstring_lines.append(
+                        f"        {arg.arg} ({arg_type}): Description of {arg.arg}"
+                    )
 
-        docstring += '    """\n'
+        docstring_lines.append('    """')
 
-        return docstring
+        return "\n".join(docstring_lines) + "\n"
 
     async def _generate_jsdoc(self, context: CodeContext) -> List[Suggestion]:
         """Generate JSDoc comments for JavaScript/TypeScript"""
         suggestions = []
 
         # Find functions without JSDoc
-        function_pattern = r"(?:async\s+)?(?:function\s+(\w+)|(?:const|let|var)\s+(\w+)\s*=\s*(?:async\s+)?\([^)]*\)\s*=>)"
+        function_pattern = (
+            r"(?:async\s+)?(?:function\s+(\w+)|"
+            r"(?:const|let|var)\s+(\w+)\s*=\s*(?:async\s+)?\([^)]*\)\s*=>)"
+        )
 
         for match in re.finditer(function_pattern, context.code):
             func_name = match.group(1) or match.group(2)
-            line_num = context.code[: match.start()].count("\n") + 1
 
             # Check if JSDoc already exists
             lines_before = context.code[: match.start()].split("\n")
@@ -274,13 +310,19 @@ class DocAgent(AgentAdapter):
 
             if not has_jsdoc:
                 jsdoc = self._create_jsdoc(func_name, match.group(0))
+                line_num = context.code[: match.start()].count("\n") + 1
 
                 suggestions.append(
                     Suggestion(
+                        id=f"jsdoc_{func_name}_{uuid.uuid4().hex[:8]}",
                         code=jsdoc,
                         description=f"Add JSDoc for {func_name}",
-                        confidence=0.85,
-                        reasoning=f"Generated JSDoc comment for function '{func_name}'",
+                        confidence=ConfidenceLevel.MEDIUM,
+                        diff=None,
+                        applicable_range={
+                            "start": {"line": line_num, "character": 0},
+                            "end": {"line": line_num, "character": 0},
+                        },
                     )
                 )
 
@@ -315,9 +357,15 @@ class DocAgent(AgentAdapter):
         if self.crewai_adapter:
             task = Task(
                 id="readme_gen",
-                type="documentation",
+                type=TaskType.DOCUMENTATION,
+                content=context.code or context.surrounding_code or "",
                 description="Generate comprehensive README documentation",
-                priority="high",
+                priority=Priority.HIGH,
+                context={
+                    "file_path": context.file_path,
+                    "language": context.language,
+                },
+                metadata={"doc_type": "readme"},
             )
             response = await self.crewai_adapter.execute_task(task, context)
             return response.suggestions
@@ -327,10 +375,12 @@ class DocAgent(AgentAdapter):
 
         return [
             Suggestion(
+                id=f"readme_{uuid.uuid4().hex[:8]}",
                 code=readme,
                 description="README.md template",
-                confidence=0.7,
-                reasoning="Generated basic README template",
+                confidence=ConfidenceLevel.LOW,
+                diff=None,
+                applicable_range=None,
             )
         ]
 
@@ -398,9 +448,15 @@ Project Creator: Herman Swanepoel
         if self.crewai_adapter:
             task = Task(
                 id="api_docs_gen",
-                type="documentation",
+                type=TaskType.DOCUMENTATION,
+                content=context.code or context.surrounding_code or "",
                 description="Generate comprehensive API documentation",
-                priority="high",
+                priority=Priority.HIGH,
+                context={
+                    "file_path": context.file_path,
+                    "language": context.language,
+                },
+                metadata={"doc_type": "api"},
             )
             response = await self.crewai_adapter.execute_task(task, context)
             return response.suggestions
@@ -421,14 +477,20 @@ Project Creator: Herman Swanepoel
 
             # Check for complex patterns
             if self._is_complex_line(line):
-                comment = f"# TODO: Add comment explaining this logic"
+                comment = "# TODO: Add comment explaining this logic"
+                line_number = i + 1
 
                 suggestions.append(
                     Suggestion(
+                        id=f"comment_{line_number}_{uuid.uuid4().hex[:8]}",
                         code=f"{comment}\n{line}",
-                        description=f"Add comment for line {i+1}",
-                        confidence=0.6,
-                        reasoning="Complex code detected, comment recommended",
+                        description=f"Add comment for line {line_number}",
+                        confidence=ConfidenceLevel.LOW,
+                        diff=None,
+                        applicable_range={
+                            "start": {"line": line_number, "character": 0},
+                            "end": {"line": line_number, "character": 0},
+                        },
                     )
                 )
 
@@ -452,5 +514,64 @@ Project Creator: Herman Swanepoel
         if not suggestions:
             return 0.5
 
-        avg_confidence = sum(s.confidence for s in suggestions) / len(suggestions)
-        return avg_confidence
+        values = [self._confidence_to_float(s.confidence) for s in suggestions]
+        return sum(values) / len(values)
+
+    def _confidence_to_float(self, level: ConfidenceLevel) -> float:
+        mapping = {
+            ConfidenceLevel.HIGH: 0.9,
+            ConfidenceLevel.MEDIUM: 0.7,
+            ConfidenceLevel.LOW: 0.4,
+        }
+        return mapping.get(level, 0.5)
+
+    def _create_empty_response(self, task: Task) -> AgentResponse:
+        return AgentResponse(
+            agent_id="doc_agent",
+            agent_name=self.config.name,
+            suggestions=[],
+            confidence=0.0,
+            reasoning="No code provided for documentation generation",
+            metadata={"task_id": task.id, "error": "missing_code"},
+        )
+
+    def _create_error_response(self, task: Task, error: str) -> AgentResponse:
+        return AgentResponse(
+            agent_id="doc_agent",
+            agent_name=self.config.name,
+            suggestions=[],
+            confidence=0.0,
+            reasoning=f"Documentation generation failed: {error}",
+            metadata={"task_id": task.id, "error": error},
+        )
+
+    async def _execute_general_documentation(
+        self, task: Task, context: CodeContext
+    ) -> AgentResponse:
+        if self.crewai_adapter:
+            crew_response = await self.crewai_adapter.execute_task(task, context)
+            suggestions = crew_response.suggestions
+            confidence = self._calculate_confidence(suggestions)
+            metadata = {
+                "task_id": task.id,
+                "source": "crewai",
+                **getattr(crew_response, "metadata", {}),
+            }
+
+            return AgentResponse(
+                agent_id="doc_agent",
+                agent_name=self.config.name,
+                suggestions=suggestions,
+                confidence=confidence,
+                reasoning="Delegated documentation generation to CrewAI workflow",
+                metadata=metadata,
+            )
+
+        return AgentResponse(
+            agent_id="doc_agent",
+            agent_name=self.config.name,
+            suggestions=[],
+            confidence=0.0,
+            reasoning="No documentation strategy available for this task",
+            metadata={"task_id": task.id, "error": "unsupported_doc_type"},
+        )

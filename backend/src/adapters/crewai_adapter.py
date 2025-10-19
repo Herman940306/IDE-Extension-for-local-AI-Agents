@@ -4,12 +4,13 @@ Project Creator: Herman Swanepoel
 """
 
 import asyncio
+import textwrap
 from typing import Any, List, Optional
 
 from crewai import Agent, Crew, Process
 from crewai import Task as CrewTask
 from langchain.llms import Ollama
-
+from src.adapters.adapter_utils import AdapterUtils
 from src.adapters.base_adapter import AgentAdapter, AgentConfig, Capability
 from src.models import AgentResponse, CodeContext, Suggestion, Task
 
@@ -34,6 +35,7 @@ class CrewAIAdapter(AgentAdapter):
         self.doc_agent: Optional[Agent] = None
         self.test_agent: Optional[Agent] = None
         self.crew: Optional[Crew] = None
+        self.agent_id: str = self.config.metadata.get("agent_id", "crewai_adapter")
 
     async def initialize(self) -> None:
         """Initialize CrewAI agents and crew"""
@@ -49,9 +51,13 @@ class CrewAIAdapter(AgentAdapter):
                 self.doc_agent = Agent(
                     role="Documentation Specialist",
                     goal="Generate clear, comprehensive documentation for code",
-                    backstory="""You are an expert technical writer with deep knowledge of 
-                    software documentation best practices. You excel at creating docstrings, 
-                    README files, and API documentation that are clear, concise, and helpful.""",
+                    backstory=textwrap.dedent(
+                        """
+                        You are an expert technical writer with deep knowledge of software
+                        documentation best practices. You excel at creating docstrings, README
+                        files, and API documentation that are clear, concise, and helpful.
+                        """
+                    ).strip(),
                     llm=self.llm,
                     verbose=self.config.metadata.get("verbose", False),
                     allow_delegation=False,
@@ -62,9 +68,13 @@ class CrewAIAdapter(AgentAdapter):
                 self.test_agent = Agent(
                     role="Test Engineer",
                     goal="Generate comprehensive test cases for code",
-                    backstory="""You are a senior test engineer with expertise in unit testing, 
-                    integration testing, and test-driven development. You write thorough test 
-                    cases that cover edge cases and ensure code reliability.""",
+                    backstory=textwrap.dedent(
+                        """
+                        You are a senior test engineer with expertise in unit testing, integration
+                        testing, and test-driven development. You write thorough test cases that
+                        cover edge cases and ensure code reliability.
+                        """
+                    ).strip(),
                     llm=self.llm,
                     verbose=self.config.metadata.get("verbose", False),
                     allow_delegation=False,
@@ -98,11 +108,12 @@ class CrewAIAdapter(AgentAdapter):
 
             if not agents:
                 return AgentResponse(
-                    task_id=task.id,
+                    agent_id=self.agent_id,
                     agent_name=self.config.name,
                     suggestions=[],
                     confidence=0.0,
-                    reasoning="No suitable agents available for this task type",
+                    reasoning="No suitable CrewAI agents available for this task type",
+                    metadata={"task_id": task.id, "error": "no_agents"},
                 )
 
             # Create and execute crew
@@ -122,11 +133,12 @@ class CrewAIAdapter(AgentAdapter):
 
         except Exception as e:
             return AgentResponse(
-                task_id=task.id,
+                agent_id=self.agent_id,
                 agent_name=self.config.name,
                 suggestions=[],
                 confidence=0.0,
-                reasoning=f"Task execution failed: {str(e)}",
+                reasoning=f"CrewAI task execution failed: {str(e)}",
+                metadata={"task_id": task.id, "error": str(e)},
             )
 
     def _convert_to_crew_task(self, task: Task, context: CodeContext) -> CrewTask:
@@ -214,35 +226,36 @@ Please provide your response in the following format:
             result_text = str(result)
 
             # Extract suggestions from result
-            suggestions = self._parse_suggestions(result_text, task)
+            suggestions = self._parse_suggestions(result_text)
 
             # Calculate confidence based on result quality
             confidence = self._calculate_confidence(result_text, suggestions)
 
             return AgentResponse(
-                task_id=task.id,
+                agent_id=self.agent_id,
                 agent_name=self.config.name,
                 suggestions=suggestions,
                 confidence=confidence,
-                reasoning=result_text,
+                reasoning=result_text.strip() or "CrewAI execution produced no summary",
+                metadata={"task_id": task.id, "suggestion_count": len(suggestions)},
             )
 
         except Exception as e:
             return AgentResponse(
-                task_id=task.id,
+                agent_id=self.agent_id,
                 agent_name=self.config.name,
                 suggestions=[],
                 confidence=0.0,
-                reasoning=f"Failed to parse result: {str(e)}",
+                reasoning=f"Failed to parse CrewAI result: {str(e)}",
+                metadata={"task_id": task.id, "error": str(e)},
             )
 
-    def _parse_suggestions(self, result_text: str, task: Task) -> List[Suggestion]:
+    def _parse_suggestions(self, result_text: str) -> List[Suggestion]:
         """
         Parse suggestions from CrewAI result text
 
         Args:
             result_text: Result text from CrewAI
-            task: Original task
 
         Returns:
             List of suggestions
@@ -266,20 +279,24 @@ Please provide your response in the following format:
 
                 suggestions.append(
                     Suggestion(
+                        id=AdapterUtils.generate_suggestion_id("crewai"),
                         code=code.strip(),
                         description=description.strip(),
-                        confidence=0.8,  # Default confidence for CrewAI suggestions
-                        reasoning=f"Generated by {self.config.name}",
+                        confidence=AdapterUtils.map_confidence_score(0.8),
+                        diff=None,
+                        applicable_range=None,
                     )
                 )
         else:
             # If no code blocks, treat entire result as suggestion
             suggestions.append(
                 Suggestion(
-                    code=result_text,
-                    description=f"{task.type.value} suggestion",
-                    confidence=0.7,
-                    reasoning=f"Generated by {self.config.name}",
+                    id=AdapterUtils.generate_suggestion_id("crewai"),
+                    code=result_text.strip(),
+                    description="General documentation suggestion",
+                    confidence=AdapterUtils.map_confidence_score(0.6),
+                    diff=None,
+                    applicable_range=None,
                 )
             )
 

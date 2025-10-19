@@ -6,8 +6,8 @@ Date: 2025-10-13
 """
 
 import asyncio
-from typing import AsyncGenerator, Generator
-from unittest.mock import AsyncMock, MagicMock, Mock
+from typing import Generator
+from unittest.mock import AsyncMock, Mock
 
 import pytest
 import redis.asyncio as redis
@@ -399,4 +399,3 @@ async def cleanup_after_test():
     """Cleanup after each test."""
     yield
     # Add any cleanup logic here
-    pass

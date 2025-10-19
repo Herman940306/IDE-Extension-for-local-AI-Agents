@@ -6,11 +6,12 @@ Project Creator: Herman Swanepoel
 import asyncio
 import logging
 import time
+import uuid
 from enum import Enum
 from typing import Any, Dict, List, Set
 
 from src.adapters.base_adapter import AgentAdapter
-from src.models import AgentResponse, Suggestion, Task, TaskType
+from src.models import AgentResponse, ConfidenceLevel, Suggestion, Task, TaskType
 from src.services.context_manager import ContextManager
 from src.services.llm_manager import LLMManager
 from src.services.semantic_search import SemanticSearchService
@@ -312,21 +313,26 @@ class MetaOrchestrator:
         # Remove duplicates based on code similarity
         unique_suggestions = self._deduplicate_suggestions(all_suggestions)
 
-        # Rank by confidence
-        unique_suggestions.sort(key=lambda s: s.confidence, reverse=True)
+        # Rank by confidence (convert enum levels to float values for ordering)
+        unique_suggestions.sort(key=lambda s: self._confidence_to_float(s.confidence), reverse=True)
 
         # Take top suggestions
         top_suggestions = unique_suggestions[:5]
 
         # Create aggregated response
+        aggregate_confidence = self._calculate_aggregate_confidence(top_suggestions)
+
         return AgentResponse(
-            task_id=task.id,
-            agent_name="meta_orchestrator",
+            agent_id="meta_orchestrator",
+            agent_name="Meta Orchestrator",
             suggestions=top_suggestions,
+            confidence=aggregate_confidence,
+            reasoning="Aggregated suggestions from participating agents",
             metadata={
                 "agent_count": len(responses),
                 "total_suggestions": len(all_suggestions),
                 "aggregation_method": "consensus",
+                "task_id": task.id,
             },
         )
 
@@ -385,18 +391,22 @@ class MetaOrchestrator:
         Returns:
             Basic AgentResponse
         """
+        suggestion = Suggestion(
+            id=f"fallback_{uuid.uuid4().hex[:8]}",
+            code="# Agent temporarily unavailable\n# Please try again",
+            description="Service temporarily unavailable",
+            confidence=ConfidenceLevel.LOW,
+            diff=None,
+            applicable_range=None,
+        )
+
         return AgentResponse(
-            task_id=task.id,
-            agent_name="fallback",
-            suggestions=[
-                Suggestion(
-                    code="# Agent temporarily unavailable\n# Please try again",
-                    description="Service temporarily unavailable",
-                    confidence=0.1,
-                    reasoning="No agents available to handle this request",
-                )
-            ],
-            metadata={"fallback": True},
+            agent_id="meta_orchestrator_fallback",
+            agent_name="Meta Orchestrator",
+            suggestions=[suggestion],
+            confidence=0.2,
+            reasoning="No healthy agent available; returning fallback guidance",
+            metadata={"fallback": True, "task_id": task.id},
         )
 
     def _create_error_response(self, task: Task, error: str) -> AgentResponse:
@@ -411,8 +421,29 @@ class MetaOrchestrator:
             Error AgentResponse
         """
         return AgentResponse(
-            task_id=task.id, agent_name="error", suggestions=[], metadata={"error": error}
+            agent_id="meta_orchestrator_error",
+            agent_name="Meta Orchestrator",
+            suggestions=[],
+            confidence=0.0,
+            reasoning=f"Agent orchestration failed: {error}",
+            metadata={"error": error, "task_id": task.id},
         )
+
+    @staticmethod
+    def _confidence_to_float(level: ConfidenceLevel) -> float:
+        mapping = {
+            ConfidenceLevel.HIGH: 0.9,
+            ConfidenceLevel.MEDIUM: 0.7,
+            ConfidenceLevel.LOW: 0.4,
+        }
+        return mapping.get(level, 0.5)
+
+    def _calculate_aggregate_confidence(self, suggestions: List[Suggestion]) -> float:
+        if not suggestions:
+            return 0.0
+
+        values = [self._confidence_to_float(s.confidence) for s in suggestions]
+        return sum(values) / len(values)
 
     def get_agent_status(self) -> Dict[str, Any]:
         """

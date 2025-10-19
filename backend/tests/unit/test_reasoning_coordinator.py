@@ -3,8 +3,7 @@ Unit tests for Reasoning Coordinator
 Project Creator: Herman Swanepoel
 """
 
-import asyncio
-from unittest.mock import AsyncMock, Mock, patch
+from unittest.mock import AsyncMock, Mock
 
 import pytest
 from src.models.reasoner import FastReasoner, ReasoningResponse
@@ -13,7 +12,6 @@ from src.orchestrator.meta_controller import MetaController
 from src.orchestrator.reasoning_coordinator import (
     ProcessingMode,
     ReasoningCoordinator,
-    ReasoningResult,
 )
 from src.orchestrator.task_router import TaskRouter
 

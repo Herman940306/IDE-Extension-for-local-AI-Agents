@@ -3,6 +3,15 @@
  * Project Creator: Herman Swanepoel
  */
 
+import type {
+    ClientMessage,
+    ClientMessageMap,
+    ClientMessageType,
+    ServerMessage,
+    ServerMessageMap,
+    ServerMessageType
+} from '../types/websocket';
+
 const envUrlList =
     import.meta.env.VITE_BACKEND_WS_URLS?.toString() || import.meta.env.VITE_BACKEND_WS_URL?.toString();
 
@@ -24,13 +33,16 @@ const WS_ENDPOINTS = (() => {
     return parsed.length > 0 ? parsed : DEFAULT_ENDPOINTS;
 })();
 
+export type ConnectionState = 'connecting' | 'connected' | 'disconnected';
+
 export class WebSocketService {
     private ws: WebSocket | null = null;
     private clientId: string;
     private reconnectAttempts = 0;
     private maxReconnectAttempts = 5;
-    private messageHandlers: Map<string, (payload: any) => void> = new Map();
-    private connectionHandlers: Set<(connected: boolean) => void> = new Set();
+    private messageHandlers: Map<ServerMessageType, Set<(payload: ServerMessageMap[ServerMessageType]) => void>> =
+        new Map();
+    private connectionHandlers: Set<(state: ConnectionState) => void> = new Set();
     private shouldReconnect = true;
     private endpoints: string[] = WS_ENDPOINTS;
     private endpointIndex = 0;
@@ -46,18 +58,18 @@ export class WebSocketService {
         });
     }
 
-    subscribeConnectionChange(handler: (connected: boolean) => void) {
+    subscribeConnectionChange(handler: (state: ConnectionState) => void) {
         this.connectionHandlers.add(handler);
     }
 
-    unsubscribeConnectionChange(handler: (connected: boolean) => void) {
+    unsubscribeConnectionChange(handler: (state: ConnectionState) => void) {
         this.connectionHandlers.delete(handler);
     }
 
-    private notifyConnectionStatus(connected: boolean) {
+    private notifyConnectionStatus(state: ConnectionState) {
         for (const handler of this.connectionHandlers) {
             try {
-                handler(connected);
+                handler(state);
             } catch (error) {
                 console.error('❌ Connection handler error:', error);
             }
@@ -65,6 +77,8 @@ export class WebSocketService {
     }
 
     private createWebSocket(resolve?: () => void, reject?: (reason?: unknown) => void) {
+        this.notifyConnectionStatus('connecting');
+
         try {
             const baseUrl = this.endpoints[this.endpointIndex];
             console.log('🔌 Connecting to:', `${baseUrl}/${this.clientId}`);
@@ -79,14 +93,18 @@ export class WebSocketService {
             console.log('✅ Connected to backend');
             this.reconnectAttempts = 0;
             this.shouldReconnect = true;
-            this.notifyConnectionStatus(true);
+            this.notifyConnectionStatus('connected');
             resolve?.();
         };
 
         this.ws.onmessage = (event) => {
             console.log('📨 Received:', event.data);
-            const message = JSON.parse(event.data);
-            this.handleMessage(message);
+            try {
+                const message = JSON.parse(event.data);
+                this.handleMessage(message);
+            } catch (error) {
+                console.error('❌ Failed to parse WebSocket message', error);
+            }
         };
 
         this.ws.onerror = (error) => {
@@ -101,7 +119,7 @@ export class WebSocketService {
         this.ws.onclose = (event) => {
             console.log('🔌 Disconnected from backend', event.code, event.reason);
             this.ws = null;
-            this.notifyConnectionStatus(false);
+            this.notifyConnectionStatus('disconnected');
 
             if (!this.shouldReconnect) {
                 return;
@@ -134,43 +152,60 @@ export class WebSocketService {
         console.log('🌐 Switching WebSocket endpoint to:', this.endpoints[this.endpointIndex]);
     }
 
-    on(messageType: string, handler: (payload: any) => void) {
-        this.messageHandlers.set(messageType, handler);
+    on<K extends ServerMessageType>(messageType: K, handler: (payload: ServerMessageMap[K]) => void) {
+        if (!this.messageHandlers.has(messageType)) {
+            this.messageHandlers.set(messageType, new Set());
+        }
+        this.messageHandlers.get(messageType)!.add(handler as never);
     }
 
-    private handleMessage(message: any) {
-        const handler = this.messageHandlers.get(message.type);
-        if (handler) {
-            handler(message.payload);
+    off<K extends ServerMessageType>(messageType: K, handler: (payload: ServerMessageMap[K]) => void) {
+        this.messageHandlers.get(messageType)?.delete(handler as never);
+    }
+
+    private handleMessage(raw: unknown) {
+        if (!raw || typeof raw !== 'object' || !('type' in raw)) {
+            console.warn('⚠️ Received malformed WebSocket message', raw);
+            return;
+        }
+
+        const { type, payload } = raw as ServerMessage;
+
+        const handlers = this.messageHandlers.get(type);
+        if (!handlers || handlers.size === 0) {
+            console.warn('⚠️ No handler registered for message type', type);
+            return;
+        }
+
+        for (const handler of handlers) {
+            try {
+                handler(payload as never);
+            } catch (error) {
+                console.error(`❌ Handler error for message type ${type}`, error);
+            }
         }
     }
 
-    sendTask(task: any) {
-        if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-            console.log('📤 Sending to backend:', task);
-            const messageType = task?.type || 'task_request';
-            const payload = Object.prototype.hasOwnProperty.call(task, 'payload')
-                ? task.payload
-                : task;
-
-            this.ws.send(
-                JSON.stringify({
-                    type: messageType,
-                    payload
-                })
-            );
-        } else {
+    private sendMessage<K extends ClientMessageType>(message: ClientMessage<K>) {
+        if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
             console.error('❌ WebSocket not connected');
+            return;
         }
+
+        console.log('📤 Sending to backend:', message);
+        this.ws.send(JSON.stringify(message));
+    }
+
+    sendTask(payload: ClientMessageMap['task_request']) {
+        this.sendMessage({ type: 'task_request', payload });
     }
 
     ping() {
-        if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-            this.ws.send(JSON.stringify({
-                type: 'ping',
-                payload: {}
-            }));
-        }
+        this.sendMessage({ type: 'ping', payload: {} });
+    }
+
+    changeMode(newMode: string) {
+        this.sendMessage({ type: 'mode_change', payload: { mode: newMode } });
     }
 
     disconnect() {
@@ -180,7 +215,7 @@ export class WebSocketService {
             this.ws = null;
             ws.close();
         }
-        this.notifyConnectionStatus(false);
+        this.notifyConnectionStatus('disconnected');
         this.reconnectAttempts = 0;
     }
 }

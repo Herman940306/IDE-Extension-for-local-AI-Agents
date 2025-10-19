@@ -4,11 +4,17 @@ Project Creator: Herman Swanepoel
 """
 
 from src.core.config import (
-    DatabaseSettings,
-    LLMSettings,
-    CacheSettings,
-    RateLimitSettings,
     AppSettings,
+    CacheSettings,
+    DatabaseSettings,
+    EmbeddingsSettings,
+    LLMSettings,
+    MemorySettings,
+    ModeSettings,
+    ObservabilitySettings,
+    PredictiveCacheSettings,
+    RateLimitSettings,
+    WorkspaceSettings,
     get_settings,
 )
 
@@ -39,18 +45,30 @@ class TestLLMSettings:
     def test_default_values(self):
         """Test default LLM settings"""
         settings = LLMSettings()
+        assert settings.provider == "ollama"
         assert settings.ollama_url == "http://localhost:11434"
         assert settings.default_model == "codellama:7b"
         assert settings.timeout == 30
         assert settings.max_retries == 3
+        assert settings.allow_cloud is False
+        assert settings.api_key is None
+        assert settings.enable_cache is True
 
     def test_env_override(self, monkeypatch):
         """Test environment variable override"""
         monkeypatch.setenv("LLM_OLLAMA_URL", "http://custom:11435")
         monkeypatch.setenv("LLM_TIMEOUT", "60")
+        monkeypatch.setenv("LLM_PROVIDER", "openai")
+        monkeypatch.setenv("LLM_ALLOW_CLOUD", "true")
+        monkeypatch.setenv("LLM_ENABLE_CACHE", "false")
+        monkeypatch.setenv("LLM_API_KEY", "secret")
         settings = LLMSettings()
+        assert settings.provider == "openai"
         assert settings.ollama_url == "http://custom:11435"
         assert settings.timeout == 60
+        assert settings.allow_cloud is True
+        assert settings.enable_cache is False
+        assert settings.api_key == "secret"
 
 
 class TestCacheSettings:
@@ -102,6 +120,10 @@ class TestAppSettings:
         assert settings.debug is False
         assert settings.log_level == "INFO"
         assert settings.max_request_size == 10 * 1024 * 1024
+        assert settings.cors_allowed_origins == [
+            "http://localhost:3000",
+            "http://localhost:5173",
+        ]
 
     def test_nested_settings(self):
         """Test nested settings initialization"""
@@ -110,16 +132,24 @@ class TestAppSettings:
         assert isinstance(settings.llm, LLMSettings)
         assert isinstance(settings.cache, CacheSettings)
         assert isinstance(settings.rate_limit, RateLimitSettings)
+        assert isinstance(settings.workspace, WorkspaceSettings)
+        assert isinstance(settings.memory, MemorySettings)
+        assert isinstance(settings.embeddings, EmbeddingsSettings)
+        assert isinstance(settings.observability, ObservabilitySettings)
+        assert isinstance(settings.predictive_cache, PredictiveCacheSettings)
+        assert isinstance(settings.mode, ModeSettings)
 
     def test_env_override(self, monkeypatch):
         """Test environment variable override"""
         monkeypatch.setenv("APP_NAME", "Custom API")
         monkeypatch.setenv("DEBUG", "true")
         monkeypatch.setenv("LOG_LEVEL", "DEBUG")
+        monkeypatch.setenv("CORS_ALLOWED_ORIGINS", '["https://example.com"]')
         settings = AppSettings()
         assert settings.app_name == "Custom API"
         assert settings.debug is True
         assert settings.log_level == "DEBUG"
+        assert settings.cors_allowed_origins == ["https://example.com"]
 
     def test_component_settings_access(self):
         """Test accessing component settings"""
@@ -128,6 +158,12 @@ class TestAppSettings:
         assert settings.llm.timeout == 30
         assert settings.cache.enabled is True
         assert settings.rate_limit.requests_per_minute == 60
+        assert settings.workspace.root_path == "."
+        assert settings.memory.sqlite_path == "data/sessions/memory.db"
+        assert settings.embeddings.model_name == "microsoft/codebert-base"
+        assert settings.observability.trace_log_path == "./data/trace_logs.jsonl"
+        assert settings.predictive_cache.prediction_threshold == 0.6
+        assert settings.mode.default_mode == "offline"
 
 
 class TestGetSettings:

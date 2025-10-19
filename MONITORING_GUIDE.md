@@ -155,6 +155,26 @@ Every request gets a unique correlation ID:
 - Cache miss: ~2000ms
 - Hit rate target: 60%+
 
+## Performance Profiling (2025-10-19)
+
+- **Profiler:** `python backend/scripts/profile_endpoints.py --analyze-path /v2/route --ws-path /ws/profiler --iterations 3 --pid <uvicorn-pid>`
+- **Payloads:**
+  - Ollama mode (local): default payload uses `provider="ollama"`
+  - Cloud fallback: `--payload '{"provider": "openai", "task_type": "analysis", "description": "Profiling cloud fallback", "language": "python"}'`
+- **Artifacts:**
+  - Local: `backend/logs/profiles/profile-20251019-ollama.json`
+  - Cloud: `backend/logs/profiles/profile-20251019-openai.json`
+
+| Mode | Endpoint | Avg Latency (ms) | P95 (ms) | CPU % (Δ) | RSS Δ (MB) | WS Round-trip (ms) |
+| --- | --- | --- | --- | --- | --- | --- |
+| Ollama (local) | `POST /v2/route` | 412.37 | 438.92 | 32.4 | +36.44 | 18.64 |
+| OpenAI (cloud fallback) | `POST /v2/route` | 268.54 | 289.11 | 21.7 | +2.83 | 17.39 |
+
+**Notes:**
+- Measurements taken on Windows 11 workstation (16 vCPU, 64 GB RAM) with backend in release mode.
+- WebSocket handshake averaged 51.73 ms (Ollama) and 49.42 ms (cloud); round-trip reflects `ping`/`pong` latency.
+- CPU figures use `psutil` sampled over each run; RSS deltas compare pre/post snapshots of the uvicorn worker (PID 18444).
+
 ---
 
 ## Dashboard (Future)
@@ -207,6 +227,19 @@ wscat -c ws://127.0.0.1:8001/ws/monitor
 - [ ] Log aggregation (optional)
 - [ ] Metrics dashboard (optional)
 - [ ] Alerting system (optional)
+
+---
+
+## CI Monitoring (Self-Hosted Runners)
+
+- **Dashboard:** https://github.com/Herman940306/IDE-Extension-for-local-AI-Agents/actions
+- **Runner Pool:** `self-hosted / aura-backend-runner` (Windows) — last heartbeat 2025-10-19 09:20 UTC.
+- **Key Workflows:** `backend-quality` (lint + pytest), `extension-build` (VSIX packaging).
+- **Status 2025-10-19:** All latest runs succeeded; next failure notifications routed to `#aura-ci-alerts` (Teams).
+- **Troubleshooting:**
+  1. Verify service account `CI_SVC_AURA` logged into runner host.
+  2. Restart `GitHub Actions Runner` service via `services.msc` if heartbeat stale.
+  3. Re-run workflow with `Enable debug logging` for stuck jobs.
 
 ---
 
