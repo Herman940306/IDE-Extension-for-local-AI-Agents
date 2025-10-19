@@ -112,7 +112,9 @@ class LLMManager:
                         self._cloud_provider_type.value,
                     )
                 else:
-                    raise Exception("Ollama unavailable and cloud fallback disabled") from None  # noqa: E501
+                    raise Exception(
+                        "Ollama unavailable and cloud fallback disabled"
+                    ) from None  # noqa: E501
 
     async def _test_ollama_connection(self) -> None:
         """Test connection to Ollama server"""
