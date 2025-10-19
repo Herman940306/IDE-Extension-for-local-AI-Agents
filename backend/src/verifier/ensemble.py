@@ -35,9 +35,7 @@ class VerifierEnsemble:
         """
         self.ast_checker = ast_checker or ASTChecker()
         self.confidence_threshold = confidence_threshold
-        logger.info(
-            f"VerifierEnsemble initialized with threshold={confidence_threshold}"
-        )
+        logger.info(f"VerifierEnsemble initialized with threshold={confidence_threshold}")
 
     def verify(
         self,
@@ -92,9 +90,7 @@ class VerifierEnsemble:
             "valid": is_valid,
             "confidence": final_confidence,
             "reason": (
-                "Passed all verification checks"
-                if is_valid
-                else "Confidence below threshold"
+                "Passed all verification checks" if is_valid else "Confidence below threshold"
             ),
             "details": {"ast": ast_result, "llm_confidence": llm_confidence},
             "stage": "complete",

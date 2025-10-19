@@ -124,9 +124,7 @@ class TestProvenanceStore:
 
     def test_encryption(self, temp_db):
         """Test metadata encryption"""
-        store = ProvenanceStore(
-            db_path=temp_db, encryption_key="test-encryption-key-32-chars"
-        )
+        store = ProvenanceStore(db_path=temp_db, encryption_key="test-encryption-key-32-chars")
 
         log_id = store.log(
             agent="Reasoner",

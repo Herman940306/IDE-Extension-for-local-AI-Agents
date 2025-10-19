@@ -91,18 +91,14 @@ class MetaController:
                     AgentNode.VERIFIER.value,
                     AgentNode.AGGREGATOR.value,
                 ]
-                logger.info(
-                    f"Complex task route (with verification): {' -> '.join(path)}"
-                )
+                logger.info(f"Complex task route (with verification): {' -> '.join(path)}")
                 return path
 
             # Medium complexity: use graph-based routing
             path = nx.shortest_path(
                 self.graph, AgentNode.PLANNER, AgentNode.AGGREGATOR, weight="weight"
             )
-            path_str = [
-                node.value if isinstance(node, AgentNode) else node for node in path
-            ]
+            path_str = [node.value if isinstance(node, AgentNode) else node for node in path]
             logger.info(f"Complex task route: {' -> '.join(path_str)}")
             return path_str
         except nx.NetworkXNoPath:
@@ -115,9 +111,7 @@ class MetaController:
                 AgentNode.AGGREGATOR.value,
             ]
 
-    def estimate_complexity(
-        self, code_length: int, ast_depth: int, task_type: str
-    ) -> float:
+    def estimate_complexity(self, code_length: int, ast_depth: int, task_type: str) -> float:
         """
         Estimate task complexity based on code characteristics.
 

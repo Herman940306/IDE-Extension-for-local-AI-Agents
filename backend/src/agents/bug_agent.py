@@ -172,9 +172,7 @@ class BugAgent:
 
         return issues
 
-    async def _python_specific_checks(
-        self, context: CodeContext
-    ) -> List[Dict[str, Any]]:
+    async def _python_specific_checks(self, context: CodeContext) -> List[Dict[str, Any]]:
         """Python-specific security and quality checks"""
         issues = []
 
@@ -211,9 +209,7 @@ class BugAgent:
 
         return issues
 
-    async def _javascript_specific_checks(
-        self, context: CodeContext
-    ) -> List[Dict[str, Any]]:
+    async def _javascript_specific_checks(self, context: CodeContext) -> List[Dict[str, Any]]:
         """JavaScript/TypeScript-specific checks"""
         issues = []
 
@@ -341,13 +337,9 @@ class BugAgent:
         }
 
         for issue in all_issues:
-            issue["severity"] = self._normalize_severity(
-                issue.get("severity", Severity.INFO)
-            )
+            issue["severity"] = self._normalize_severity(issue.get("severity", Severity.INFO))
 
-        all_issues.sort(
-            key=lambda x: severity_order.get(x.get("severity", Severity.INFO), 4)
-        )
+        all_issues.sort(key=lambda x: severity_order.get(x.get("severity", Severity.INFO), 4))
 
         return all_issues
 
@@ -375,9 +367,7 @@ class BugAgent:
 
         return suggestions
 
-    async def _generate_fix_code(
-        self, issue: Dict[str, Any], context: CodeContext
-    ) -> str:
+    async def _generate_fix_code(self, issue: Dict[str, Any], context: CodeContext) -> str:
         """Generate fix code for an issue using LLM"""
         try:
             prompt = f"""Generate a code fix for the following issue:
@@ -468,9 +458,7 @@ Provide only the fixed code without explanations.
             severity_counts[severity] = severity_counts.get(severity, 0) + 1
 
         reasoning = f"Found {len(issues)} issue(s):\n"
-        for severity, count in sorted(
-            severity_counts.items(), key=lambda x: x[0].value
-        ):
+        for severity, count in sorted(severity_counts.items(), key=lambda x: x[0].value):
             reasoning += f"- {severity.value.upper()}: {count}\n"
 
         reasoning += "\nTop issues:\n"
@@ -490,9 +478,7 @@ Provide only the fixed code without explanations.
         message = issue.get("message", "Issue detected")
         return f"[{severity_value.upper()}] {message}"
 
-    def _build_applicable_range(
-        self, issue: Dict[str, Any]
-    ) -> Optional[Dict[str, Dict[str, int]]]:
+    def _build_applicable_range(self, issue: Dict[str, Any]) -> Optional[Dict[str, Dict[str, int]]]:
         line = issue.get("line")
         if isinstance(line, int) and line > 0:
             return {

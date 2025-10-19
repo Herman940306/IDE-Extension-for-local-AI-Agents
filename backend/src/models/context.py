@@ -24,19 +24,13 @@ class CodeContext(BaseModel):
     language: str = Field(..., description="Programming language")
     code: str = Field(default="", description="Current code content for the file")
     workspace_path: Optional[str] = Field(None, description="Workspace root path")
-    cursor_position: Optional[dict] = Field(
-        None, description="Cursor position (line, character)"
-    )
+    cursor_position: Optional[dict] = Field(None, description="Cursor position (line, character)")
     selected_text: Optional[str] = Field(None, description="Currently selected text")
     surrounding_code: str = Field(default="", description="Code surrounding the cursor")
     imports: List[str] = Field(default_factory=list, description="Import statements")
-    dependencies: List[str] = Field(
-        default_factory=list, description="File dependencies"
-    )
+    dependencies: List[str] = Field(default_factory=list, description="File dependencies")
     git_branch: Optional[str] = Field(None, description="Current Git branch")
-    recent_commits: List[GitCommit] = Field(
-        default_factory=list, description="Recent commits"
-    )
+    recent_commits: List[GitCommit] = Field(default_factory=list, description="Recent commits")
 
     class Config:
         json_schema_extra = {

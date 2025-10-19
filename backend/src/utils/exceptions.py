@@ -111,9 +111,7 @@ class LLMException(AuraIAException):
         if details:
             llm_details.update(details)
 
-        super().__init__(
-            message=message, error_code="LLM_ERROR", details=llm_details, **kwargs
-        )
+        super().__init__(message=message, error_code="LLM_ERROR", details=llm_details, **kwargs)
 
 
 class ValidationException(AuraIAException):
@@ -150,9 +148,7 @@ class ValidationException(AuraIAException):
 class CircuitBreakerOpenException(AuraIAException):
     """Circuit breaker is open"""
 
-    def __init__(
-        self, service_name: str, details: Optional[Dict[str, Any]] = None, **kwargs
-    ):
+    def __init__(self, service_name: str, details: Optional[Dict[str, Any]] = None, **kwargs):
         """
         Initialize circuit breaker exception.
 

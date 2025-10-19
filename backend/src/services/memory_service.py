@@ -677,9 +677,7 @@ class MemoryService:
             "first_message": time_range[0] if time_range[0] else None,
             "last_message": time_range[1] if time_range[1] else None,
             "session_duration_hours": (
-                (time_range[1] - time_range[0]) / 3600
-                if time_range[0] and time_range[1]
-                else 0
+                (time_range[1] - time_range[0]) / 3600 if time_range[0] and time_range[1] else 0
             ),
             "workspace_path": session.workspace_path if session else None,
             "created_at": session.created_at if session else None,

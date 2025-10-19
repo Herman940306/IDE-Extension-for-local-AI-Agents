@@ -45,9 +45,7 @@ class TestAgent(AgentAdapter):
             language = context.language or "unknown"
             test_framework = self._determine_test_framework(language)
 
-            suggestions = await self._generate_tests(
-                context.code, language, test_framework
-            )
+            suggestions = await self._generate_tests(context.code, language, test_framework)
 
             confidence = self._calculate_confidence(suggestions)
             reasoning = self._build_reasoning(language, test_framework, suggestions)
@@ -67,9 +65,7 @@ class TestAgent(AgentAdapter):
             )
 
         except Exception as exc:  # pragma: no cover - defensive logging
-            logger.exception(
-                "TestAgent task execution failed", extra={"task_id": task.id}
-            )
+            logger.exception("TestAgent task execution failed", extra={"task_id": task.id})
             return self._create_error_response(task, str(exc))
 
     async def initialize(self) -> None:
@@ -123,9 +119,7 @@ class TestAgent(AgentAdapter):
             suggestions.append(unit_test)
 
         # Generate edge case tests
-        edge_case_test = await self._generate_edge_case_tests(
-            code, language, test_framework
-        )
+        edge_case_test = await self._generate_edge_case_tests(code, language, test_framework)
         if edge_case_test:
             suggestions.append(edge_case_test)
 
@@ -153,10 +147,7 @@ class TestAgent(AgentAdapter):
             r"api",
         ]
 
-        return any(
-            re.search(pattern, code, re.IGNORECASE)
-            for pattern in integration_indicators
-        )
+        return any(re.search(pattern, code, re.IGNORECASE) for pattern in integration_indicators)
 
     async def _generate_unit_tests(
         self, code: str, language: str, test_framework: str
@@ -311,9 +302,7 @@ class TestAgent(AgentAdapter):
         values = [self._confidence_to_float(s.confidence) for s in suggestions]
         return sum(values) / len(values)
 
-    def _build_reasoning(
-        self, language: str, framework: str, suggestions: List[Suggestion]
-    ) -> str:
+    def _build_reasoning(self, language: str, framework: str, suggestions: List[Suggestion]) -> str:
         if not suggestions:
             return "No actionable test scenarios identified."
 

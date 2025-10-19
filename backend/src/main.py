@@ -233,9 +233,7 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
                 message_type = data.get("type")
                 payload = data.get("payload", {})
 
-                logger.info(
-                    "message_received", client_id=client_id, message_type=message_type
-                )
+                logger.info("message_received", client_id=client_id, message_type=message_type)
 
                 if message_type == "task_request":
                     await handle_task_request(client_id, payload)
@@ -247,9 +245,7 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
                     await connection_manager.send_personal_message(
                         {
                             "type": "error",
-                            "payload": {
-                                "message": f"Unknown message type: {message_type}"
-                            },
+                            "payload": {"message": f"Unknown message type: {message_type}"},
                         },
                         client_id,
                     )
@@ -260,9 +256,7 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
             except RuntimeError as runtime_error:
                 message = str(runtime_error).lower()
                 disconnect_error = "disconnect message" in message
-                receive_after_disconnect = (
-                    "receive" in message and "disconnect" in message
-                )
+                receive_after_disconnect = "receive" in message and "disconnect" in message
 
                 if disconnect_error or receive_after_disconnect:
                     # Treat as clean disconnect without bubbling an exception to uvicorn
@@ -288,9 +282,7 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
                     client_id,
                 )
             except Exception as e:
-                logger.error(
-                    "message_processing_error", client_id=client_id, error=str(e)
-                )
+                logger.error("message_processing_error", client_id=client_id, error=str(e))
                 await connection_manager.send_personal_message(
                     {
                         "type": "error",
@@ -307,9 +299,7 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
         disconnect_reason = "server_error"
     finally:
         if connected:
-            logger.info(
-                "client_disconnected", client_id=client_id, reason=disconnect_reason
-            )
+            logger.info("client_disconnected", client_id=client_id, reason=disconnect_reason)
             await connection_manager.disconnect(client_id)
 
 

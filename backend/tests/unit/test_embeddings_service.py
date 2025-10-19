@@ -27,13 +27,8 @@ class TestEmbeddingsService:
     def test_initialization(self, embeddings_service, embeddings_config):
         """Test service initializes with correct configuration"""
         assert embeddings_service.model_name == embeddings_config["model_name"]
-        assert (
-            embeddings_service.chroma_persist_dir
-            == embeddings_config["chroma_persist_dir"]
-        )
-        assert (
-            embeddings_service.collection_name == embeddings_config["collection_name"]
-        )
+        assert embeddings_service.chroma_persist_dir == embeddings_config["chroma_persist_dir"]
+        assert embeddings_service.collection_name == embeddings_config["collection_name"]
         assert embeddings_service.is_initialized is False
         assert embeddings_service.model is None
 

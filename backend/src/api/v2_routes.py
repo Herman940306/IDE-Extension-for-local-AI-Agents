@@ -119,9 +119,7 @@ async def verify_code(request: VerifyRequest):
             original_task=request.original_task,
         )
 
-        logger.info(
-            f"Verification: valid={result['valid']}, conf={result['confidence']:.2f}"
-        )
+        logger.info(f"Verification: valid={result['valid']}, conf={result['confidence']:.2f}")
 
         return VerifyResponse(**result)
     except Exception as e:

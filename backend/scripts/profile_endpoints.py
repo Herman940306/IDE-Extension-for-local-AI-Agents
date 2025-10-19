@@ -59,9 +59,7 @@ def percentile(values: List[float], pct: float) -> float:
 
 def summarise_latencies(latencies: List[float]) -> LatencySummary:
     if not latencies:
-        return LatencySummary(
-            count=0, average_ms=0.0, p95_ms=0.0, min_ms=0.0, max_ms=0.0
-        )
+        return LatencySummary(count=0, average_ms=0.0, p95_ms=0.0, min_ms=0.0, max_ms=0.0)
 
     ordered = sorted(latencies)
     average_ms = sum(ordered) / len(ordered)
@@ -112,11 +110,7 @@ def compute_resource_usage(
 
     cpu_delta = max(0.0, after["cpu_time"] - before["cpu_time"])
     cpu_count = psutil.cpu_count(logical=True) if psutil else None
-    cpu_percent = (
-        (cpu_delta / elapsed) * 100.0 / cpu_count
-        if cpu_count and cpu_count > 0
-        else 0.0
-    )
+    cpu_percent = (cpu_delta / elapsed) * 100.0 / cpu_count if cpu_count and cpu_count > 0 else 0.0
 
     return {
         "cpu_percent": round(cpu_percent, 2),

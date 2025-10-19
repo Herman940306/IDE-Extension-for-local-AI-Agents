@@ -77,9 +77,7 @@ class EmbeddingsService:
             logger.error(f"Failed to initialize embeddings service: {e}")
             raise
 
-    async def embed_code(
-        self, code: str, metadata: Optional[Dict[str, Any]] = None
-    ) -> List[float]:
+    async def embed_code(self, code: str, metadata: Optional[Dict[str, Any]] = None) -> List[float]:
         """
         Generate embedding for code snippet
 
@@ -124,9 +122,7 @@ class EmbeddingsService:
             loop = asyncio.get_event_loop()
             embeddings = await loop.run_in_executor(
                 None,
-                lambda: self.model.encode(
-                    code_snippets, convert_to_numpy=True, batch_size=32
-                ),
+                lambda: self.model.encode(code_snippets, convert_to_numpy=True, batch_size=32),
             )
 
             return [emb.tolist() for emb in embeddings]
@@ -291,9 +287,7 @@ class EmbeddingsService:
                             "code": results["documents"][0][i],
                             "metadata": results["metadatas"][0][i],
                             "distance": (
-                                results["distances"][0][i]
-                                if "distances" in results
-                                else None
+                                results["distances"][0][i] if "distances" in results else None
                             ),
                         }
                     )

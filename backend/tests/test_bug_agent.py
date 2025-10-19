@@ -58,9 +58,7 @@ def insecure_context():
     )
 
 
-async def test_static_security_detection(
-    bug_agent, base_task, insecure_context, llm_manager
-):
+async def test_static_security_detection(bug_agent, base_task, insecure_context, llm_manager):
     llm_manager.generate.return_value = "# fix"
 
     response = await bug_agent.analyze_code(base_task, insecure_context)
@@ -110,9 +108,7 @@ class CustomTestException(Exception):
 
 
 @pytest.mark.asyncio
-async def test_handles_analysis_failure(
-    bug_agent, base_task, insecure_context, monkeypatch
-):
+async def test_handles_analysis_failure(bug_agent, base_task, insecure_context, monkeypatch):
     async def failing_static(context):
         raise RuntimeError("failure")
 

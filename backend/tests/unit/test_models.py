@@ -219,9 +219,7 @@ class TestCodeContextModel:
 
     def test_code_context_serialization(self):
         """Test code context serialization"""
-        context = CodeContext(
-            file_path="test.py", language="python", imports=["import os"]
-        )
+        context = CodeContext(file_path="test.py", language="python", imports=["import os"])
 
         data = context.model_dump()
 
@@ -288,9 +286,7 @@ class TestSuggestionModel:
             ConfidenceLevel.MEDIUM,
             ConfidenceLevel.LOW,
         ]:
-            suggestion = Suggestion(
-                id="sugg-1", code="test", description="test", confidence=level
-            )
+            suggestion = Suggestion(id="sugg-1", code="test", description="test", confidence=level)
             assert suggestion.confidence == level
 
 
@@ -441,9 +437,7 @@ class TestTaskModel:
     def test_task_all_types(self):
         """Test creating tasks with all task types"""
         for task_type in TaskType:
-            task = Task(
-                id=f"task-{task_type.value}", type=task_type, content="test content"
-            )
+            task = Task(id=f"task-{task_type.value}", type=task_type, content="test content")
             assert task.type == task_type
 
     def test_task_all_priorities(self):

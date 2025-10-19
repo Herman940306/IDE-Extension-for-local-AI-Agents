@@ -38,9 +38,7 @@ async def test_create_single_file(creator, temp_dir):
 @pytest.mark.asyncio
 async def test_create_multiple_files_parallel(creator, temp_dir):
     """Test creating multiple files in parallel"""
-    file_tasks = [
-        {"name": f"file_{i}.txt", "content": f"Content {i}"} for i in range(10)
-    ]
+    file_tasks = [{"name": f"file_{i}.txt", "content": f"Content {i}"} for i in range(10)]
 
     results = await creator.create_files_parallel(file_tasks)
 
@@ -58,9 +56,7 @@ async def test_create_multiple_files_parallel(creator, temp_dir):
 @pytest.mark.asyncio
 async def test_statistics_tracking(creator):
     """Test that statistics are tracked correctly"""
-    file_tasks = [
-        {"name": f"file_{i}.txt", "content": f"Content {i}"} for i in range(5)
-    ]
+    file_tasks = [{"name": f"file_{i}.txt", "content": f"Content {i}"} for i in range(5)]
 
     await creator.create_files_parallel(file_tasks)
     stats = creator.get_stats()
@@ -82,9 +78,7 @@ async def test_error_handling(creator, temp_dir):
 @pytest.mark.asyncio
 async def test_convenience_function(temp_dir):
     """Test convenience function"""
-    file_tasks = [
-        {"name": f"file_{i}.txt", "content": f"Content {i}"} for i in range(5)
-    ]
+    file_tasks = [{"name": f"file_{i}.txt", "content": f"Content {i}"} for i in range(5)]
 
     results = await create_files_parallel(file_tasks, base_dir=temp_dir, max_workers=4)
 
@@ -97,9 +91,7 @@ async def test_concurrent_execution(creator):
     """Test that files are created concurrently"""
     import time
 
-    file_tasks = [
-        {"name": f"file_{i}.txt", "content": f"Content {i}" * 100} for i in range(20)
-    ]
+    file_tasks = [{"name": f"file_{i}.txt", "content": f"Content {i}" * 100} for i in range(20)]
 
     start = time.time()
     results = await creator.create_files_parallel(file_tasks)
@@ -113,9 +105,7 @@ async def test_concurrent_execution(creator):
 @pytest.mark.asyncio
 async def test_godmode_reporting(creator, caplog):
     """Test GODMODE batch reporting"""
-    file_tasks = [
-        {"name": f"file_{i}.txt", "content": f"Content {i}"} for i in range(10)
-    ]
+    file_tasks = [{"name": f"file_{i}.txt", "content": f"Content {i}"} for i in range(10)]
 
     await creator.create_files_parallel(file_tasks)
 

@@ -364,9 +364,7 @@ class TestCircuitBreakerGetState:
     @pytest.mark.asyncio
     async def test_get_state_half_open(self):
         """Test getting state when circuit is half-open"""
-        cb = CircuitBreaker(
-            name="test_service", failure_threshold=2, timeout_seconds=0.1
-        )
+        cb = CircuitBreaker(name="test_service", failure_threshold=2, timeout_seconds=0.1)
 
         async def failing_func():
             raise Exception("Test error")
@@ -419,9 +417,7 @@ class TestCircuitBreakerReset:
     @pytest.mark.asyncio
     async def test_manual_reset_from_half_open(self):
         """Test manual reset from half-open state"""
-        cb = CircuitBreaker(
-            name="test_service", failure_threshold=2, timeout_seconds=0.1
-        )
+        cb = CircuitBreaker(name="test_service", failure_threshold=2, timeout_seconds=0.1)
 
         async def failing_func():
             raise Exception("Test error")
@@ -481,9 +477,7 @@ class TestCircuitBreakerEdgeCases:
     @pytest.mark.asyncio
     async def test_very_short_timeout(self):
         """Test with very short timeout"""
-        cb = CircuitBreaker(
-            name="test_service", failure_threshold=1, timeout_seconds=0.01
-        )  # 10ms
+        cb = CircuitBreaker(name="test_service", failure_threshold=1, timeout_seconds=0.01)  # 10ms
 
         async def failing_func():
             raise Exception("Test error")

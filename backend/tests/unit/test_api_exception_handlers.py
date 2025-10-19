@@ -259,9 +259,7 @@ class TestExceptionHandlerIntegration:
         custom_id = "custom-correlation-123"
 
         # Create mock request with correlation ID in state
-        response = client.get(
-            "/test/generic-exception", headers={"X-Correlation-ID": custom_id}
-        )
+        response = client.get("/test/generic-exception", headers={"X-Correlation-ID": custom_id})
 
         # Note: This test shows the pattern, but TestClient doesn't
         # preserve request.state across middleware

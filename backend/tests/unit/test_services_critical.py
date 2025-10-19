@@ -75,9 +75,7 @@ class TestLLMManagerGeneration:
         mock_ollama.chat.return_value = {"message": {"content": "Response"}}
 
         manager = LLMManager()
-        await manager.generate(
-            "User prompt", system_prompt="You are a helpful assistant"
-        )
+        await manager.generate("User prompt", system_prompt="You are a helpful assistant")
 
         call_args = mock_ollama.chat.call_args
         messages = call_args.kwargs["messages"]
@@ -125,7 +123,7 @@ class TestLLMManagerGeneration:
         manager = LLMManager()
         with pytest.raises(LLMError) as exc_info:  # noqa: B017
             await manager.generate("Test prompt")
-        
+
         # Verify the original exception is chained
         assert exc_info.value.__cause__.__class__ == CustomTestException
         assert "Test error" in str(exc_info.value)
@@ -179,9 +177,7 @@ class TestLLMManagerGeneration:
         fake_provider = AsyncMock()
         fake_provider.generate.return_value = "Cloud response"
 
-        manager = LLMManager(
-            provider=LLMProvider.OPENAI, api_key="test-key", allow_cloud=True
-        )
+        manager = LLMManager(provider=LLMProvider.OPENAI, api_key="test-key", allow_cloud=True)
 
         with patch.object(
             LLMManager, "_get_cloud_provider", return_value=fake_provider
@@ -196,9 +192,7 @@ class TestLLMManagerGeneration:
     @pytest.mark.asyncio
     async def test_generate_cloud_requires_allow_flag(self):
         """Cloud provider should require allow_cloud flag"""
-        manager = LLMManager(
-            provider=LLMProvider.OPENAI, api_key="test-key", allow_cloud=False
-        )
+        manager = LLMManager(provider=LLMProvider.OPENAI, api_key="test-key", allow_cloud=False)
 
         with pytest.raises(LLMError):
             await manager.generate("Test prompt")
@@ -206,9 +200,7 @@ class TestLLMManagerGeneration:
     @pytest.mark.asyncio
     async def test_generate_cloud_privacy_block(self):
         """Cloud usage should be blocked when sensitive data is detected"""
-        manager = LLMManager(
-            provider=LLMProvider.OPENAI, api_key="test-key", allow_cloud=True
-        )
+        manager = LLMManager(provider=LLMProvider.OPENAI, api_key="test-key", allow_cloud=True)
 
         with pytest.raises(LLMError):
             await manager.generate("Contact me at foo@example.com")

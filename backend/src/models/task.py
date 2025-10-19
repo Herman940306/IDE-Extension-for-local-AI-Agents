@@ -42,17 +42,11 @@ class Task(BaseModel):
     id: str = Field(..., description="Unique task identifier")
     type: TaskType = Field(..., description="Type of task to execute")
     content: str = Field(..., description="Task content or code to process")
-    context: Dict[str, Any] = Field(
-        default_factory=dict, description="Additional context"
-    )
+    context: Dict[str, Any] = Field(default_factory=dict, description="Additional context")
     priority: Priority = Field(default=Priority.MEDIUM, description="Task priority")
     description: Optional[str] = Field(None, description="High-level task description")
-    metadata: Dict[str, Any] = Field(
-        default_factory=dict, description="Additional metadata"
-    )
-    timestamp: float = Field(
-        default_factory=time.time, description="Task creation timestamp"
-    )
+    metadata: Dict[str, Any] = Field(default_factory=dict, description="Additional metadata")
+    timestamp: float = Field(default_factory=time.time, description="Task creation timestamp")
 
     class Config:
         json_schema_extra = {

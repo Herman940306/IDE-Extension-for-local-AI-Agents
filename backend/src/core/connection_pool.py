@@ -19,9 +19,7 @@ class RedisConnectionPool:
         self.url = url
         self.max_connections = max_connections
         self.pool = (
-            ConnectionPool.from_url(
-                url, max_connections=max_connections, decode_responses=True
-            )
+            ConnectionPool.from_url(url, max_connections=max_connections, decode_responses=True)
             if ConnectionPool
             else None
         )

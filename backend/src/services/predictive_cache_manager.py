@@ -63,9 +63,7 @@ class AccessPattern:
         if not avg:
             return 0.0
 
-        variance = sum((x - avg) ** 2 for x in self.access_intervals) / len(
-            self.access_intervals
-        )
+        variance = sum((x - avg) ** 2 for x in self.access_intervals) / len(self.access_intervals)
         stddev = variance**0.5
 
         # Lower variance = higher confidence
@@ -96,9 +94,7 @@ class PredictiveCacheManager:
         self.patterns: Dict[str, AccessPattern] = {}
 
         # Track resource relationships (co-access patterns)
-        self.co_access: Dict[str, Dict[str, int]] = defaultdict(
-            lambda: defaultdict(int)
-        )
+        self.co_access: Dict[str, Dict[str, int]] = defaultdict(lambda: defaultdict(int))
         self.recent_accesses: deque = deque(maxlen=10)
 
         # Preload callbacks
@@ -178,9 +174,7 @@ class PredictiveCacheManager:
                 for related_id, count in self.co_access[last_access].items():
                     # Calculate confidence based on co-access frequency
                     total_accesses = self.patterns[last_access].access_count
-                    confidence = (
-                        min(1.0, count / total_accesses) if total_accesses > 0 else 0.0
-                    )
+                    confidence = min(1.0, count / total_accesses) if total_accesses > 0 else 0.0
 
                     if confidence >= self.prediction_threshold:
                         predictions.append(
@@ -202,9 +196,7 @@ class PredictiveCacheManager:
         predictions.sort(key=lambda x: x.confidence, reverse=True)
         return predictions[:top_k]
 
-    def register_preload_callback(
-        self, resource_type: str, callback: Callable[[str], Any]
-    ) -> None:
+    def register_preload_callback(self, resource_type: str, callback: Callable[[str], Any]) -> None:
         """
         Register callback for preloading resources
 
@@ -233,9 +225,7 @@ class PredictiveCacheManager:
         for prediction in predictions:
             try:
                 # Extract resource type from key
-                resource_type = (
-                    prediction.key.split(":")[0] if ":" in prediction.key else "default"
-                )
+                resource_type = prediction.key.split(":")[0] if ":" in prediction.key else "default"
 
                 if resource_type in self.preload_callbacks:
                     callback = self.preload_callbacks[resource_type]
@@ -271,9 +261,7 @@ class PredictiveCacheManager:
     def get_statistics(self) -> Dict[str, Any]:
         """Get predictive caching statistics"""
         accuracy = (
-            self.predictions_correct / self.predictions_made
-            if self.predictions_made > 0
-            else 0.0
+            self.predictions_correct / self.predictions_made if self.predictions_made > 0 else 0.0
         )
 
         return {

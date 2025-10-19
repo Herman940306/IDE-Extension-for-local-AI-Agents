@@ -192,9 +192,7 @@ class RequestSizeMiddleware(BaseHTTPMiddleware):
             size = int(content_length)
 
             if size > self.max_size:
-                correlation_id = getattr(
-                    request.state, "correlation_id", str(uuid.uuid4())
-                )
+                correlation_id = getattr(request.state, "correlation_id", str(uuid.uuid4()))
 
                 logger.warning(
                     f"Request size exceeded: {size} bytes",

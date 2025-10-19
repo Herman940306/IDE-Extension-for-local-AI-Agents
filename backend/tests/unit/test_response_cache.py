@@ -127,9 +127,7 @@ class TestResponseCacheSet:
 
         response = {"text": "Test response"}
 
-        result = await cache.set(
-            prompt="test prompt", model="codellama:7b", response=response
-        )
+        result = await cache.set(prompt="test prompt", model="codellama:7b", response=response)
 
         assert result is True
         mock_redis_client.setex.assert_called_once()

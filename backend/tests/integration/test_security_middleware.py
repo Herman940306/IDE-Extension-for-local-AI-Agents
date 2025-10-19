@@ -55,9 +55,7 @@ def test_rate_limit_middleware_disabled_bypasses_checks():
 
 
 def test_main_app_uses_configured_cors_origins():
-    cors_middlewares = [
-        m for m in main_app.user_middleware if m.cls.__name__ == "CORSMiddleware"
-    ]
+    cors_middlewares = [m for m in main_app.user_middleware if m.cls.__name__ == "CORSMiddleware"]
     assert cors_middlewares, "CORS middleware missing"
 
     cors_config = cors_middlewares[0].options

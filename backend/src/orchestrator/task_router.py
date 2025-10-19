@@ -162,9 +162,7 @@ class TaskRouter:
             or intent in [TaskIntent.GENERATE, TaskIntent.REFACTOR, TaskIntent.DEBUG],
         }
 
-        logger.info(
-            f"Task analysis: intent={intent.value}, complexity={complexity:.2f}"
-        )
+        logger.info(f"Task analysis: intent={intent.value}, complexity={complexity:.2f}")
         return analysis
 
     def _estimate_complexity(

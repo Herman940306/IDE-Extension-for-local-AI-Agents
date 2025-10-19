@@ -32,9 +32,7 @@ class ModeManager:
         """
         self.current_mode = default_mode
         self.mode_change_callbacks: List[Callable[[OperationMode], None]] = []
-        self.cloud_api_blocked = (
-            True if default_mode == OperationMode.OFFLINE else False
-        )
+        self.cloud_api_blocked = True if default_mode == OperationMode.OFFLINE else False
 
         # Statistics
         self.mode_changes = 0
@@ -153,9 +151,7 @@ class ModeManager:
         logger.debug(f"Cloud operation allowed: {operation_name}")
         return True
 
-    def register_mode_change_callback(
-        self, callback: Callable[[OperationMode], None]
-    ) -> None:
+    def register_mode_change_callback(self, callback: Callable[[OperationMode], None]) -> None:
         """
         Register callback to be notified on mode changes
 
@@ -165,9 +161,7 @@ class ModeManager:
         self.mode_change_callbacks.append(callback)
         logger.debug(f"Registered mode change callback: {callback.__name__}")
 
-    def unregister_mode_change_callback(
-        self, callback: Callable[[OperationMode], None]
-    ) -> None:
+    def unregister_mode_change_callback(self, callback: Callable[[OperationMode], None]) -> None:
         """
         Unregister mode change callback
 

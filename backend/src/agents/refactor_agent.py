@@ -134,9 +134,7 @@ class RefactorAgent(AgentAdapter):
             # Verify LLM is available
             llm_healthy = await self.llm_manager.health_check()
             if not llm_healthy:
-                logger.warning(
-                    "LLM health check failed, agent will use AST-only analysis"
-                )
+                logger.warning("LLM health check failed, agent will use AST-only analysis")
 
             self.is_initialized = True
             logger.info(
@@ -344,9 +342,7 @@ class RefactorAgent(AgentAdapter):
         # 3. LLM-powered suggestions (deep analysis) - only if issues found
         if len(suggestions) > 0:
             try:
-                llm_suggestions = await self._generate_llm_suggestions(
-                    code, context, suggestions
-                )
+                llm_suggestions = await self._generate_llm_suggestions(code, context, suggestions)
                 suggestions.extend(llm_suggestions)
             except LLMError as e:
                 logger.warning(f"LLM suggestions skipped: {e}")
@@ -363,9 +359,7 @@ class RefactorAgent(AgentAdapter):
 
         return suggestions[: self.MAX_SUGGESTIONS]
 
-    async def _analyze_code_ast_only(
-        self, code: str, context: CodeContext
-    ) -> List[Suggestion]:
+    async def _analyze_code_ast_only(self, code: str, context: CodeContext) -> List[Suggestion]:
         """
         Analyze code using only AST (fallback when LLM unavailable)
 
@@ -429,9 +423,7 @@ class RefactorAgent(AgentAdapter):
 
         return tree
 
-    async def _detect_patterns_ast(
-        self, code: str, context: CodeContext
-    ) -> List[Suggestion]:
+    async def _detect_patterns_ast(self, code: str, context: CodeContext) -> List[Suggestion]:
         """
         Detect refactoring patterns using AST analysis with node count limits
 
@@ -471,9 +463,7 @@ class RefactorAgent(AgentAdapter):
                     pattern_suggestions = pattern.detector(tree, code, context)
                     suggestions.extend(pattern_suggestions)
                 except Exception as e:
-                    logger.error(
-                        f"Pattern detector '{pattern.name}' failed: {e}", exc_info=True
-                    )
+                    logger.error(f"Pattern detector '{pattern.name}' failed: {e}", exc_info=True)
 
         except SyntaxError as e:
             logger.warning(f"Syntax error in code, skipping AST analysis: {e}")
@@ -589,22 +579,15 @@ class RefactorAgent(AgentAdapter):
                 for sub_node in ast.walk(node.test):
                     if isinstance(sub_node, ast.BoolOp):
                         bool_ops += max(len(getattr(sub_node, "values", [])) - 1, 1)
-                    if isinstance(sub_node, ast.UnaryOp) and isinstance(
-                        sub_node.op, ast.Not
-                    ):
+                    if isinstance(sub_node, ast.UnaryOp) and isinstance(sub_node.op, ast.Not):
                         bool_ops += 1
 
                 if bool_ops >= self.COMPLEX_CONDITIONAL_THRESHOLD:
-                    condition_line = (
-                        lines[node.lineno - 1] if node.lineno <= len(lines) else ""
-                    )
+                    condition_line = lines[node.lineno - 1] if node.lineno <= len(lines) else ""
 
                     suggestions.append(
                         Suggestion(
-                            id=(
-                                f"complex_conditional_{node.lineno}_"
-                                f"{uuid.uuid4().hex[:8]}"
-                            ),
+                            id=(f"complex_conditional_{node.lineno}_" f"{uuid.uuid4().hex[:8]}"),
                             code=condition_line.strip(),
                             description=(
                                 f"Complex conditional with {bool_ops} boolean "
@@ -625,9 +608,7 @@ class RefactorAgent(AgentAdapter):
 
         return suggestions
 
-    def _detect_dead_code(
-        self, tree: ast.AST, code: str, context: CodeContext
-    ) -> List[Suggestion]:
+    def _detect_dead_code(self, tree: ast.AST, code: str, context: CodeContext) -> List[Suggestion]:
         """Detect potentially dead/unused code"""
         suggestions = []
 
@@ -661,10 +642,7 @@ class RefactorAgent(AgentAdapter):
                 if reached_terminal:
                     suggestions.append(
                         Suggestion(
-                            id=(
-                                f"dead_code_{scope}_{stmt.lineno}_"
-                                f"{uuid.uuid4().hex[:8]}"
-                            ),
+                            id=(f"dead_code_{scope}_{stmt.lineno}_" f"{uuid.uuid4().hex[:8]}"),
                             code="# Unreachable code detected",
                             description=(
                                 f"Code at line {stmt.lineno} in '{scope}' is "
@@ -721,9 +699,7 @@ class RefactorAgent(AgentAdapter):
 
         return suggestions
 
-    async def _detect_code_smells(
-        self, code: str, context: CodeContext
-    ) -> List[Suggestion]:
+    async def _detect_code_smells(self, code: str, context: CodeContext) -> List[Suggestion]:
         """Detect code smells using semantic analysis"""
         suggestions = []
 
@@ -814,9 +790,7 @@ REASON: [why this improves the code]
 
         return prompt
 
-    def _parse_llm_response(
-        self, response: str, context: CodeContext
-    ) -> List[Suggestion]:
+    def _parse_llm_response(self, response: str, context: CodeContext) -> List[Suggestion]:
         """Parse LLM response into structured suggestions"""
         suggestions = []
 
@@ -838,9 +812,7 @@ REASON: [why this improves the code]
 
         return suggestions
 
-    def _deduplicate_suggestions(
-        self, suggestions: List[Suggestion]
-    ) -> List[Suggestion]:
+    def _deduplicate_suggestions(self, suggestions: List[Suggestion]) -> List[Suggestion]:
         """Remove duplicate suggestions"""
         seen = set()
         unique = []
@@ -880,9 +852,7 @@ REASON: [why this improves the code]
         else:
             return ConfidenceLevel.LOW
 
-    def _generate_reasoning(
-        self, suggestions: List[Suggestion], context: CodeContext
-    ) -> str:
+    def _generate_reasoning(self, suggestions: List[Suggestion], context: CodeContext) -> str:
         """Generate reasoning explanation"""
         if not suggestions:
             return "No refactoring opportunities detected. Code appears to follow best practices."  # noqa: E501
@@ -894,21 +864,15 @@ REASON: [why this improves the code]
 
         # Summarize by confidence level
         high_conf = sum(1 for s in suggestions if s.confidence == ConfidenceLevel.HIGH)
-        medium_conf = sum(
-            1 for s in suggestions if s.confidence == ConfidenceLevel.MEDIUM
-        )
+        medium_conf = sum(1 for s in suggestions if s.confidence == ConfidenceLevel.MEDIUM)
         low_conf = sum(1 for s in suggestions if s.confidence == ConfidenceLevel.LOW)
 
         if high_conf > 0:
-            reasoning += (
-                f"- {high_conf} high-confidence suggestions (recommended to apply)\n"
-            )
+            reasoning += f"- {high_conf} high-confidence suggestions (recommended to apply)\n"
         if medium_conf > 0:
             reasoning += f"- {medium_conf} medium-confidence suggestions (review before applying)\n"  # noqa: E501
         if low_conf > 0:
-            reasoning += (
-                f"- {low_conf} low-confidence suggestions (optional improvements)\n"
-            )
+            reasoning += f"- {low_conf} low-confidence suggestions (optional improvements)\n"
 
         reasoning += "\nFocus on high-confidence suggestions first for maximum impact."
 
@@ -938,9 +902,7 @@ REASON: [why this improves the code]
         except Exception as e:
             logger.warning(f"Failed to store task in memory: {e}")
 
-    async def _store_response_in_memory(
-        self, task: Task, response: AgentResponse
-    ) -> None:
+    async def _store_response_in_memory(self, task: Task, response: AgentResponse) -> None:
         """Store response in memory service"""
         if not self.memory_service:
             return

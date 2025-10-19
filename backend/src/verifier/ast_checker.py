@@ -175,9 +175,7 @@ class ASTChecker:
 
         return issues
 
-    def get_ast_info(
-        self, code: str, language: str = "python"
-    ) -> Optional[Dict[str, Any]]:
+    def get_ast_info(self, code: str, language: str = "python") -> Optional[Dict[str, Any]]:
         """
         Get detailed AST information.
 
@@ -221,13 +219,10 @@ class ASTChecker:
                                 "name": node.name,
                                 "line": node.lineno,
                                 "bases": [
-                                    b.id if isinstance(b, ast.Name) else str(b)
-                                    for b in node.bases
+                                    b.id if isinstance(b, ast.Name) else str(b) for b in node.bases
                                 ],
                                 "methods": [
-                                    m.name
-                                    for m in node.body
-                                    if isinstance(m, ast.FunctionDef)
+                                    m.name for m in node.body if isinstance(m, ast.FunctionDef)
                                 ],
                             }
                         )

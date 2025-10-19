@@ -117,9 +117,7 @@ class RateLimiter:
             return (allowed, remaining)
 
         except Exception as e:
-            logger.error(
-                f"Rate limit check error: {e}", extra={"key": key, "error": str(e)}
-            )
+            logger.error(f"Rate limit check error: {e}", extra={"key": key, "error": str(e)})
             # Fail open: allow request on error
             return (True, -1)
 
@@ -145,7 +143,5 @@ class RateLimiter:
             return True
 
         except Exception as e:
-            logger.error(
-                f"Rate limit reset error: {e}", extra={"key": key, "error": str(e)}
-            )
+            logger.error(f"Rate limit reset error: {e}", extra={"key": key, "error": str(e)})
             return False

@@ -115,16 +115,8 @@ class TelemetryService:
             "max": agg["max"],
             "median": statistics.median(values) if values else 0,
             "stddev": statistics.stdev(values) if len(values) > 1 else 0,
-            "p95": (
-                statistics.quantiles(values, n=20)[18]
-                if len(values) >= 20
-                else agg["max"]
-            ),
-            "p99": (
-                statistics.quantiles(values, n=100)[98]
-                if len(values) >= 100
-                else agg["max"]
-            ),
+            "p95": (statistics.quantiles(values, n=20)[18] if len(values) >= 20 else agg["max"]),
+            "p99": (statistics.quantiles(values, n=100)[98] if len(values) >= 100 else agg["max"]),
         }
 
     def get_all_metrics(self) -> List[Dict[str, Any]]:
@@ -373,9 +365,7 @@ def track_cache_hit(metric_name: str, tags: Optional[Dict[str, str]] = None):
     return record_hit, record_miss
 
 
-def track_usage(
-    metric_name: str, value: float = 1.0, tags: Optional[Dict[str, str]] = None
-):
+def track_usage(metric_name: str, value: float = 1.0, tags: Optional[Dict[str, str]] = None):
     """
     Track usage metric
 

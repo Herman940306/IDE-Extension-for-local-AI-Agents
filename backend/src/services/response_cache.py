@@ -98,9 +98,7 @@ class ResponseCache:
 
         except Exception as e:
             self._stats["errors"] += 1
-            logger.warning(
-                f"Cache get error: {e}", extra={"model": model, "error": str(e)}
-            )
+            logger.warning(f"Cache get error: {e}", extra={"model": model, "error": str(e)})
             return None
 
     async def set(
@@ -154,9 +152,7 @@ class ResponseCache:
 
         except Exception as e:
             self._stats["errors"] += 1
-            logger.warning(
-                f"Cache set error: {e}", extra={"model": model, "error": str(e)}
-            )
+            logger.warning(f"Cache set error: {e}", extra={"model": model, "error": str(e)})
             return False
 
     def _generate_cache_key(
