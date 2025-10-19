@@ -35,4 +35,5 @@ class CodeSmell(BaseModel):
                 "line_end": 250,
                 "suggestion": "Consider splitting into smaller, focused classes using Single Responsibility Principle",
                 "confidence": 0.9,
-            }}
+            }
+        }
