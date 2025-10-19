@@ -231,17 +231,20 @@ class MetaOrchestrator:
             reverse=True,
         )
 
-        # Prioritize the leading candidate; additional agents are considered
-        # only when no primary remains healthy (fallback handled separately).
-        return healthy_agents[:1]
+        # Return all healthy agents for potential multi-agent execution
+        # The caller will decide whether to use single or multi-agent mode
+        return healthy_agents
 
-    async def _execute_single_agent(self, task: Task, agent_name: str) -> AgentResponse:
+    async def _execute_single_agent(
+        self, task: Task, agent_name: str, allow_fallback: bool = True
+    ) -> AgentResponse:
         """
         Execute task with single agent
 
         Args:
             task: Task to execute
             agent_name: Agent to use
+            allow_fallback: Whether to try fallback agents on failure
 
         Returns:
             AgentResponse
@@ -253,8 +256,10 @@ class MetaOrchestrator:
         start_time = time.time()
 
         try:
-            # Execute task
-            response = await agent.execute_task(task)
+            # Execute task - pass empty context if not available
+            from src.models import CodeContext
+            context = CodeContext(code="", language="python", file_path="")
+            response = await agent.execute_task(task, context)
 
             # Record success
             latency = time.time() - start_time
@@ -268,8 +273,12 @@ class MetaOrchestrator:
             health.record_failure()
             logger.error(f"Agent {agent_name} failed: {e}")
 
-            # Try fallback
-            return await self._try_fallback(task, agent_name)
+            # Try fallback only if allowed (not in multi-agent execution)
+            if allow_fallback:
+                return await self._try_fallback(task, agent_name)
+            else:
+                # In multi-agent mode, let the exception propagate for gather() to handle
+                raise
 
     async def _execute_multi_agent(
         self, task: Task, agent_names: List[str]
@@ -286,7 +295,8 @@ class MetaOrchestrator:
         """
         # Execute agents in parallel
         tasks_list = [
-            self._execute_single_agent(task, agent_name) for agent_name in agent_names
+            self._execute_single_agent(task, agent_name, allow_fallback=False)
+            for agent_name in agent_names
         ]
 
         responses = await asyncio.gather(*tasks_list, return_exceptions=True)
@@ -301,13 +311,11 @@ class MetaOrchestrator:
         if not valid_responses:
             return self._create_fallback_response(task)
 
-        unique_agents = {response.agent_id for response in valid_responses}
-        if len(unique_agents) == 1:
-            # If all successful responses come from the same agent (e.g., a fallback),
-            # prefer returning the agent's own output instead of aggregating.
+        # If only one agent responded successfully, return its response directly
+        if len(valid_responses) == 1:
             return valid_responses[0]
 
-        # Aggregate responses
+        # Aggregate responses from multiple successful agents
         return await self._aggregate_responses(valid_responses, task)
 
     async def _aggregate_responses(

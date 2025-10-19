@@ -58,6 +58,7 @@ class TestLLMManagerInitialization:
 class TestLLMManagerGeneration:
     """Test LLM generation functionality"""
 
+    @patch("src.services.llm_manager.ollama")
     async def test_generate_success(self, mock_ollama):
         """Test successful text generation"""
         mock_ollama.chat.return_value = {"message": {"content": "Generated response"}}
@@ -114,13 +115,20 @@ class TestLLMManagerGeneration:
     # B017: Use a specific exception for pytest.raises
     @patch("src.services.llm_manager.ollama")
     async def test_generate_with_b017(self, mock_ollama):
+        """Test that exceptions are properly chained with 'from e'"""
+        from src.services.llm_manager import LLMError
+
         class CustomTestException(Exception):
             pass
 
         mock_ollama.chat.side_effect = CustomTestException("Test error")
         manager = LLMManager()
-        with pytest.raises(CustomTestException):
+        with pytest.raises(LLMError) as exc_info:  # noqa: B017
             await manager.generate("Test prompt")
+        
+        # Verify the original exception is chained
+        assert exc_info.value.__cause__.__class__ == CustomTestException
+        assert "Test error" in str(exc_info.value)
 
     @patch("src.services.llm_manager.ollama")
     async def test_generate_with_temperature(self, mock_ollama):

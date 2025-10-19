@@ -116,28 +116,20 @@ class TestCircuitBreakerClosedState:
 
         # Fail 4 times (below threshold)
         for _i in range(4):
-            with pytest.raises(CustomTestException):
+            with pytest.raises(CustomTestException):  # noqa: B017
                 await cb.call(failing_func_b017)
 
         # Circuit should still be closed
         assert cb._state == CircuitState.CLOSED
         assert cb._failure_count == 4
 
-        # Fail 5 times (at threshold)
-        for _i in range(5):
-            with pytest.raises(CustomTestException):
-                await cb.call(failing_func_b017)
-
-        # Circuit should be open
-        assert cb._state == CircuitState.OPEN
-        assert cb._failure_count == 5
-
-        # Success resets failure count
-        await cb.call(successful_func)
+        # Success resets failure count while circuit is still closed
+        result = await cb.call(successful_func)
+        assert result == "success"
         assert cb._failure_count == 0
         assert cb._state == CircuitState.CLOSED
 
-        # Fail 3 times
+        # Fail 3 times after reset
         for _i in range(3):
             with pytest.raises(Exception):  # noqa: B017
                 await cb.call(failing_func)

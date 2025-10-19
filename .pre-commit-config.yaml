@@ -1,0 +1,19 @@
+repos:
+  - repo: https://github.com/charliermarsh/ruff-pre-commit
+    rev: v0.6.8
+    hooks:
+      - id: ruff
+        args: ["--fix"]
+      - id: ruff-format
+
+  - repo: https://github.com/psf/black
+    rev: 24.10.0
+    hooks:
+      - id: black
+        args: ["--line-length=88"]
+
+  - repo: https://github.com/pre-commit/mirrors-pytest
+    rev: v1.0.0
+    hooks:
+      - id: pytest
+        args: ["-q", "--maxfail=1", "--disable-warnings"]

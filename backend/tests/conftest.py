@@ -86,6 +86,21 @@ async def redis_connection_pool() -> AsyncMock:
 
 
 @pytest.fixture
+def mock_ollama() -> Mock:
+    """
+    Mock Ollama client for testing.
+
+    Provides a mocked Ollama client with common operations.
+    """
+    client = Mock()
+    client.chat = Mock(return_value={"message": {"content": "Generated response"}})
+    client.generate = Mock(return_value={"response": "Generated response"})
+    client.list = Mock(return_value={"models": [{"name": "codellama:7b"}]})
+    client.show = Mock(return_value={"modelfile": "FROM codellama:7b"})
+    return client
+
+
+@pytest.fixture
 def mock_llm_response() -> dict:
     """Sample LLM response for testing."""
     return {

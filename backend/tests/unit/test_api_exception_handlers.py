@@ -28,6 +28,7 @@ def app():
     register_exception_handlers(app)
 
     # Add test routes that raise exceptions
+    @app.get("/test/rate-limit")
     async def test_rate_limit():
         raise RateLimitExceededException(limit=100, window=60)
 
@@ -47,8 +48,6 @@ def app():
     async def test_generic_exception():
         raise ValueError("Unexpected error")
 
-    return app
-
     # B017: Use a specific exception for pytest.raises
     class CustomTestException(Exception):
         pass
@@ -56,6 +55,8 @@ def app():
     @app.get("/test/b017-exception")
     async def test_b017_exception():
         raise CustomTestException("Test error")
+
+    return app
 
 
 @pytest.fixture

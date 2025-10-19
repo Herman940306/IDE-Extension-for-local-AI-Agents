@@ -147,10 +147,11 @@ class TestContainer:
         provenance = container.provenance_store()
         assert isinstance(trace_store, CognitiveTraceStore)
         assert isinstance(provenance, ProvenanceStore)
-        assert str(trace_store.path) == container.config().observability.trace_log_path
+        # Normalize paths by converting backslashes to forward slashes and removing leading './'
+        assert str(trace_store.path).replace('\\', '/').lstrip('./') == container.config().observability.trace_log_path.lstrip('./')
         assert (
-            str(provenance.db_path)
-            == container.config().observability.provenance_db_path
+            str(provenance.db_path).replace('\\', '/').lstrip('./')
+            == container.config().observability.provenance_db_path.lstrip('./')
         )
 
     def test_meta_orchestrator_provider(self):

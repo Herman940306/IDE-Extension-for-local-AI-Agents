@@ -72,6 +72,14 @@ class TestAgent(AgentAdapter):
             )
             return self._create_error_response(task, str(exc))
 
+    async def initialize(self) -> None:
+        """Initialize the agent - no specific setup required."""
+        pass
+
+    async def get_capabilities(self) -> List[Capability]:
+        """Get the capabilities of this agent."""
+        return self.config.capabilities
+
     def _determine_test_framework(self, language: str) -> str:
         """
         Determine appropriate test framework for language
