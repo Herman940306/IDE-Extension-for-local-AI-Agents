@@ -27,14 +27,8 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-
-      - name: Cache pip packages
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('backend/requirements.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-
+          cache: 'pip'  # Built-in pip caching
+          cache-dependency-path: 'backend/requirements.txt'
 
       - name: Install dependencies
         run: |
@@ -64,8 +58,8 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "20"
-          # Remove cache to avoid path resolution issues
-          # Will still be fast since extension build is lightweight
+          cache: 'npm'  # Built-in npm caching
+          cache-dependency-path: 'extension/package-lock.json'
 
       - name: Install dependencies
         working-directory: extension
