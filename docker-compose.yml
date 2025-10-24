@@ -38,7 +38,6 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    image: auraia/backend:latest
     restart: unless-stopped
     ports:
       - "8001:8001"
@@ -74,7 +73,6 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    image: auraia/backend:latest
     restart: unless-stopped
     depends_on:
       redis:

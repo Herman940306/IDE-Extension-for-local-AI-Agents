@@ -51,16 +51,12 @@ def long_job_task(self, duration: float = 5.0, job_type: str = "long") -> dict:
         time.sleep(max(0.0, float(duration)))
         elapsed = time.perf_counter() - start
         WORKER_JOBS_COMPLETED_TOTAL.labels(job_type=job_type, outcome="success").inc()
-        WORKER_JOB_DURATION_SECONDS.labels(
-            job_type=job_type, outcome="success"
-        ).observe(elapsed)
+        WORKER_JOB_DURATION_SECONDS.labels(job_type=job_type, outcome="success").observe(elapsed)
         return {"status": "completed", "duration": elapsed, "job_type": job_type}
     except Exception as e:  # pragma: no cover - defensive
         elapsed = time.perf_counter() - start
         WORKER_JOBS_COMPLETED_TOTAL.labels(job_type=job_type, outcome="error").inc()
-        WORKER_JOB_DURATION_SECONDS.labels(job_type=job_type, outcome="error").observe(
-            elapsed
-        )
+        WORKER_JOB_DURATION_SECONDS.labels(job_type=job_type, outcome="error").observe(elapsed)
         return {
             "status": "failed",
             "error": str(e),

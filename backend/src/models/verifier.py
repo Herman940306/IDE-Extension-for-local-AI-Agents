@@ -104,9 +104,7 @@ class AnalyticalVerifier:
             is_valid, issues, suggestions = self._parse_verification(response)
 
             # Calculate confidence
-            confidence = self._calculate_confidence(
-                is_valid, issues, request.system1_confidence
-            )
+            confidence = self._calculate_confidence(is_valid, issues, request.system1_confidence)
 
             # Calculate latency
             latency_ms = (time.time() - start_time) * 1000
@@ -257,14 +255,10 @@ Analysis:"""
         issues = []
         if "ISSUES:" in text.upper():
             issues_section = text.split("ISSUES:")[1].split("SUGGESTIONS:")[0]
-            issue_lines = [
-                line.strip() for line in issues_section.split("\n") if line.strip()
-            ]
+            issue_lines = [line.strip() for line in issues_section.split("\n") if line.strip()]
             for line in issue_lines[:5]:  # Limit to 5 issues
                 if line and not line.startswith("REASONING"):
-                    issues.append(
-                        {"type": "warning", "message": line.lstrip("- ").lstrip("* ")}
-                    )
+                    issues.append({"type": "warning", "message": line.lstrip("- ").lstrip("* ")})
 
         # Extract suggestions
         suggestions = []
@@ -305,15 +299,11 @@ Analysis:"""
     def get_stats(self) -> Dict[str, Any]:
         """Get verification statistics"""
         avg_latency = (
-            self.total_latency / self.total_verifications
-            if self.total_verifications > 0
-            else 0
+            self.total_latency / self.total_verifications if self.total_verifications > 0 else 0
         )
 
         rejection_rate = (
-            self.rejections / self.total_verifications
-            if self.total_verifications > 0
-            else 0
+            self.rejections / self.total_verifications if self.total_verifications > 0 else 0
         )
 
         return {
