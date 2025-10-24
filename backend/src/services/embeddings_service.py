@@ -11,7 +11,9 @@ from typing import Any, Dict, List, Optional
 
 import chromadb
 from chromadb.config import Settings
-from sentence_transformers import SentenceTransformer
+
+# Avoid heavy import at module load; will be imported lazily in initialize()
+SentenceTransformer = None  # type: ignore
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +42,7 @@ class EmbeddingsService:
         self.model_name = model_name
         self.chroma_persist_dir = chroma_persist_dir
         self.collection_name = collection_name
-        self.model: Optional[SentenceTransformer] = None
+        self.model: Optional[Any] = None
         self.chroma_client: Optional[chromadb.Client] = None
         self.collection: Optional[Any] = None
         self.is_initialized = False
@@ -49,6 +51,13 @@ class EmbeddingsService:
         """Initialize the embeddings model and vector store"""
         try:
             logger.info(f"Loading embeddings model: {self.model_name}")
+
+            # Import lazily to avoid heavy import at app startup
+            global SentenceTransformer  # type: ignore
+            if SentenceTransformer is None:  # type: ignore
+                from sentence_transformers import SentenceTransformer as _ST  # type: ignore
+
+                SentenceTransformer = _ST  # type: ignore
 
             # Load model in thread pool to avoid blocking
             loop = asyncio.get_event_loop()
@@ -77,7 +86,9 @@ class EmbeddingsService:
             logger.error(f"Failed to initialize embeddings service: {e}")
             raise
 
-    async def embed_code(self, code: str, metadata: Optional[Dict[str, Any]] = None) -> List[float]:
+    async def embed_code(
+        self, code: str, metadata: Optional[Dict[str, Any]] = None
+    ) -> List[float]:
         """
         Generate embedding for code snippet
 
@@ -122,7 +133,9 @@ class EmbeddingsService:
             loop = asyncio.get_event_loop()
             embeddings = await loop.run_in_executor(
                 None,
-                lambda: self.model.encode(code_snippets, convert_to_numpy=True, batch_size=32),
+                lambda: self.model.encode(
+                    code_snippets, convert_to_numpy=True, batch_size=32
+                ),
             )
 
             return [emb.tolist() for emb in embeddings]
@@ -287,7 +300,9 @@ class EmbeddingsService:
                             "code": results["documents"][0][i],
                             "metadata": results["metadatas"][0][i],
                             "distance": (
-                                results["distances"][0][i] if "distances" in results else None
+                                results["distances"][0][i]
+                                if "distances" in results
+                                else None
                             ),
                         }
                     )

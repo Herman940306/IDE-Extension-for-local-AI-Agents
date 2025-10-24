@@ -10,10 +10,12 @@ import uuid
 from contextlib import asynccontextmanager
 from typing import Any, Awaitable, Dict, Optional, cast
 
+from celery.result import AsyncResult  # type: ignore
 from fastapi import BackgroundTasks, FastAPI, Response, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from prometheus_client import (
     CONTENT_TYPE_LATEST,
+    CollectorRegistry,
     Counter,
     Gauge,
     Histogram,
@@ -36,6 +38,7 @@ from src.models.session import (
     TaskSessionResult,
 )
 from src.services.connection_manager import ConnectionManager
+from src.worker.celery_app import app as celery_app  # type: ignore
 
 # Configure structured logging
 settings = get_settings()
@@ -126,17 +129,21 @@ app.add_middleware(RequestSizeMiddleware, max_size=settings.max_request_size)
 
 
 # --- Prometheus metrics ---
+# Use an app-specific registry to avoid duplicate registration in test runs
+APP_METRICS_REGISTRY = CollectorRegistry()
 # Basic HTTP metrics: request counts and durations by method/path/status
 REQUEST_COUNT = Counter(
     "http_requests_total",
     "Total HTTP requests",
     labelnames=["method", "path", "status_code"],
+    registry=APP_METRICS_REGISTRY,
 )
 REQUEST_LATENCY = Histogram(
     "http_request_duration_seconds",
     "HTTP request duration in seconds",
     labelnames=["method", "path", "status_code"],
     buckets=(0.05, 0.1, 0.2, 0.5, 1, 2, 5, 10),
+    registry=APP_METRICS_REGISTRY,
 )
 
 # Job metrics
@@ -144,22 +151,26 @@ JOBS_QUEUED_TOTAL = Counter(
     "jobs_queued_total",
     "Total jobs enqueued",
     labelnames=["job_type"],
+    registry=APP_METRICS_REGISTRY,
 )
 JOBS_COMPLETED_TOTAL = Counter(
     "jobs_completed_total",
     "Total jobs completed by outcome",
     labelnames=["job_type", "outcome"],
+    registry=APP_METRICS_REGISTRY,
 )
 JOBS_IN_PROGRESS = Gauge(
     "jobs_in_progress",
     "Current in-progress jobs",
     labelnames=["job_type"],
+    registry=APP_METRICS_REGISTRY,
 )
 JOB_DURATION_SECONDS = Histogram(
     "job_duration_seconds",
     "Duration of background jobs in seconds",
     labelnames=["job_type", "outcome"],
     buckets=(0.5, 1, 2, 5, 10, 20, 60),
+    registry=APP_METRICS_REGISTRY,
 )
 
 # Simple in-memory job store
@@ -211,28 +222,56 @@ async def create_long_job(
     duration = max(1.0, min(raw_duration, 15.0))
     job_type = str(payload.get("job_type", "long"))
 
-    job_id = str(uuid.uuid4())
-    now = asyncio.get_event_loop().time()
-    async with job_lock:
-        job_store[job_id] = {
-            "status": "queued",
-            "job_type": job_type,
-            "enqueued_at": now,
-            "duration": None,
-        }
-
     JOBS_QUEUED_TOTAL.labels(job_type=job_type).inc()
-    background.add_task(_run_long_job, job_id, job_type, duration)
-    return {"job_id": job_id, "status": "queued"}
+    if settings.use_celery:
+        # Enqueue Celery task
+        # Local import to avoid startup overhead when Celery is disabled
+        from src.worker.celery_app import long_job_task
+
+        result = long_job_task.delay(duration=duration, job_type=job_type)
+        return {"job_id": result.id, "status": "queued", "engine": "celery"}
+    else:
+        # In-process background task
+        job_id = str(uuid.uuid4())
+        now = asyncio.get_event_loop().time()
+        async with job_lock:
+            job_store[job_id] = {
+                "status": "queued",
+                "job_type": job_type,
+                "enqueued_at": now,
+                "duration": None,
+            }
+        background.add_task(_run_long_job, job_id, job_type, duration)
+        return {"job_id": job_id, "status": "queued", "engine": "background"}
 
 
 @app.get("/jobs/status/{job_id}", tags=["jobs"])
 async def get_job_status(job_id: str):
-    async with job_lock:
-        job = job_store.get(job_id)
-        if job is None:
-            return {"job_id": job_id, "status": "not_found"}
-        return {"job_id": job_id, **job}
+    if settings.use_celery:
+        # Query Celery result backend
+        result = AsyncResult(job_id, app=celery_app)
+        state = result.state  # PENDING | STARTED | SUCCESS | FAILURE | RETRY | REVOKED
+        if state == "PENDING":
+            status = "queued"
+        elif state == "STARTED":
+            status = "in_progress"
+        elif state == "SUCCESS":
+            status = "completed"
+        elif state == "FAILURE":
+            status = "failed"
+        else:
+            status = state.lower()
+
+        info = (
+            result.info if isinstance(result.info, dict) else {"raw": str(result.info)}
+        )
+        return {"job_id": job_id, "status": status, **info}
+    else:
+        async with job_lock:
+            job = job_store.get(job_id)
+            if job is None:
+                return {"job_id": job_id, "status": "not_found"}
+            return {"job_id": job_id, **job}
 
 
 @app.middleware("http")
@@ -256,7 +295,9 @@ async def prometheus_http_middleware(request, call_next):
 @app.get("/metrics", include_in_schema=False)
 def metrics_endpoint() -> Response:
     """Prometheus scrape endpoint"""
-    return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
+    return Response(
+        generate_latest(APP_METRICS_REGISTRY), media_type=CONTENT_TYPE_LATEST
+    )
 
 
 @app.get(
@@ -551,7 +592,10 @@ if __name__ == "__main__":
 
     logger.info("server_starting", creator="Herman Swanepoel")
 
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True, log_level="info")
+    # Use fully qualified module path so it works whether run as module or script
+    uvicorn.run(
+        "src.main:app", host="0.0.0.0", port=8000, reload=True, log_level="info"
+    )
 
 
 # Add rate limiting middleware after app initialization

@@ -84,7 +84,9 @@ class MemorySettings(BaseSettings):
 class EmbeddingsSettings(BaseSettings):
     """Embeddings service configuration"""
 
-    model_config = SettingsConfigDict(env_prefix="EMBEDDINGS_", extra="allow")
+    model_config = SettingsConfigDict(
+        env_prefix="EMBEDDINGS_", extra="allow", protected_namespaces=("settings_",)
+    )
 
     model_name: str = "microsoft/codebert-base"
     persist_dir: str = "./data/chroma"
@@ -156,6 +158,12 @@ class AppSettings(BaseSettings):
     observability: ObservabilitySettings = ObservabilitySettings()
     predictive_cache: PredictiveCacheSettings = PredictiveCacheSettings()
     mode: ModeSettings = ModeSettings()
+
+    # Background processing (Celery)
+    # These are optional and default to Redis when not provided
+    use_celery: bool = False
+    celery_broker_url: Optional[str] = None
+    celery_result_backend: Optional[str] = None
 
 
 @lru_cache()
