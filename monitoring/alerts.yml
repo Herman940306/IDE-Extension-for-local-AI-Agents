@@ -79,3 +79,42 @@ groups:
         annotations:
           summary: "Prometheus target down"
           description: "{{ $labels.instance }} is unreachable."
+
+      # Optional stricter thresholds for paging
+      - alert: Critical5xxErrorRate
+        expr: rate(http_requests_total{status=~"5.."}[5m]) > 0.2
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Critical 5xx error rate"
+          description: "> 20% 5xx over 5m. Immediate attention required."
+
+      - alert: CriticalP99Latency
+        expr: histogram_quantile(0.99, rate(http_request_duration_seconds_bucket[5m])) > 2
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Critical p99 latency"
+          description: "p99 latency > 2s over last 5m window."
+
+  - name: caddy_alerts
+    rules:
+      - alert: CaddyHigh5xxRate
+        expr: rate(caddy_http_requests_total{status=~"5.."}[5m]) > 0.05
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Caddy 5xx error rate high"
+          description: "Caddy returned >5% 5xx over last 5m. Check upstream/backends."
+
+      - alert: CaddyCritical5xxRate
+        expr: rate(caddy_http_requests_total{status=~"5.."}[5m]) > 0.2
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Caddy 5xx error rate critical"
+          description: ">20% 5xx via Caddy over 5m."

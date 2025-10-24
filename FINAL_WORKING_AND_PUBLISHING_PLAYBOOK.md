@@ -332,3 +332,15 @@ curl -k https://localhost/api/health
 # Prometheus
 #   open https://localhost/prometheus/ in your browser
 ```
+
+---
+
+## Secrets & Credentials (prod readiness)
+
+- Don’t commit real secrets. Keep `backend/.env.production` untracked (already ignored) and use a secret manager in production (Vault, cloud KMS/Secrets Manager).
+- Use the top-level `.env` for non-sensitive compose variables only. A sanitized template is provided as `.env.example`.
+- Required values to set before going live:
+  - `SERVER_DOMAIN` and `ACME_EMAIL` for Caddy/ACME
+  - `GRAFANA_ALERT_WEBHOOK_URL` for alert delivery (Slack/Discord/email webhook)
+  - Backend secrets in `backend/.env.production` (`SECRET_KEY`, `ENCRYPTION_KEY`, etc.)
+- Rotate credentials regularly. Keep rotation notes and owners documented.
