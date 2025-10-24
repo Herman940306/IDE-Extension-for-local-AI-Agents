@@ -254,3 +254,59 @@ wscat -c ws://127.0.0.1:8001/ws/monitor
 **Status:** ✅ Monitoring stack active  
 **Logs:** Structured JSON with correlation IDs  
 **Health:** [http://127.0.0.1:8001/health](http://127.0.0.1:8001/health)
+
+---
+
+## Prometheus/Grafana scraping and GPU metrics
+
+### Prometheus jobs (examples)
+
+```
+  - job_name: 'backend-worker'
+    static_configs:
+      - targets: ['backend-worker:9100']
+
+  - job_name: 'gpu'
+    static_configs:
+      - targets: ['dcgm-exporter:9400']
+
+  # If API exposes /metrics (via exporter or middleware)
+  - job_name: 'api'
+    static_configs:
+      - targets: ['backend-api:8001']
+```
+
+### What to track
+
+- API latency distributions (p50/p90/p99), System1 vs System2 share, escalation rate
+- GPU VRAM, utilization, temperatures (DCGM or nvidia-smi exporter)
+- Model warm/cold ratio (infer via latency spikes on first-token vs warm)
+- Worker job durations, success/failure, queue depth
+
+### Keep-alive tuning
+
+- Keep-alive is passed to Ollama per request. Monitor VRAM pressure and adjust:
+  - `REASONER_KEEP_ALIVE=30m` for responsiveness
+  - `VERIFIER_KEEP_ALIVE=10m` during complex tasks
+  - `ADVANCED_KEEP_ALIVE=0` to unload 13B immediately after deep runs
+  - `CONVERSATIONAL_KEEP_ALIVE=0` to avoid standing VRAM costs
+
+  ### Grafana dashboard import
+
+  - Import: `monitoring/dashboards/gpu_vram_and_latency.json`
+  - Source: Prometheus
+  - Panels:
+    - GPU Memory Utilization (DCGM or nvidia-smi exporters)
+    - HTTP request rate and latency (p95 if histogram available)
+  - GPU exporters:
+    - DCGM exporter (`dcgm-exporter:9400`)
+    - nvidia-smi exporter (`nvidia_gpu_exporter:9835`)
+    - Both scrape jobs are present but commented in `monitoring/prometheus.yml`.
+
+  ### Alert rules
+
+  - File: `monitoring/alerts.yml`
+  - Includes:
+    - VRAM high/critical for DCGM and nvidia-smi exporters
+    - p95 and p99 HTTP latency thresholds
+    - Backend availability and 5xx error rate

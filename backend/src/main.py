@@ -262,7 +262,9 @@ async def get_job_status(job_id: str):
         else:
             status = state.lower()
 
-        info = result.info if isinstance(result.info, dict) else {"raw": str(result.info)}
+        info = (
+            result.info if isinstance(result.info, dict) else {"raw": str(result.info)}
+        )
         return {"job_id": job_id, "status": status, **info}
     else:
         async with job_lock:
@@ -293,7 +295,9 @@ async def prometheus_http_middleware(request, call_next):
 @app.get("/metrics", include_in_schema=False)
 def metrics_endpoint() -> Response:
     """Prometheus scrape endpoint"""
-    return Response(generate_latest(APP_METRICS_REGISTRY), media_type=CONTENT_TYPE_LATEST)
+    return Response(
+        generate_latest(APP_METRICS_REGISTRY), media_type=CONTENT_TYPE_LATEST
+    )
 
 
 @app.get(
@@ -336,16 +340,17 @@ async def health_check():
     - Cache statistics
     - Active connections
     """
-    health_status = {
+    health_status: Dict[str, Any] = {
         "status": "healthy",
         "service": "backend",
         "connections": connection_manager.get_connection_count(),
         "components": {},
     }
+    components = cast(Dict[str, Any], health_status["components"])
 
     if container is None:
-        health_status["components"]["redis"] = "disabled"
-        health_status["components"]["cache"] = {"enabled": False}
+        components["redis"] = "disabled"
+        components["cache"] = {"enabled": False}
         return health_status
 
     try:
@@ -358,20 +363,20 @@ async def health_check():
                 ping_result = redis.ping()
                 if inspect.isawaitable(ping_result):
                     await ping_result
-                health_status["components"]["redis"] = "healthy"
+                components["redis"] = "healthy"
             except Exception:
-                health_status["components"]["redis"] = "unhealthy"
+                components["redis"] = "unhealthy"
                 health_status["status"] = "degraded"
         else:
-            health_status["components"]["redis"] = "disabled"
+            components["redis"] = "disabled"
     except Exception:
-        health_status["components"]["redis"] = "disabled"
+        components["redis"] = "disabled"
 
     try:
         cache_stats = await container.response_cache().get_stats()
-        health_status["components"]["cache"] = cache_stats
+        components["cache"] = cache_stats
     except Exception:
-        health_status["components"]["cache"] = {"enabled": False}
+        components["cache"] = {"enabled": False}
 
     return health_status
 
@@ -430,7 +435,9 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
                     await connection_manager.send_personal_message(
                         {
                             "type": "error",
-                            "payload": {"message": f"Unknown message type: {message_type}"},
+                            "payload": {
+                                "message": f"Unknown message type: {message_type}"
+                            },
                         },
                         client_id,
                     )
@@ -441,7 +448,9 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
             except RuntimeError as runtime_error:
                 message = str(runtime_error).lower()
                 disconnect_error = "disconnect message" in message
-                receive_after_disconnect = "receive" in message and "disconnect" in message
+                receive_after_disconnect = (
+                    "receive" in message and "disconnect" in message
+                )
 
                 if disconnect_error or receive_after_disconnect:
                     # Treat as clean disconnect without bubbling an exception to uvicorn
@@ -585,7 +594,9 @@ if __name__ == "__main__":
     logger.info("server_starting", creator="Herman Swanepoel")
 
     # Use fully qualified module path so it works whether run as module or script
-    uvicorn.run("src.main:app", host="0.0.0.0", port=8000, reload=True, log_level="info")
+    uvicorn.run(
+        "src.main:app", host="0.0.0.0", port=8000, reload=True, log_level="info"
+    )
 
 
 # Add rate limiting middleware after app initialization

@@ -44,9 +44,42 @@ class Settings(BaseSettings):
     cognitive_trace_path: str = "./data/trace_logs.jsonl"
 
     # Model Configuration
-    reasoner_model: str = "llama3.2:3b-q4_K_M"
-    verifier_model: str = "mistral:7b-q4_K_M"
-    summarizer_model: str = "phi3:mini-q4_K_M"
+    # System 1 (Fast Reasoner): keep small and responsive
+    reasoner_model: str = "llama3.2:3b"
+    # Keep resident on GPU for interactive IDE experience
+    reasoner_keep_alive: str = "30m"  # Always loaded during session
+
+    # System 2 (Analytical Verifier): default stable 7B, upgrade via env when GPU allows
+    verifier_model: str = "mistral:7b"
+    # Load on demand; keep resident only while working on complex tasks
+    verifier_keep_alive: str = "10m"
+
+    # Optional Advanced Reasoning (CPU fallback when GPU is busy)
+    advanced_model: str = "codellama:13b-instruct-q4_0"
+    # Force CPU for advanced model to protect GPU VRAM on 1080 Ti
+    advanced_force_cpu: bool = True
+    # Load only when needed; unload immediately after
+    advanced_keep_alive: str = "0"
+
+    # Conversational / UX Layer (chat-style explanations)
+    conversational_model: str = "gemma2:9b"
+    conversational_keep_alive: str = "0"  # Load on demand; unload after use
+
+    # Embeddings / Search
+    # Note: Current embeddings service uses Sentence-Transformers by default.
+    # This field declares the preferred Ollama embedding model when enabled.
+    preferred_ollama_embedding_model: str = "nomic-embed-text"
+
+    # Summarization / simple NL flows (fallback, CPU-friendly)
+    summarizer_model: str = "phi3:mini"
+    summarizer_force_cpu: bool = True
+    summarizer_keep_alive: str = "5m"  # Load when needed, short residency
+
+    # Safety verification model (optional final check filter; CPU-capable)
+    safety_model: str = "phi3:medium"
+    safety_force_cpu: bool = True
+    safety_keep_alive: str = "-1"  # Always resident on CPU
+    enable_safety_check: bool = False
 
     # Ollama timeouts (seconds)
     reasoner_timeout_seconds: float = 30.0

@@ -50,7 +50,77 @@ A comprehensive multi-agent AI coding assistant with privacy-first local operati
 - **Acceptance Rates** - Track suggestion effectiveness
 - **Agent Metrics** - Monitor agent performance
 - **Workflow Patterns** - Identify productivity trends
+
+## 1080 Ti Profile (Offline local models)
+
+For a GTX 1080 Ti (~11GB VRAM), use these `.env` toggles in `backend/.env` to balance speed and quality:
+
+```env
+# System 1 – Fast Reasoner (GPU resident)
+REASONER_MODEL=llama3.2:3b
+REASONER_KEEP_ALIVE=30m
+
+# System 2 – Analytical Verifier (GPU on demand)
+VERIFIER_MODEL=mistral:7b
+VERIFIER_KEEP_ALIVE=10m
+
+# Advanced deep reasoning (CPU fallback)
+ADVANCED_MODEL=codellama:13b-instruct-q4_0
+ADVANCED_FORCE_CPU=true
+ADVANCED_KEEP_ALIVE=0
+
+# Conversational / UX (optional, GPU on demand)
+CONVERSATIONAL_MODEL=gemma2:9b
+CONVERSATIONAL_KEEP_ALIVE=0
+
+# Summarization / Safety (CPU)
+SUMMARIZER_MODEL=phi3:mini
+SUMMARIZER_FORCE_CPU=true
+SUMMARIZER_KEEP_ALIVE=5m
+SAFETY_MODEL=phi3:medium
+SAFETY_FORCE_CPU=true
+SAFETY_KEEP_ALIVE=-1
+ENABLE_SAFETY_CHECK=false
+
+# Embeddings provider (default: Sentence-Transformers)
+EMBEDDINGS_PROVIDER=sentence-transformers
+# Switch to Ollama embeddings when ready:
+# EMBEDDINGS_PROVIDER=ollama
+# EMBEDDINGS_OLLAMA_MODEL_NAME=nomic-embed-text
+# EMBEDDINGS_OLLAMA_URL=http://localhost:11434
+```
+
+Tips:
+
+- Keep only System 1 resident for snappy IDE responses.
+- Load System 2 on demand; unload advanced 13B immediately after deep runs.
+- If VRAM pressure spikes, ensure gemma2:9b only pre-warms for explain tasks.
 - **Interactive Dashboard** - Visualize your data with charts
+
+### Monitoring: GPU VRAM and Backend Latency
+
+Import the prebuilt dashboard and enable GPU exporters for VRAM visibility:
+
+- Dashboard JSON: `monitoring/dashboards/gpu_vram_and_latency.json`
+- Grafana → Dashboards → Import → Upload JSON
+- Prometheus GPU scrape jobs (disabled by default) are in `monitoring/prometheus.yml` under "Optional: GPU metrics".
+  - Enable either the DCGM exporter (`dcgm-exporter:9400`) or the nvidia-smi exporter (`nvidia_gpu_exporter:9835`).
+- Alerts for VRAM pressure and HTTP latency are defined in `monitoring/alerts.yml`.
+  - p95 and p99 HTTP latency thresholds
+  - VRAM > 90% (warning) and > 95% (critical) for both DCGM and nvidia-smi exporters
+
+Quick import (optional):
+
+On Windows PowerShell, you can push the dashboard via Grafana HTTP API:
+
+```powershell
+# Set credentials (or define GRAFANA_API_TOKEN)
+$env:GRAFANA_ADMIN_USER = "admin"
+$env:GRAFANA_ADMIN_PASSWORD = "change_me"
+
+# Import the dashboard
+pwsh -File monitoring/scripts/Quick-Import-GrafanaDashboard.ps1 -GrafanaUrl "http://localhost:3000" -DashboardPath "monitoring/dashboards/gpu_vram_and_latency.json" -Overwrite
+```
 
 ### Workspace Management
 
@@ -88,6 +158,7 @@ A comprehensive multi-agent AI coding assistant with privacy-first local operati
    ```
 
 2. **Install Backend Dependencies**
+
    ```bash
    cd backend
    python -m venv venv
@@ -126,6 +197,31 @@ A comprehensive multi-agent AI coding assistant with privacy-first local operati
 ---
 
 ## 🚀 Usage
+## Local-First Models (Recommended)
+
+To avoid runtime stalls and ensure deterministic performance, pre-pull all core local models used by the backend (System 1, System 2, advanced reasoning, UX, embeddings, safety).
+
+Requirements:
+- Ollama running locally at http://localhost:11434
+
+Pull core models once (or weekly) to keep them up-to-date:
+
+```powershell
+pwsh -File ./scripts/pull_core_models.ps1
+```
+
+Models pulled by the script:
+- llama3.2:3b (System 1)
+- mistral:7b (System 2)
+- codellama:13b-instruct-q4_0 (Advanced)
+- gemma2:9b (Conversational/UX)
+- phi3:medium, phi3:mini (Safety/Summarizer)
+- nomic-embed-text (Embeddings)
+
+Notes:
+- The backend already uses keep_alive hints and avoids network downloads during normal operation.
+- Heavy models default to load-on-demand with short residency; System 1 is kept warm longer by default for instant IDE responses.
+
 
 ### Quick Actions
 
@@ -473,9 +569,9 @@ MIT License - see LICENSE file for details
 
 ## 📞 Support
 
-- **Issues:** https://github.com/Herman940306/IDE-Extension-for-local-AI-Agents/issues
-- **Discussions:** https://github.com/Herman940306/IDE-Extension-for-local-AI-Agents/discussions
-- **Documentation:** https://github.com/Herman940306/IDE-Extension-for-local-AI-Agents/wiki
+- **Issues:** <https://github.com/Herman940306/IDE-Extension-for-local-AI-Agents/issues>
+- **Discussions:** <https://github.com/Herman940306/IDE-Extension-for-local-AI-Agents/discussions>
+- **Documentation:** <https://github.com/Herman940306/IDE-Extension-for-local-AI-Agents/wiki>
 
 ---
 

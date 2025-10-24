@@ -12,9 +12,10 @@ High-performance parallel file creation with:
 import asyncio
 import json
 import logging
+import os
 import time
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union, cast
 
 import numpy as np
 
@@ -86,22 +87,33 @@ class ParallelFileCreator:
         self.vector_dim = vector_dim
 
         # Initialize embedding model
-        if EMBEDDINGS_AVAILABLE:
-            self.embedding_model = SentenceTransformer(embedding_model)
-            logger.info(f"Loaded embedding model: {embedding_model}")
-        else:
-            self.embedding_model = None
+        # (opt-in to avoid network/download stalls in tests/CI)
+        self.embedding_model = None
+        enable_embeddings = os.getenv("PFC_ENABLE_EMBEDDINGS", "false").lower() in (
+            "1",
+            "true",
+            "yes",
+        )
+        if EMBEDDINGS_AVAILABLE and enable_embeddings:
+            try:
+                self.embedding_model = SentenceTransformer(embedding_model)
+                logger.info("Loaded embedding model: %s", embedding_model)
+            except Exception as e:  # pragma: no cover - defensive
+                logger.warning("Embedding model load failed, disabling: %s", e)
+                self.embedding_model = None
 
         # Initialize FAISS index
         self.faiss_index_file = self.base_dir / "faiss.index"
         if FAISS_AVAILABLE:
             if self.faiss_index_file.exists():
-                self.faiss_index = faiss.read_index(str(self.faiss_index_file))
+                self.faiss_index: Optional[Any] = faiss.read_index(
+                    str(self.faiss_index_file)
+                )
                 logger.info(f"Loaded existing FAISS index: {self.faiss_index_file}")
             else:
                 self.faiss_index = faiss.IndexFlatL2(vector_dim)
                 logger.info("Created new FAISS index")
-            self.file_id_map = {}
+            self.file_id_map: Dict[int, str] = {}
         else:
             self.faiss_index = None
             self.file_id_map = {}
@@ -109,7 +121,8 @@ class ParallelFileCreator:
         # Initialize Redis
         if REDIS_AVAILABLE:
             try:
-                self.redis_client = redis.Redis(
+                # Use broad type to keep optional dependency flexible under mypy
+                self.redis_client: Optional[Any] = redis.Redis(
                     host=redis_host, port=redis_port, db=redis_db, decode_responses=True
                 )
                 self.redis_client.ping()
@@ -149,7 +162,9 @@ class ParallelFileCreator:
 
         try:
             # Write file
-            success_write = await loop.run_in_executor(None, self._write_file, file_path, content)
+            success_write = await loop.run_in_executor(
+                None, self._write_file, file_path, content
+            )
 
             if not success_write:
                 return None
@@ -161,7 +176,9 @@ class ParallelFileCreator:
 
             # Store in FAISS
             if vector is not None and self.faiss_index is not None:
-                await loop.run_in_executor(None, self._store_in_faiss, file_name, vector)
+                await loop.run_in_executor(
+                    None, self._store_in_faiss, file_name, vector
+                )
 
             # Store metadata in Redis
             if self.redis_client is not None:
@@ -175,7 +192,9 @@ class ParallelFileCreator:
             self.total_errors += 1
             return None
 
-    async def create_files_parallel(self, file_tasks: List[Dict[str, str]]) -> List[Optional[Path]]:
+    async def create_files_parallel(
+        self, file_tasks: List[Dict[str, str]]
+    ) -> List[Optional[Path]]:
         """
         Create multiple files in parallel.
 
@@ -195,7 +214,15 @@ class ParallelFileCreator:
 
         # Execute all tasks
         tasks = [sem_task(task) for task in file_tasks]
-        results = await asyncio.gather(*tasks, return_exceptions=True)
+        raw_results: List[Union[Optional[Path], BaseException]] = cast(
+            List[Union[Optional[Path], BaseException]],
+            await asyncio.gather(*tasks, return_exceptions=True),
+        )
+
+        # Normalize exceptions to None for reporting and return type
+        results: List[Optional[Path]] = [
+            r if isinstance(r, (Path, type(None))) else None for r in raw_results
+        ]
 
         # Save FAISS index
         if self.faiss_index is not None:
@@ -223,6 +250,8 @@ class ParallelFileCreator:
         try:
             with open(file_path, "r", encoding="utf-8") as f:
                 content = f.read()
+            # mypy: embedding_model is checked before calling this function
+            assert self.embedding_model is not None
             vector = self.embedding_model.encode(content)
             self.total_embeddings_generated += 1
             logger.debug(f"Embedding generated for: {file_path}")
@@ -234,6 +263,7 @@ class ParallelFileCreator:
     def _store_in_faiss(self, file_name: str, vector: np.ndarray) -> bool:
         """Store vector in FAISS index"""
         try:
+            assert self.faiss_index is not None
             self.faiss_index.add(np.expand_dims(vector, axis=0))
             self.file_id_map[self.faiss_index.ntotal - 1] = file_name
             logger.debug(f"Stored in FAISS: {file_name}")
@@ -251,6 +281,7 @@ class ParallelFileCreator:
                 "size_bytes": file_path.stat().st_size,
                 "path": str(file_path),
             }
+            assert self.redis_client is not None
             self.redis_client.set(file_path.name, json.dumps(metadata))
             logger.debug(f"Metadata stored in Redis: {file_path.name}")
             return True
@@ -359,10 +390,13 @@ if __name__ == "__main__":
 
     async def main():
         file_tasks = [
-            {"name": f"file_{i}.txt", "content": f"Content for file {i}"} for i in range(50)
+            {"name": f"file_{i}.txt", "content": f"Content for file {i}"}
+            for i in range(50)
         ]
 
-        creator = ParallelFileCreator(base_dir=Path("projects/output_files"), max_workers=8)
+        creator = ParallelFileCreator(
+            base_dir=Path("projects/output_files"), max_workers=8
+        )
 
         await creator.create_files_parallel(file_tasks)
         stats = creator.get_stats()

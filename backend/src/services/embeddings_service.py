@@ -29,6 +29,9 @@ class EmbeddingsService:
         model_name: str = "microsoft/codebert-base",
         chroma_persist_dir: str = "./data/chroma",
         collection_name: str = "code_embeddings",
+        provider: str = "sentence-transformers",
+        ollama_url: str = "http://localhost:11434",
+        ollama_model_name: str = "nomic-embed-text",
     ):
         """
         Initialize embeddings service
@@ -43,27 +46,35 @@ class EmbeddingsService:
         self.chroma_persist_dir = chroma_persist_dir
         self.collection_name = collection_name
         self.model: Optional[Any] = None
-        self.chroma_client: Optional[chromadb.Client] = None
+        # Use broad Any types for optional third-party clients in type checking
+        self.chroma_client: Optional[Any] = None
         self.collection: Optional[Any] = None
         self.is_initialized = False
+        self.provider = provider
+        self.ollama_url = ollama_url
+        self.ollama_model_name = ollama_model_name
 
     async def initialize(self) -> None:
         """Initialize the embeddings model and vector store"""
         try:
             logger.info(f"Loading embeddings model: {self.model_name}")
 
-            # Import lazily to avoid heavy import at app startup
-            global SentenceTransformer  # type: ignore
-            if SentenceTransformer is None:  # type: ignore
-                from sentence_transformers import SentenceTransformer as _ST  # type: ignore
+            if self.provider == "sentence-transformers":
+                # Import lazily to avoid heavy import at app startup
+                global SentenceTransformer  # type: ignore
+                if SentenceTransformer is None:  # type: ignore
+                    from sentence_transformers import SentenceTransformer as _ST
 
-                SentenceTransformer = _ST  # type: ignore
+                    SentenceTransformer = _ST  # type: ignore
 
-            # Load model in thread pool to avoid blocking
-            loop = asyncio.get_event_loop()
-            self.model = await loop.run_in_executor(
-                None, lambda: SentenceTransformer(self.model_name)
-            )
+                # Load model in thread pool to avoid blocking
+                loop = asyncio.get_event_loop()
+                self.model = await loop.run_in_executor(
+                    None, lambda: SentenceTransformer(self.model_name)
+                )
+            else:
+                # Ollama provider: no local model to load
+                self.model = None
 
             # Initialize ChromaDB
             self.chroma_client = chromadb.Client(
@@ -74,6 +85,8 @@ class EmbeddingsService:
             )
 
             # Get or create collection
+            # mypy: chroma_client is initialized above; keep assert for clarity
+            assert self.chroma_client is not None
             self.collection = self.chroma_client.get_or_create_collection(
                 name=self.collection_name,
                 metadata={"description": "Code embeddings for semantic search"},
@@ -86,7 +99,9 @@ class EmbeddingsService:
             logger.error(f"Failed to initialize embeddings service: {e}")
             raise
 
-    async def embed_code(self, code: str, metadata: Optional[Dict[str, Any]] = None) -> List[float]:
+    async def embed_code(
+        self, code: str, metadata: Optional[Dict[str, Any]] = None
+    ) -> List[float]:
         """
         Generate embedding for code snippet
 
@@ -97,17 +112,35 @@ class EmbeddingsService:
         Returns:
             Embedding vector
         """
-        if not self.is_initialized or not self.model:
+        if not self.is_initialized:
             raise RuntimeError("Embeddings service not initialized")
 
         try:
-            # Generate embedding in thread pool
-            loop = asyncio.get_event_loop()
-            embedding = await loop.run_in_executor(
-                None, lambda: self.model.encode(code, convert_to_numpy=True)
-            )
+            if self.provider == "sentence-transformers":
+                if not self.model:
+                    raise RuntimeError("Embeddings model not loaded")
+                # Generate embedding in thread pool
+                loop = asyncio.get_event_loop()
+                # Guard for type checker and capture to local var for executor
+                assert self.model is not None
+                model = self.model
+                embedding = await loop.run_in_executor(
+                    None, lambda: model.encode(code, convert_to_numpy=True)
+                )
+                return embedding.tolist()
+            else:
+                # Use Ollama embeddings API
+                import httpx
 
-            return embedding.tolist()
+                async with httpx.AsyncClient(timeout=30.0) as client:
+                    resp = await client.post(
+                        f"{self.ollama_url}/api/embeddings",
+                        json={"model": self.ollama_model_name, "prompt": code},
+                    )
+                    resp.raise_for_status()
+                    data = resp.json()
+                    # Ollama returns { embedding: [...] }
+                    return data.get("embedding", [])
 
         except Exception as e:
             logger.error(f"Failed to generate embedding: {e}")
@@ -123,18 +156,33 @@ class EmbeddingsService:
         Returns:
             List of embedding vectors
         """
-        if not self.is_initialized or not self.model:
+        if not self.is_initialized:
             raise RuntimeError("Embeddings service not initialized")
 
         try:
-            # Batch encoding is significantly faster than individual encoding
-            loop = asyncio.get_event_loop()
-            embeddings = await loop.run_in_executor(
-                None,
-                lambda: self.model.encode(code_snippets, convert_to_numpy=True, batch_size=32),
-            )
-
-            return [emb.tolist() for emb in embeddings]
+            if self.provider == "sentence-transformers":
+                if not self.model:
+                    raise RuntimeError("Embeddings model not loaded")
+                # Batch encoding is significantly faster than individual encoding
+                loop = asyncio.get_event_loop()
+                # Guard for type checker and capture to local var
+                assert self.model is not None
+                model = self.model
+                embeddings = await loop.run_in_executor(
+                    None,
+                    lambda: model.encode(
+                        code_snippets, convert_to_numpy=True, batch_size=32
+                    ),
+                )
+                return [emb.tolist() for emb in embeddings]
+            else:
+                # Ollama embeddings API doesn't support batch in one call
+                # Do sequential calls (kept simple; could parallelize if needed)
+                results: List[List[float]] = []
+                for code in code_snippets:
+                    vec = await self.embed_code(code)
+                    results.append(vec)
+                return results
 
         except Exception as e:
             logger.error(f"Failed to generate batch embeddings: {e}")
@@ -168,7 +216,7 @@ class EmbeddingsService:
 
         try:
             # Find all code files
-            code_files = []
+            code_files: List[Path] = []
             for ext in file_extensions:
                 code_files.extend(workspace.rglob(f"*{ext}"))
 
@@ -224,6 +272,8 @@ class EmbeddingsService:
             embeddings = await self.embed_code_batch(contents)
 
             # Store all in ChromaDB
+            # Guard collection for type checker
+            assert self.collection is not None
             self.collection.upsert(
                 ids=file_ids,
                 embeddings=embeddings,
@@ -240,6 +290,7 @@ class EmbeddingsService:
                     file_id = self._generate_file_id(str(file_path))
                     embedding = await self.embed_code(content)
 
+                    assert self.collection is not None
                     self.collection.upsert(
                         ids=[file_id],
                         embeddings=[embedding],
@@ -283,6 +334,7 @@ class EmbeddingsService:
                 where = {"extension": file_extension}
 
             # Search in ChromaDB
+            assert self.collection is not None
             results = self.collection.query(
                 query_embeddings=[query_embedding], n_results=top_k, where=where
             )
@@ -296,7 +348,9 @@ class EmbeddingsService:
                             "code": results["documents"][0][i],
                             "metadata": results["metadatas"][0][i],
                             "distance": (
-                                results["distances"][0][i] if "distances" in results else None
+                                results["distances"][0][i]
+                                if "distances" in results
+                                else None
                             ),
                         }
                     )
@@ -323,6 +377,7 @@ class EmbeddingsService:
             embedding = await self.embed_code(content)
 
             path_obj = Path(file_path)
+            assert self.collection is not None
             self.collection.upsert(
                 ids=[file_id],
                 embeddings=[embedding],
@@ -355,6 +410,7 @@ class EmbeddingsService:
 
         try:
             file_id = self._generate_file_id(file_path)
+            assert self.collection is not None
             self.collection.delete(ids=[file_id])
             logger.debug(f"Deleted embedding for {file_path}")
 
@@ -377,6 +433,7 @@ class EmbeddingsService:
             return {"initialized": False}
 
         try:
+            assert self.collection is not None
             count = self.collection.count()
             return {
                 "initialized": True,

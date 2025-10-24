@@ -231,13 +231,12 @@
 			"group": "build"
 		},
 		{
-			"label": "Python: Install Dependencies",
+			"label": "Python: Format with Black",
 			"type": "shell",
-			"command": "pip",
+			"command": "black",
 			"args": [
-				"install",
-				"-r",
-				"backend/requirements.txt"
+				"backend",
+				"--line-length=100"
 			],
 			"group": "build"
 		},

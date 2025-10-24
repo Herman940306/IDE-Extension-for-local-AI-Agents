@@ -32,7 +32,9 @@ class CodeSmellDetector:
         self.similarity_threshold = 0.85  # 85% similarity = potential duplication
         self.god_class_threshold = 10  # Methods/responsibilities
 
-    async def detect_smells(self, file_path: str, content: str, language: str) -> List[CodeSmell]:
+    async def detect_smells(
+        self, file_path: str, content: str, language: str
+    ) -> List[CodeSmell]:
         """
         Detect code smells in a file
 
@@ -44,7 +46,7 @@ class CodeSmellDetector:
         Returns:
             List of detected code smells
         """
-        smells = []
+        smells: List[CodeSmell] = []
 
         try:
             # Run different detection strategies
@@ -62,9 +64,11 @@ class CodeSmellDetector:
 
         return smells
 
-    async def _detect_python_smells(self, file_path: str, content: str) -> List[CodeSmell]:
+    async def _detect_python_smells(
+        self, file_path: str, content: str
+    ) -> List[CodeSmell]:
         """Detect Python-specific code smells"""
-        smells = []
+        smells: List[CodeSmell] = []
 
         try:
             tree = ast.parse(content)
@@ -135,7 +139,7 @@ class CodeSmellDetector:
 
     async def _detect_js_smells(self, file_path: str, content: str) -> List[CodeSmell]:
         """Detect JavaScript/TypeScript-specific code smells"""
-        smells = []
+        smells: List[CodeSmell] = []
 
         try:
             # Detect callback hell (nested callbacks)
@@ -178,12 +182,14 @@ class CodeSmellDetector:
 
         return smells
 
-    async def _detect_semantic_duplication(self, file_path: str, content: str) -> List[CodeSmell]:
+    async def _detect_semantic_duplication(
+        self, file_path: str, content: str
+    ) -> List[CodeSmell]:
         """
         Detect semantic code duplication using embeddings
         Finds similar code even with different variable names
         """
-        smells = []
+        smells: List[CodeSmell] = []
 
         try:
             # Extract functions/methods from content
@@ -255,10 +261,15 @@ class CodeSmellDetector:
         except Exception as e:
             logger.debug(f"AST parsing failed, using regex fallback: {e}")
             # Fallback: simple regex-based extraction
-            func_pattern = r"(function\s+(\w+)|(\w+)\s*=\s*function|(\w+)\s*=\s*\([^)]*\)\s*=>)"
+            func_pattern = (
+                r"(function\s+(\w+)|(\w+)\s*=\s*function|"
+                r"(\w+)\s*=\s*\([^)]*\)\s*=>)"
+            )
             matches = re.finditer(func_pattern, content)
             for match in matches:
-                func_name = match.group(2) or match.group(3) or match.group(4) or "anonymous"
+                func_name = (
+                    match.group(2) or match.group(3) or match.group(4) or "anonymous"
+                )
                 # Extract function body (simplified)
                 start_pos = match.start()
                 line_num = content[:start_pos].count("\n") + 1
@@ -304,7 +315,7 @@ class CodeSmellDetector:
 
         try:
             # Find all code files
-            code_files = []
+            code_files: List[Path] = []
             for ext in file_extensions:
                 code_files.extend(workspace.rglob(f"*{ext}"))
 
@@ -326,7 +337,10 @@ class CodeSmellDetector:
                 except Exception as e:
                     logger.warning(f"Failed to analyze {file_path}: {e}")
 
-            logger.info(f"✓ Code smell analysis complete: {len(results)} files with issues")
+            logger.info(
+                "\u2713 Code smell analysis complete: %d files with issues",
+                len(results),
+            )
 
         except Exception as e:
             logger.error(f"Failed to analyze codebase: {e}")

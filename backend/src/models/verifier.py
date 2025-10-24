@@ -104,7 +104,9 @@ class AnalyticalVerifier:
             is_valid, issues, suggestions = self._parse_verification(response)
 
             # Calculate confidence
-            confidence = self._calculate_confidence(is_valid, issues, request.system1_confidence)
+            confidence = self._calculate_confidence(
+                is_valid, issues, request.system1_confidence
+            )
 
             # Calculate latency
             latency_ms = (time.time() - start_time) * 1000
@@ -179,7 +181,7 @@ Analysis:"""
         return prompt
 
     async def _call_ollama(self, prompt: str) -> Dict[str, Any]:
-        """Call Ollama API with retries"""
+        """Call Ollama API with retries and device-aware options"""
         settings = get_settings()
         max_retries = max(0, int(settings.ollama_max_retries))
         backoff = max(0.0, float(settings.ollama_retry_backoff_seconds))
@@ -188,18 +190,31 @@ Analysis:"""
         last_exc: Optional[Exception] = None
         while attempt <= max_retries:
             try:
+                # Default keep-alive for System 2; override for advanced model
+                keep_alive = getattr(settings, "verifier_keep_alive", "10m")
+                options: Dict[str, Any] = {
+                    "temperature": 0.3,  # Lower temperature for verification
+                    "top_p": 0.9,
+                    "num_predict": 1000,
+                }
+
+                # If using the advanced model, prefer CPU and unload immediately
+                if self.model == getattr(settings, "advanced_model", ""):
+                    if getattr(settings, "advanced_force_cpu", True):
+                        options["num_gpu"] = 0  # Force CPU execution
+                    keep_alive = getattr(settings, "advanced_keep_alive", "0")
+
+                payload: Dict[str, Any] = {
+                    "model": self.model,
+                    "prompt": prompt,
+                    "stream": False,
+                    "keep_alive": keep_alive,
+                    "options": options,
+                }
+
                 response = await self.client.post(
                     f"{self.ollama_url}/api/generate",
-                    json={
-                        "model": self.model,
-                        "prompt": prompt,
-                        "stream": False,
-                        "options": {
-                            "temperature": 0.3,  # Lower temperature for verification
-                            "top_p": 0.9,
-                            "num_predict": 1000,
-                        },
-                    },
+                    json=payload,
                 )
                 response.raise_for_status()
 
@@ -255,10 +270,17 @@ Analysis:"""
         issues = []
         if "ISSUES:" in text.upper():
             issues_section = text.split("ISSUES:")[1].split("SUGGESTIONS:")[0]
-            issue_lines = [line.strip() for line in issues_section.split("\n") if line.strip()]
+            issue_lines = [
+                line.strip() for line in issues_section.split("\n") if line.strip()
+            ]
             for line in issue_lines[:5]:  # Limit to 5 issues
                 if line and not line.startswith("REASONING"):
-                    issues.append({"type": "warning", "message": line.lstrip("- ").lstrip("* ")})
+                    issues.append(
+                        {
+                            "type": "warning",
+                            "message": line.lstrip("- ").lstrip("* "),
+                        }
+                    )
 
         # Extract suggestions
         suggestions = []
@@ -299,11 +321,15 @@ Analysis:"""
     def get_stats(self) -> Dict[str, Any]:
         """Get verification statistics"""
         avg_latency = (
-            self.total_latency / self.total_verifications if self.total_verifications > 0 else 0
+            self.total_latency / self.total_verifications
+            if self.total_verifications > 0
+            else 0
         )
 
         rejection_rate = (
-            self.rejections / self.total_verifications if self.total_verifications > 0 else 0
+            self.rejections / self.total_verifications
+            if self.total_verifications > 0
+            else 0
         )
 
         return {

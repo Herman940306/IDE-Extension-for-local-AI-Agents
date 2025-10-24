@@ -110,7 +110,10 @@ class FastReasoner:
             self.total_requests += 1
             self.total_latency += latency_ms
 
-            logger.info(f"Fast reasoning complete: {latency_ms:.0f}ms, " f"conf={confidence:.2f}")
+            logger.info(
+                f"Fast reasoning complete: {latency_ms:.0f}ms, "
+                f"conf={confidence:.2f}"
+            )
 
             return ReasoningResponse(
                 suggestions=suggestions,
@@ -163,7 +166,7 @@ Focus on this specific code:
         return prompt
 
     async def _call_ollama(self, prompt: str) -> Dict[str, Any]:
-        """Call Ollama API"""
+        """Call Ollama API with keep-alive and device-aware options"""
         settings = get_settings()
         max_retries = max(0, int(settings.ollama_max_retries))
         backoff = max(0.0, float(settings.ollama_retry_backoff_seconds))
@@ -172,18 +175,22 @@ Focus on this specific code:
         last_exc: Optional[Exception] = None
         while attempt <= max_retries:
             try:
+                # Reasoner is GPU-resident; apply keep_alive to keep it warm
+                payload: Dict[str, Any] = {
+                    "model": self.model,
+                    "prompt": prompt,
+                    "stream": False,
+                    "keep_alive": getattr(settings, "reasoner_keep_alive", "30m"),
+                    "options": {
+                        "temperature": 0.7,
+                        "top_p": 0.9,
+                        "num_predict": 500,
+                    },
+                }
+
                 response = await self.client.post(
                     f"{self.ollama_url}/api/generate",
-                    json={
-                        "model": self.model,
-                        "prompt": prompt,
-                        "stream": False,
-                        "options": {
-                            "temperature": 0.7,
-                            "top_p": 0.9,
-                            "num_predict": 500,
-                        },
-                    },
+                    json=payload,
                 )
                 response.raise_for_status()
 
@@ -245,7 +252,9 @@ Focus on this specific code:
 
         return []
 
-    def _calculate_confidence(self, response: Dict[str, Any], request: ReasoningRequest) -> float:
+    def _calculate_confidence(
+        self, response: Dict[str, Any], request: ReasoningRequest
+    ) -> float:
         """Calculate confidence score"""
         # Base confidence for System 1
         confidence = 0.75
@@ -268,7 +277,9 @@ Focus on this specific code:
 
     def get_stats(self) -> Dict[str, Any]:
         """Get performance statistics"""
-        avg_latency = self.total_latency / self.total_requests if self.total_requests > 0 else 0
+        avg_latency = (
+            self.total_latency / self.total_requests if self.total_requests > 0 else 0
+        )
 
         return {
             "model": self.model,

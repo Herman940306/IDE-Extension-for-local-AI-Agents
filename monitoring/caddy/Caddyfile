@@ -45,11 +45,4 @@
 	}
 }
 
-# Plain HTTP metrics endpoint for Prometheus (internal use only)
-:9180 {
-	encode zstd gzip
-	prometheus {
-		endpoint /metrics
-	}
-	respond "caddy metrics ok" 200
-}
+# (metrics endpoint removed in this image-only setup)

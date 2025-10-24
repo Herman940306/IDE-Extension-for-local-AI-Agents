@@ -99,6 +99,26 @@ groups:
           summary: "Critical p99 latency"
           description: "p99 latency > 2s over last 5m window."
 
+  - name: latency_p95_alerts
+    rules:
+      - alert: HighP95Latency
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 0.75
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High p95 latency"
+          description: "p95 latency > 750ms over last 5m window."
+
+      - alert: CriticalP95Latency
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 1.5
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Critical p95 latency"
+          description: "p95 latency > 1.5s over last 5m window."
+
   - name: caddy_alerts
     rules:
       - alert: CaddyHigh5xxRate
@@ -118,3 +138,47 @@ groups:
         annotations:
           summary: "Caddy 5xx error rate critical"
           description: ">20% 5xx via Caddy over 5m."
+
+  - name: gpu_vram_alerts
+    rules:
+      # DCGM exporter: VRAM utilization per GPU > 90% (warning) and >95% (critical)
+      - alert: GPUVRAMHighDCGM
+        expr: (sum by (gpu, instance) (DCGM_FI_DEV_FB_USED)) / (sum by (gpu, instance) (DCGM_FI_DEV_FB_TOTAL)) > 0.9
+        for: 10m
+        labels:
+          severity: warning
+          source: dcgm
+        annotations:
+          summary: "GPU VRAM high (DCGM)"
+          description: "GPU {{ $labels.gpu }} on {{ $labels.instance }} VRAM > 90% for 10m (DCGM)."
+
+      - alert: GPUVRAMCriticalDCGM
+        expr: (sum by (gpu, instance) (DCGM_FI_DEV_FB_USED)) / (sum by (gpu, instance) (DCGM_FI_DEV_FB_TOTAL)) > 0.95
+        for: 10m
+        labels:
+          severity: critical
+          source: dcgm
+        annotations:
+          summary: "GPU VRAM critical (DCGM)"
+          description: "GPU {{ $labels.gpu }} on {{ $labels.instance }} VRAM > 95% for 10m (DCGM)."
+
+      # nvidia-smi exporter: VRAM utilization per GPU > 90% (warning) and >95% (critical)
+      - alert: GPUVRAMHighNvidiaSMI
+        expr: (sum by (gpu, instance) (nvidia_gpu_memory_used_bytes)) / (sum by (gpu, instance) (nvidia_gpu_memory_total_bytes)) > 0.9
+        for: 10m
+        labels:
+          severity: warning
+          source: nvidia_smi
+        annotations:
+          summary: "GPU VRAM high (nvidia-smi)"
+          description: "GPU {{ $labels.gpu }} on {{ $labels.instance }} VRAM > 90% for 10m (nvidia-smi)."
+
+      - alert: GPUVRAMCriticalNvidiaSMI
+        expr: (sum by (gpu, instance) (nvidia_gpu_memory_used_bytes)) / (sum by (gpu, instance) (nvidia_gpu_memory_total_bytes)) > 0.95
+        for: 10m
+        labels:
+          severity: critical
+          source: nvidia_smi
+        annotations:
+          summary: "GPU VRAM critical (nvidia-smi)"
+          description: "GPU {{ $labels.gpu }} on {{ $labels.instance }} VRAM > 95% for 10m (nvidia-smi)."

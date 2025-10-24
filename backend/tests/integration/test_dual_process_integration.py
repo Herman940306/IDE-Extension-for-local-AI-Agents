@@ -12,7 +12,7 @@ from src.orchestrator.dual_process_integration import DualProcessSystem
 from src.orchestrator.reasoning_coordinator import ProcessingMode
 
 
-@pytest.fixture
+@pytest.fixture(scope="function")
 async def dual_system():
     """Create DualProcessSystem instance"""
     ollama_url = "http://localhost:11434"
@@ -142,4 +142,4 @@ async def test_graph_state_updates(dual_system):
 
 
 if __name__ == "__main__":
-    pytest.main([__file__, "-v", "-m", "integration"])
+    pytest.main([__file__, "-v", "-m", "integration", "--asyncio-mode=auto"])

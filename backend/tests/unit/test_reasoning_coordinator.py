@@ -9,10 +9,7 @@ import pytest
 from src.models.reasoner import FastReasoner, ReasoningResponse
 from src.models.verifier import AnalyticalVerifier, VerificationResponse
 from src.orchestrator.meta_controller import MetaController
-from src.orchestrator.reasoning_coordinator import (
-    ProcessingMode,
-    ReasoningCoordinator,
-)
+from src.orchestrator.reasoning_coordinator import ProcessingMode, ReasoningCoordinator
 from src.orchestrator.task_router import TaskRouter
 
 
@@ -63,6 +60,8 @@ def mock_verifier():
         }
     )
     verifier.close = AsyncMock()
+    # Add model attribute for escalation logic
+    verifier.model = "mistral:7b"
     return verifier
 
 
@@ -129,7 +128,9 @@ async def test_dual_process_complex_task(coordinator, mock_reasoner, mock_verifi
 
 
 @pytest.mark.asyncio
-async def test_adaptive_mode_low_confidence_escalation(coordinator, mock_reasoner, mock_verifier):
+async def test_adaptive_mode_low_confidence_escalation(
+    coordinator, mock_reasoner, mock_verifier
+):
     """Test adaptive mode escalates on low confidence"""
     # Mock low confidence from System 1
     mock_reasoner.reason.return_value = ReasoningResponse(
@@ -199,7 +200,9 @@ async def test_suggestion_merging(coordinator):
     system2_suggestions = ["suggestion 2", "suggestion 3"]
 
     # Verified case
-    merged = coordinator._merge_suggestions(system1_suggestions, system2_suggestions, verified=True)
+    merged = coordinator._merge_suggestions(
+        system1_suggestions, system2_suggestions, verified=True
+    )
     assert len(merged) == 3  # Unique suggestions
     assert "suggestion 1" in merged
     assert "suggestion 3" in merged

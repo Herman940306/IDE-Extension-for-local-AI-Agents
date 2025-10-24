@@ -96,6 +96,9 @@ class Container(containers.DeclarativeContainer):
         model_name=config.provided.embeddings.model_name,
         chroma_persist_dir=config.provided.embeddings.persist_dir,
         collection_name=config.provided.embeddings.collection_name,
+        provider=config.provided.embeddings.provider,
+        ollama_url=config.provided.embeddings.ollama_url,
+        ollama_model_name=config.provided.embeddings.ollama_model_name,
     )
 
     code_smell_detector = providers.Singleton(

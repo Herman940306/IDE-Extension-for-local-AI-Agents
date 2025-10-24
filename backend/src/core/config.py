@@ -88,9 +88,15 @@ class EmbeddingsSettings(BaseSettings):
         env_prefix="EMBEDDINGS_", extra="allow", protected_namespaces=("settings_",)
     )
 
+    # Default provider remains Sentence-Transformers for backward compatibility
+    provider: str = "sentence-transformers"  # or "ollama"
     model_name: str = "microsoft/codebert-base"
     persist_dir: str = "./data/chroma"
     collection_name: str = "code_embeddings"
+
+    # Ollama embeddings (optional)
+    ollama_url: str = "http://localhost:11434"
+    ollama_model_name: str = "nomic-embed-text"
 
 
 class ObservabilitySettings(BaseSettings):

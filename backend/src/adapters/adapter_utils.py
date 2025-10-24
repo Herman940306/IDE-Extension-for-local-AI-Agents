@@ -83,7 +83,9 @@ class AdapterUtils:
         return blocks
 
     @staticmethod
-    def calculate_base_confidence(status: str, has_suggestions: bool, success_rate: float) -> float:
+    def calculate_base_confidence(
+        status: str, has_suggestions: bool, success_rate: float
+    ) -> float:
         """
         Calculate base confidence score for adapter response.
 
@@ -444,7 +446,9 @@ class AdapterUtils:
             log_data["error"] = str(error) if error else "Unknown error"
             log_data["error_type"] = type(error).__name__ if error else "Unknown"
 
-            logger.error(f"Adapter operation failed: {adapter_name}.{operation}", extra=log_data)
+            logger.error(
+                f"Adapter operation failed: {adapter_name}.{operation}", extra=log_data
+            )
 
 
 def with_retry(max_retries: int = 3, base_delay: float = 1.0, max_delay: float = 60.0):
@@ -463,13 +467,17 @@ def with_retry(max_retries: int = 3, base_delay: float = 1.0, max_delay: float =
     def decorator(func: Callable) -> Callable:
         @wraps(func)
         async def wrapper(*args, **kwargs):
+            # Compose a single kwargs dict to avoid duplicate keyword values
+            call_kwargs = dict(kwargs)
+            # Only set defaults if caller didn't provide them
+            call_kwargs.setdefault("max_retries", max_retries)
+            call_kwargs.setdefault("base_delay", base_delay)
+            call_kwargs.setdefault("max_delay", max_delay)
+
             return await AdapterUtils.exponential_backoff(
                 func,
-                max_retries=max_retries,
-                base_delay=base_delay,
-                max_delay=max_delay,
                 *args,
-                **kwargs,
+                **call_kwargs,
             )
 
         return wrapper

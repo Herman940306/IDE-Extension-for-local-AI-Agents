@@ -3,6 +3,4 @@ policies:
   - orgId: 1
     receiver: email-default
     group_by: ["..."]
-    routes:
-      - receiver: webhook-default
-        object_matchers: []
+    routes: []

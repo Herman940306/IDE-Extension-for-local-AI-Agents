@@ -5,6 +5,10 @@
         "ms-python.debugpy",
         "ms-python.black-formatter",
         "ms-python.flake8",
+        "ms-python.vscode-pylance",
+        "ms-python.mypy-type-checker",
+        // Notebooks (optional)
+        "ms-toolsai.jupyter",
         
         // Code Quality & Error Detection
         "usernamehw.errorlens",

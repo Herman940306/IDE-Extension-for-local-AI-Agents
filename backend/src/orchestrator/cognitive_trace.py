@@ -225,7 +225,7 @@ class CognitiveTraceStore:
             return {"total_traces": 0, "agents": {}, "avg_confidence": 0.0}
 
         # Calculate statistics
-        agent_counts = {}
+        agent_counts: Dict[str, int] = {}
         total_confidence = 0.0
 
         for trace in all_traces:

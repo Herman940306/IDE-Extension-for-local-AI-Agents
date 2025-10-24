@@ -266,48 +266,57 @@ class PredictivePolicy:
     def _action_to_models(self, action: str) -> List[str]:
         """Map predicted action to required models"""
         mapping = {
-            "code_completion": ["llama3.2:3b"],
+            # Inline completions and snippet continuations
+            "code_completion": ["codellama:7b-instruct"],
+            # Refactors and deep reasoning (default 7B; upgrade to 8B/12B
+            # when GPU allows)
             "refactor": ["mistral:7b"],
-            "explain": ["llama3.2:3b"],
-            "generate": ["codellama:7b"],
+            # Conversational explanations and UX layer
+            "explain": ["gemma2:9b"],
+            # Code generation
+            "generate": ["codellama:7b-instruct"],
+            # Debugging and analytical review
             "debug": ["mistral:7b"],
-            "optimize": ["codellama:7b"],
-            "test": ["codellama:7b"],
+            # Performance optimization and tests scaffolding
+            "optimize": ["codellama:7b-instruct"],
+            "test": ["codellama:7b-instruct"],
         }
-        return mapping.get(action, ["llama3.2:3b"])
+        return mapping.get(action, ["codellama:7b-instruct"])
 
     def _model_to_action(self, model: str) -> str:
         """Map model to action type"""
-        if "llama3.2" in model:
+        if "codellama" in model:
             return "code_completion"
-        elif "mistral" in model:
+        elif "llama3.2" in model:
+            return "explain"
+        elif "mistral-nemo" in model or "mistral" in model:
             return "refactor"
-        elif "codellama" in model:
-            return "generate"
         return "code_completion"
 
     def _get_default_predictions(self, context: Dict[str, Any]) -> List[str]:
         """Get default predictions when model not trained"""
         # Return most common models
-        return ["llama3.2:3b", "mistral:7b"]
+        return ["codellama:7b-instruct", "mistral:7b"]
 
     def _save_model(self) -> bool:
         """Save model to disk"""
-        if not self.model_path:
+        if self.model_path is None:
             return False
 
         try:
-            self.model_path.parent.mkdir(parents=True, exist_ok=True)
+            model_path = self.model_path
+            # mypy: model_path is not None here
+            model_path.parent.mkdir(parents=True, exist_ok=True)
 
             # Save model
-            self.model.save_model(str(self.model_path))
+            self.model.save_model(str(model_path))
 
             # Save history
-            history_path = self.model_path.with_suffix(".history.pkl")
+            history_path = model_path.with_suffix(".history.pkl")
             with open(history_path, "wb") as f:
                 pickle.dump(self.history, f)
 
-            logger.info(f"Saved model to {self.model_path}")
+            logger.info(f"Saved model to {model_path}")
             return True
         except Exception as e:
             logger.error(f"Failed to save model: {e}")
@@ -316,17 +325,20 @@ class PredictivePolicy:
     def _load_model(self) -> bool:
         """Load model from disk"""
         try:
+            if self.model_path is None:
+                return False
+            model_path = self.model_path
             # Load model
-            self.model.load_model(str(self.model_path))
+            self.model.load_model(str(model_path))
             self.is_trained = True
 
             # Load history
-            history_path = self.model_path.with_suffix(".history.pkl")
+            history_path = model_path.with_suffix(".history.pkl")
             if history_path.exists():
                 with open(history_path, "rb") as f:
                     self.history = pickle.load(f)
 
-            logger.info(f"Loaded model from {self.model_path}")
+            logger.info(f"Loaded model from {model_path}")
             return True
         except Exception as e:
             logger.error(f"Failed to load model: {e}")

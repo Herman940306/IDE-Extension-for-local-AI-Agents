@@ -174,7 +174,9 @@ class ProvenanceStore:
             Provenance entry dict or None
         """
         try:
-            cursor = self.conn.execute("SELECT * FROM provenance WHERE id = ?", (log_id,))
+            cursor = self.conn.execute(
+                "SELECT * FROM provenance WHERE id = ?", (log_id,)
+            )
             row = cursor.fetchone()
 
             if row:
@@ -184,7 +186,9 @@ class ProvenanceStore:
             logger.error(f"Failed to get provenance {log_id}: {e}")
             return None
 
-    def get_by_agent(self, agent: str, limit: int = 100, offset: int = 0) -> List[Dict[str, Any]]:
+    def get_by_agent(
+        self, agent: str, limit: int = 100, offset: int = 0
+    ) -> List[Dict[str, Any]]:
         """
         Get provenance entries by agent.
 
@@ -261,7 +265,7 @@ class ProvenanceStore:
             List of matching provenance entries
         """
         query = "SELECT * FROM provenance WHERE 1=1"
-        params = []
+        params: List[Any] = []
 
         if start_time:
             query += " AND timestamp >= ?"

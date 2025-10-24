@@ -54,6 +54,9 @@ class LLMManager:
         allow_cloud: bool = False,
         response_cache: Optional[ResponseCache] = None,
         enable_cache: bool = True,
+        # Device/retention hints for Ollama
+        default_keep_alive: Optional[str] = None,
+        force_cpu: bool = False,
     ):
         """
         Initialize LLM Manager
@@ -75,8 +78,12 @@ class LLMManager:
         self.ollama_client = None
         self.response_cache = response_cache
         self.enable_cache = enable_cache and response_cache is not None
+        self.default_keep_alive = default_keep_alive
+        self.force_cpu = force_cpu
         cloud_candidates = {LLMProvider.OPENAI, LLMProvider.ANTHROPIC}
-        self._cloud_provider_type = provider if provider in cloud_candidates else LLMProvider.OPENAI
+        self._cloud_provider_type = (
+            provider if provider in cloud_candidates else LLMProvider.OPENAI
+        )
         self._cloud_providers: Dict[LLMProvider, CloudProvider] = {}
         self.privacy_manager = PrivacyManager(allow_cloud=allow_cloud)
 
@@ -224,7 +231,9 @@ class LLMManager:
                 )
         except LLMError as exc:
             if target_provider == LLMProvider.OLLAMA and self.allow_cloud:
-                logger.info("Falling back to cloud provider after Ollama failure: %s", exc)
+                logger.info(
+                    "Falling back to cloud provider after Ollama failure: %s", exc
+                )
                 target_provider = self._cloud_provider_type
                 cache_provider_value = target_provider.value
                 response_text = await self._generate_cloud(
@@ -242,7 +251,12 @@ class LLMManager:
             raise LLMError("No response generated from the selected provider.")
 
         # Cache the response if enabled
-        if self.enable_cache and use_cache and response_text and self.response_cache is not None:
+        if (
+            self.enable_cache
+            and use_cache
+            and response_text
+            and self.response_cache is not None
+        ):
             context_params = {
                 "system_prompt": system_prompt,
                 "temperature": temperature,
@@ -297,6 +311,11 @@ class LLMManager:
             if stop:
                 options["stop"] = stop
 
+            # Apply device/retention hints when configured
+            keep_alive = self.default_keep_alive
+            if self.force_cpu:
+                options["num_gpu"] = 0
+
             # Run in thread pool to avoid blocking
             loop = asyncio.get_event_loop()
             response = await loop.run_in_executor(
@@ -305,6 +324,7 @@ class LLMManager:
                     model=self.model,
                     messages=messages,
                     options=options,
+                    keep_alive=keep_alive,
                 ),
             )
 
