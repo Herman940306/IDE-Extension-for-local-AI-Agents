@@ -1,0 +1,29 @@
+{
+	# Use your email for Let's Encrypt/ACME notifications
+	email {$ACME_EMAIL}
+}
+
+# Use SERVER_DOMAIN if set, else default to localhost
+{$SERVER_DOMAIN:localhost} {
+	encode zstd gzip
+
+	# --- API: strip /api prefix so FastAPI sees original paths
+	handle_path /api/* {
+		reverse_proxy backend:8001
+	}
+
+	# --- Grafana: keep /grafana prefix (Grafana is configured to serve from subpath)
+	handle /grafana/* {
+		reverse_proxy grafana:3000
+	}
+
+	# --- Prometheus: keep /prometheus prefix; Prometheus is started with route-prefix
+	handle /prometheus/* {
+		reverse_proxy prometheus:9090
+	}
+
+	# Default root
+	handle {
+		respond "AURAIA API Gateway online" 200
+	}
+}
