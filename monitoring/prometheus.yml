@@ -36,3 +36,10 @@ scrape_configs:
     static_configs:
       - targets:
           - celery_worker:9100
+
+  - job_name: "caddy"
+    metrics_path: /metrics
+    scheme: http
+    static_configs:
+      - targets:
+          - caddy:9180

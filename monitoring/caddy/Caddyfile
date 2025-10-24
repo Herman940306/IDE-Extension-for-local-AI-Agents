@@ -36,3 +36,12 @@
 		respond "AURAIA API Gateway online" 200
 	}
 }
+
+# Plain HTTP metrics endpoint for Prometheus (internal use only)
+:9180 {
+	encode zstd gzip
+	prometheus {
+		endpoint /metrics
+	}
+	respond "caddy metrics ok" 200
+}

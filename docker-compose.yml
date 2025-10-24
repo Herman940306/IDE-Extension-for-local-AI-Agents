@@ -128,7 +128,9 @@ services:
       - auraia
 
   caddy:
-    image: caddy:2.8.4
+    build:
+      context: ./monitoring/caddy
+      dockerfile: Dockerfile
     container_name: auraia_caddy
     environment:
       - ACME_EMAIL=${ACME_EMAIL:-admin@example.com}
@@ -136,6 +138,7 @@ services:
     ports:
       - "80:80"
       - "443:443"
+      - "9180:9180" # Caddy Prometheus metrics (internal preferred)
     volumes:
       - ./monitoring/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
