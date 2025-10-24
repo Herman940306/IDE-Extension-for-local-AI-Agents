@@ -289,3 +289,46 @@ Build/Deploy Summary:
 🧹 Codebase reformatted with Black (line-length = 100).
 
 ✅ All services reachable (docker compose ps → Up).
+
+---
+
+## Reverse Proxy + TLS (Caddy)
+
+What it is
+
+- A single front door that terminates HTTPS and routes by path:
+  - /api → backend:8001 (prefix stripped)
+  - /grafana → grafana:3000 (served from subpath)
+  - /prometheus → prometheus:9090 (served from subpath)
+
+Ports to open (production)
+
+- 80 (HTTP) and 443 (HTTPS). Caddy uses 80 for ACME HTTP-01 challenges and redirects HTTP → HTTPS automatically.
+
+Environment variables
+
+- SERVER_DOMAIN: your public domain (e.g., api.example.com)
+- ACME_EMAIL: email for Let’s Encrypt/ACME notifications
+
+Local vs production
+
+- Local: with SERVER_DOMAIN=localhost, Caddy provides a dev certificate automatically. Access:
+  - <https://localhost/api/health>
+  - <https://localhost/grafana/>
+  - <https://localhost/prometheus/>
+- Production: set SERVER_DOMAIN to your domain and ACME_EMAIL. Caddy will auto‑provision and renew valid TLS certs via Let’s Encrypt.
+
+How to run
+
+```powershell
+# Bring up the proxy and core services
+docker compose up -d caddy backend prometheus grafana redis ollama celery_worker
+
+# Verify endpoints
+# API
+curl -k https://localhost/api/health
+# Grafana
+#   open https://localhost/grafana/ in your browser
+# Prometheus
+#   open https://localhost/prometheus/ in your browser
+```
