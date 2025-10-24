@@ -645,3 +645,418 @@ class TestCommentsGeneration:
         context = CodeContext(file_path="test.py", code="", language="python")
         suggestions = await agent._generate_comments(context)
         assert isinstance(suggestions, list)
+
+
+class TestIntegrationScenarios:
+    """Integration tests with complex real-world scenarios"""
+
+    @pytest.mark.asyncio
+    async def test_complex_python_module_parsing(self, doc_agent_config):
+        """Test parsing a complex Python module with multiple constructs"""
+        agent = DocAgent(config=doc_agent_config)
+        code = '''
+import asyncio
+from typing import List, Optional
+
+class DataProcessor:
+    """Existing class docstring"""
+    
+    def __init__(self, config: dict):
+        self.config = config
+    
+    async def process(self, data: List[str]) -> dict:
+        results = []
+        for item in data:
+            processed = await self._process_item(item)
+            results.append(processed)
+        return {"results": results}
+    
+    async def _process_item(self, item: str) -> str:
+        # Private method without docstring
+        return item.upper()
+
+def standalone_function(x: int, y: int = 10) -> int:
+    return x + y
+
+async def async_handler(request):
+    pass
+'''
+        context = CodeContext(file_path="module.py", code=code, language="python")
+        suggestions = await agent._generate_python_docstrings(context)
+
+        # Should generate suggestions for methods without docstrings
+        assert len(suggestions) > 0
+        assert any("_process_item" in s.description for s in suggestions)
+        assert any("standalone_function" in s.description for s in suggestions)
+        assert any("async_handler" in s.description for s in suggestions)
+
+    @pytest.mark.asyncio
+    async def test_complex_javascript_parsing(self, doc_agent_config):
+        """Test parsing complex JavaScript with various function styles"""
+        agent = DocAgent(config=doc_agent_config)
+        code = """
+// Regular function
+function calculateTotal(items, tax) {
+    return items.reduce((sum, item) => sum + item.price, 0) * (1 + tax);
+}
+
+// Async function
+async function fetchData(url) {
+    const response = await fetch(url);
+    return response.json();
+}
+
+// Function expression
+const processData = function(data) {
+    return data.map(item => item.value);
+};
+
+// Arrow function stored in const
+const validator = (input) => {
+    return input && input.length > 0;
+};
+"""
+        context = CodeContext(file_path="utils.js", code=code, language="javascript")
+        suggestions = await agent._generate_jsdoc(context)
+
+        # JSDoc regex may not match all function styles, but should work
+        assert isinstance(suggestions, list)
+        # Should find at least some functions (regex is conservative)
+        assert len(suggestions) >= 1
+
+    @pytest.mark.asyncio
+    async def test_end_to_end_docstring_with_crewai(
+        self, doc_agent_config, mock_crewai_adapter
+    ):
+        """Test complete end-to-end workflow with CrewAI integration"""
+        agent = DocAgent(config=doc_agent_config, crewai_adapter=mock_crewai_adapter)
+
+        task = Task(
+            id="integration-1",
+            type=TaskType.DOCUMENTATION,
+            content="def complex_algo(data): pass",
+            description="Generate comprehensive documentation",
+            priority=Priority.HIGH,
+        )
+
+        context = CodeContext(
+            file_path="algorithm.py",
+            code="def complex_algo(data):\n    pass",
+            language="python",
+        )
+
+        result = await agent.execute_task(task, context)
+
+        assert isinstance(result, AgentResponse)
+        assert result.agent_id == "doc_agent"
+        assert result.confidence > 0
+        # CrewAI integration returns delegated response which may not have suggestions
+        assert isinstance(result.suggestions, list)
+
+    @pytest.mark.asyncio
+    async def test_mixed_documented_undocumented_code(self, doc_agent_config):
+        """Test module with mix of documented and undocumented code"""
+        agent = DocAgent(config=doc_agent_config)
+        code = '''
+def documented():
+    """This function has docs"""
+    pass
+
+def undocumented_one():
+    pass
+
+class MyClass:
+    """Class with docs"""
+    
+    def method_with_docs(self):
+        """Method docs"""
+        pass
+    
+    def method_without_docs(self):
+        pass
+'''
+        context = CodeContext(file_path="mixed.py", code=code, language="python")
+        suggestions = await agent._generate_python_docstrings(context)
+
+        # Should only generate for undocumented items
+        assert len(suggestions) == 2
+        assert any("undocumented_one" in s.description for s in suggestions)
+        assert any("method_without_docs" in s.description for s in suggestions)
+
+    @pytest.mark.asyncio
+    async def test_nested_class_structures(self, doc_agent_config):
+        """Test deeply nested class structures"""
+        agent = DocAgent(config=doc_agent_config)
+        code = """
+class OuterClass:
+    class InnerClass:
+        def inner_method(self):
+            pass
+    
+    def outer_method(self):
+        pass
+"""
+        context = CodeContext(file_path="nested.py", code=code, language="python")
+        suggestions = await agent._generate_python_docstrings(context)
+
+        # Should find methods in nested classes
+        assert len(suggestions) > 0
+
+
+class TestErrorPathHandling:
+    """Tests for error handling and edge cases"""
+
+    @pytest.mark.asyncio
+    async def test_malformed_python_syntax(self, doc_agent_config):
+        """Test handling of severely malformed Python code"""
+        agent = DocAgent(config=doc_agent_config)
+        malformed_code = """
+def broken_function(:
+    return ][
+class NoColon
+    pass
+"""
+        context = CodeContext(
+            file_path="broken.py", code=malformed_code, language="python"
+        )
+        suggestions = await agent._generate_python_docstrings(context)
+
+        # Should handle gracefully and return empty list
+        assert suggestions == []
+
+    @pytest.mark.asyncio
+    async def test_empty_function_bodies(self, doc_agent_config):
+        """Test functions with various empty body styles"""
+        agent = DocAgent(config=doc_agent_config)
+        code = '''
+def empty_pass():
+    pass
+
+def empty_ellipsis():
+    ...
+
+def empty_docstring():
+    """Just a docstring"""
+
+def empty_comment():
+    # Just a comment
+    pass
+'''
+        context = CodeContext(file_path="empty.py", code=code, language="python")
+        suggestions = await agent._generate_python_docstrings(context)
+
+        # Should generate for functions without docstrings
+        assert len(suggestions) >= 3
+
+    @pytest.mark.asyncio
+    async def test_unicode_and_special_characters(self, doc_agent_config):
+        """Test handling of Unicode and special characters in code"""
+        agent = DocAgent(config=doc_agent_config)
+        code = '''
+def process_émojis(text: str) -> str:
+    """Process text with emojis 🚀"""
+    return text
+
+def calculate_π():
+    return 3.14159
+
+def handle_中文(data):
+    pass
+'''
+        context = CodeContext(file_path="unicode.py", code=code, language="python")
+        suggestions = await agent._generate_python_docstrings(context)
+
+        # Should handle Unicode gracefully
+        assert isinstance(suggestions, list)
+        assert len(suggestions) >= 1
+
+    @pytest.mark.asyncio
+    async def test_very_long_function_signatures(self, doc_agent_config):
+        """Test handling of functions with very long parameter lists"""
+        agent = DocAgent(config=doc_agent_config)
+        code = """
+def function_with_many_params(
+    param1, param2, param3, param4, param5,
+    param6, param7, param8, param9, param10,
+    param11=None, param12=None, *args, **kwargs
+):
+    pass
+"""
+        context = CodeContext(file_path="long.py", code=code, language="python")
+        suggestions = await agent._generate_python_docstrings(context)
+
+        assert len(suggestions) > 0
+        # Should include parameters in suggestion
+        suggestion = suggestions[0]
+        assert "param" in suggestion.code.lower() or "args" in suggestion.code.lower()
+
+    @pytest.mark.asyncio
+    async def test_invalid_ast_node_types(self, doc_agent_config):
+        """Test handling of unexpected AST node types"""
+        agent = DocAgent(config=doc_agent_config)
+
+        # Create a mock node that's not a function or class
+        import_node = ast.Import(names=[ast.alias(name="os", asname=None)])
+
+        docstring = agent._create_python_docstring(import_node)
+
+        # Should return default docstring for unknown types
+        assert '"""TODO: Add docstring"""' in docstring
+
+    @pytest.mark.asyncio
+    async def test_execution_with_missing_code(
+        self, doc_agent_config, mock_crewai_adapter
+    ):
+        """Test task execution when context code is missing"""
+        agent = DocAgent(config=doc_agent_config, crewai_adapter=mock_crewai_adapter)
+
+        task = Task(
+            id="error-1",
+            type=TaskType.DOCUMENTATION,
+            content="",
+            description="Generate docs",
+            priority=Priority.MEDIUM,
+        )
+
+        context = CodeContext(file_path="test.py", code="", language="python")
+
+        result = await agent.execute_task(task, context)
+
+        assert result.confidence == 0.0
+        assert "No code provided" in result.reasoning
+        assert result.metadata.get("error") == "missing_code"
+
+    @pytest.mark.asyncio
+    async def test_crewai_delegation_failure(self, doc_agent_config):
+        """Test handling of CrewAI adapter failures"""
+        failing_adapter = AsyncMock()
+        failing_adapter.execute_task = AsyncMock(side_effect=Exception("CrewAI failed"))
+
+        agent = DocAgent(config=doc_agent_config, crewai_adapter=failing_adapter)
+
+        task = Task(
+            id="error-2",
+            type=TaskType.GENERAL,
+            content="code",
+            description="Generate docs",
+            priority=Priority.MEDIUM,
+        )
+
+        context = CodeContext(file_path="test.py", code="code", language="python")
+
+        # Should handle exception gracefully
+        try:
+            result = await agent.execute_task(task, context)
+            # If no exception, should have error in response
+            assert result.confidence == 0.0 or "error" in result.metadata
+        except Exception as e:
+            # Or should raise a handled exception
+            assert "CrewAI failed" in str(e)
+
+    @pytest.mark.asyncio
+    async def test_javascript_with_syntax_errors(self, doc_agent_config):
+        """Test JavaScript code with syntax issues"""
+        agent = DocAgent(config=doc_agent_config)
+        broken_js = """
+function broken({
+    return "missing closing brace"
+
+const incomplete = function(
+"""
+        context = CodeContext(
+            file_path="broken.js", code=broken_js, language="javascript"
+        )
+        suggestions = await agent._generate_jsdoc(context)
+
+        # Should handle gracefully, may find partial matches
+        assert isinstance(suggestions, list)
+
+    def test_confidence_calculation_edge_cases(self, doc_agent_config):
+        """Test confidence calculation with edge case inputs"""
+        agent = DocAgent(config=doc_agent_config)
+
+        # Test with empty list
+        assert agent._calculate_confidence([]) == 0.5
+
+        # Test with single suggestion
+        single = [
+            Suggestion(
+                id="1",
+                code="code",
+                description="desc",
+                confidence=ConfidenceLevel.HIGH,
+            )
+        ]
+        assert agent._calculate_confidence(single) == 0.9
+
+        # Test with all low confidence
+        all_low = [
+            Suggestion(
+                id=str(i),
+                code="code",
+                description="desc",
+                confidence=ConfidenceLevel.LOW,
+            )
+            for i in range(5)
+        ]
+        assert agent._calculate_confidence(all_low) == 0.4
+
+    @pytest.mark.asyncio
+    async def test_readme_generation_with_crewai(
+        self, doc_agent_config, mock_crewai_adapter
+    ):
+        """Test README generation delegates to CrewAI"""
+        agent = DocAgent(config=doc_agent_config, crewai_adapter=mock_crewai_adapter)
+
+        context = CodeContext(
+            file_path="README.md", code="# Project\nSome code", language="markdown"
+        )
+
+        suggestions = await agent._generate_readme(context)
+
+        # Should return list (may be empty or have CrewAI results)
+        assert isinstance(suggestions, list)
+
+    @pytest.mark.asyncio
+    async def test_api_docs_generation_with_crewai(
+        self, doc_agent_config, mock_crewai_adapter
+    ):
+        """Test API docs generation delegates to CrewAI"""
+        agent = DocAgent(config=doc_agent_config, crewai_adapter=mock_crewai_adapter)
+
+        context = CodeContext(
+            file_path="api.py",
+            code="@app.route('/api')\ndef endpoint(): pass",
+            language="python",
+        )
+
+        suggestions = await agent._generate_api_docs(context)
+
+        assert isinstance(suggestions, list)
+
+    @pytest.mark.asyncio
+    async def test_determine_doc_type_edge_cases(self, doc_agent_config):
+        """Test doc type determination with ambiguous descriptions"""
+        agent = DocAgent(config=doc_agent_config)
+
+        # Test with empty description
+        task1 = Task(
+            id="1",
+            type=TaskType.DOCUMENTATION,
+            content="code",
+            description="",
+            priority=Priority.MEDIUM,
+        )
+        doc_type1 = agent._determine_doc_type(task1, "python")
+        assert doc_type1 in ["docstring", "readme", "api", "comments", "general"]
+
+        # Test with generic description
+        task2 = Task(
+            id="2",
+            type=TaskType.DOCUMENTATION,
+            content="code",
+            description="document this",
+            priority=Priority.MEDIUM,
+        )
+        doc_type2 = agent._determine_doc_type(task2, "python")
+        assert isinstance(doc_type2, str)
