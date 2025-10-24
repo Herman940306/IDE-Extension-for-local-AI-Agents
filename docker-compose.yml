@@ -117,6 +117,13 @@ services:
       - GF_AUTH_ANONYMOUS_ENABLED=false
       - GF_USERS_ALLOW_SIGN_UP=false
       - GRAFANA_ALERT_WEBHOOK_URL=${GRAFANA_ALERT_WEBHOOK_URL:-https://example.invalid/webhook}
+      - GRAFANA_ALERT_EMAIL=${GRAFANA_ALERT_EMAIL:-swanepoelherman58@gmail.com}
+      - GF_SMTP_ENABLED=${GF_SMTP_ENABLED:-true}
+      - GF_SMTP_HOST=${GF_SMTP_HOST:-smtp.gmail.com:587}
+      - GF_SMTP_USER=${GF_SMTP_USER:-swanepoelherman58@gmail.com}
+      - GF_SMTP_PASSWORD=${GF_SMTP_PASSWORD:-PLEASE_SET_APP_PASSWORD}
+      - GF_SMTP_FROM_ADDRESS=${GF_SMTP_FROM_ADDRESS:-alerts@localhost}
+      - GF_SMTP_FROM_NAME=${GF_SMTP_FROM_NAME:-Aura Alerts}
     ports:
       - "3000:3000"
     volumes:

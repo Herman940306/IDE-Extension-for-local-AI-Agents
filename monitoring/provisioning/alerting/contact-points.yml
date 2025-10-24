@@ -9,3 +9,12 @@ contactPoints:
           url: ${GRAFANA_ALERT_WEBHOOK_URL}
           httpMethod: POST
           sendResolved: true
+  - orgId: 1
+    name: email-default
+    receivers:
+      - uid: email_default
+        type: email
+        settings:
+          addresses: ${GRAFANA_ALERT_EMAIL}
+          single: true
+          disableResolveMessage: false
