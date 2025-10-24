@@ -7,16 +7,17 @@
             "request": "launch",
             "module": "uvicorn",
             "args": [
-                "backend.src.main:app",
+                "src.main:app",
                 "--reload",
                 "--host",
-                "0.0.0.0",
+                "127.0.0.1",
                 "--port",
-                "8000"
+                "8001"
             ],
             "jinja": true,
             "justMyCode": false,
-            "console": "integratedTerminal"
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}/backend"
         },
         {
             "name": "Python: Current File",

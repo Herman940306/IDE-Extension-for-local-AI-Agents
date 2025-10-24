@@ -25,6 +25,11 @@ class Settings(BaseSettings):
     redis_url: str = "redis://localhost:6379"
     redis_password: Optional[str] = None
 
+    # Celery Configuration
+    use_celery: bool = False
+    celery_broker_url: Optional[str] = None
+    celery_result_backend: Optional[str] = None
+
     # ChromaDB Configuration
     chroma_persist_dir: str = "./data/chroma_db"
 

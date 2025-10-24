@@ -72,6 +72,11 @@ htmlcov/
 coverage.xml
 *.cover
 
+# Type checkers and test caches
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+
 # IDEs
 .idea/
 *.iml
