@@ -53,6 +53,7 @@ data/
 .env
 .env.local
 backend/.env
+backend/.env.production
 
 # OS
 .DS_Store
