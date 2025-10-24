@@ -1,0 +1,6 @@
+apiVersion: 1
+policies:
+  - orgId: 1
+    receiver: webhook-default
+    group_by: ['...']
+    routes: []

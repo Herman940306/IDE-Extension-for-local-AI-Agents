@@ -116,6 +116,7 @@ services:
       - GF_SERVER_SERVE_FROM_SUB_PATH=true
       - GF_AUTH_ANONYMOUS_ENABLED=false
       - GF_USERS_ALLOW_SIGN_UP=false
+      - GRAFANA_ALERT_WEBHOOK_URL=${GRAFANA_ALERT_WEBHOOK_URL:-https://example.invalid/webhook}
     ports:
       - "3000:3000"
     volumes:
@@ -123,6 +124,7 @@ services:
       - ./monitoring/dashboards:/var/lib/grafana/dashboards:ro
       - ./monitoring/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
       - ./monitoring/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
+      - ./monitoring/provisioning/alerting:/etc/grafana/provisioning/alerting:ro
     depends_on:
       prometheus:
         condition: service_started
