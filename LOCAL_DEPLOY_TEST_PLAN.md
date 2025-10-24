@@ -1,7 +1,7 @@
 # AuraIA Local Deployment Test Plan
 
-**Version:** 1.0  \
-**Author:** Platform Engineering  \
+**Version:** 1.0 \
+**Author:** Platform Engineering \
 **Last Updated:** 2025-10-19
 
 ---
@@ -24,13 +24,13 @@ Execute a full local deployment rehearsal to validate the developer-focused work
 
 ## Test Matrix
 
-| Area | Goal | Tools |
-|------|------|-------|
-| Backend runtime | Validate FastAPI service with reload and background workers | PowerShell, Python 3.11 |
-| Docker stack | Validate Compose environment (backend, Prometheus, Grafana, Redis, Ollama) | Docker Desktop *(optional – see Dockerless fallback)* |
-| Extension integration | Validate VSIX against local backend | VS Code, aura-ai-assistant-1.0.0.vsix |
-| Quality gates | Ensure `pytest`, `black`, `flake8`, secret scan execute locally | PowerShell |
-| Monitoring | Confirm Prometheus targets/alerts, inspect Grafana dashboard | Browser, Prometheus UI |
+| Area                  | Goal                                                                       | Tools                                                 |
+| --------------------- | -------------------------------------------------------------------------- | ----------------------------------------------------- |
+| Backend runtime       | Validate FastAPI service with reload and background workers                | PowerShell, Python 3.11                               |
+| Docker stack          | Validate Compose environment (backend, Prometheus, Grafana, Redis, Ollama) | Docker Desktop _(optional – see Dockerless fallback)_ |
+| Extension integration | Validate VSIX against local backend                                        | VS Code, aura-ai-assistant-1.0.0.vsix                 |
+| Quality gates         | Ensure `pytest`, `black`, `flake8`, secret scan execute locally            | PowerShell                                            |
+| Monitoring            | Confirm Prometheus targets/alerts, inspect Grafana dashboard               | Browser, Prometheus UI                                |
 
 ---
 
@@ -69,20 +69,20 @@ Execute a full local deployment rehearsal to validate the developer-focused work
 
 4. **(Optional) Start Docker Compose Stack**
 
-    ```powershell
-    cd ..
-    copy backend\env.example backend\.env.production
-    docker compose up -d --build
-    docker compose ps
-    ```
+   ```powershell
+   cd ..
+   copy backend\env.example backend\.env.production
+   docker compose up -d --build
+   docker compose ps
+   ```
 
-    - Verify services reachable:
-       - Backend `http://localhost:8001`
-       - Prometheus `http://localhost:9090`
-       - Grafana `http://localhost:3000`
-       - Ollama `http://localhost:11434`
+   - Verify services reachable:
+     - Backend `http://localhost:8001`
+     - Prometheus `http://localhost:9090`
+     - Grafana `http://localhost:3000`
+     - Ollama `http://localhost:11434`
 
-    *Skip this step if Docker Desktop is unavailable and follow the Dockerless fallback below.*
+   _Skip this step if Docker Desktop is unavailable and follow the Dockerless fallback below._
 
 5. **Extension Validation**
 
@@ -137,16 +137,16 @@ Execute a full local deployment rehearsal to validate the developer-focused work
 
 ## 2025-10-19 Dockerless Dry Run Results
 
-| Step | Status | Notes |
-|------|--------|-------|
-| Virtualenv & dependencies | ✅ | Created `backend/.venv_new`, installed `backend/requirements.txt` plus `pydantic-settings`, `cryptography`, `structlog`, `dependency-injector`. |
-| Redis bootstrap | ✅ | `setup-redis.bat` installed service; `Get-Service Redis` reports **Running**. |
-| Backend runtime | ✅ | `python run.py` reports *Application startup complete*; `/health` returns `healthy`. |
-| Quality gates | ✅ | `pytest backend/tests -v` passes after configuration fixes (black/flake8 not run this pass). |
-| Docker Compose | ➖ | Skipped for dockerless rehearsal. |
-| Monitoring drill | ➖ | Prometheus/Grafana skipped; documented reliance on `/health` checks in log. |
-| Secret scanning | ✅ | `gitleaks detect --config .gitleaks.toml` → no leaks found. |
-| VSIX smoke test | ✅ | VSIX packaged/installed; inline suggestion + code action succeed vs local backend. |
+| Step                      | Status | Notes                                                                                                                                           |
+| ------------------------- | ------ | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| Virtualenv & dependencies | ✅     | Created `backend/.venv_new`, installed `backend/requirements.txt` plus `pydantic-settings`, `cryptography`, `structlog`, `dependency-injector`. |
+| Redis bootstrap           | ✅     | `setup-redis.bat` installed service; `Get-Service Redis` reports **Running**.                                                                   |
+| Backend runtime           | ✅     | `python run.py` reports _Application startup complete_; `/health` returns `healthy`.                                                            |
+| Quality gates             | ✅     | `pytest backend/tests -v` passes after configuration fixes (black/flake8 not run this pass).                                                    |
+| Docker Compose            | ➖     | Skipped for dockerless rehearsal.                                                                                                               |
+| Monitoring drill          | ➖     | Prometheus/Grafana skipped; documented reliance on `/health` checks in log.                                                                     |
+| Secret scanning           | ✅     | `gitleaks detect --config .gitleaks.toml` → no leaks found.                                                                                     |
+| VSIX smoke test           | ✅     | VSIX packaged/installed; inline suggestion + code action succeed vs local backend.                                                              |
 
 ---
 

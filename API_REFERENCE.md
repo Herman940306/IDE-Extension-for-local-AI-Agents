@@ -13,6 +13,7 @@
 **Description:** Get API information
 
 **Response:**
+
 ```json
 {
   "service": "Enterprise AI Agents API",
@@ -26,6 +27,7 @@
 ```
 
 **Status Codes:**
+
 - `200` - Success
 
 ---
@@ -35,6 +37,7 @@
 **Description:** Health check with component status
 
 **Response:**
+
 ```json
 {
   "status": "healthy",
@@ -53,11 +56,13 @@
 ```
 
 **Status Values:**
+
 - `healthy` - All systems operational
 - `degraded` - Partial functionality
 - `unhealthy` - Critical failure
 
 **Status Codes:**
+
 - `200` - Success
 
 ---
@@ -85,11 +90,13 @@
 **Description:** Real-time bidirectional communication
 
 **Parameters:**
+
 - `client_id` (path) - Unique client identifier
 
 **Connection:**
+
 ```javascript
-const ws = new WebSocket('ws://127.0.0.1:8001/ws/client-123');
+const ws = new WebSocket("ws://127.0.0.1:8001/ws/client-123");
 ```
 
 ---
@@ -151,6 +158,7 @@ const ws = new WebSocket('ws://127.0.0.1:8001/ws/client-123');
 ```
 
 **Modes:**
+
 - `online` - Full AI features
 - `offline` - Local only
 
@@ -300,14 +308,17 @@ const ws = new WebSocket('ws://127.0.0.1:8001/ws/client-123');
 ### Request Headers
 
 **Optional:**
+
 - `X-Correlation-ID` - Request tracking ID
 
 ### Response Headers
 
 **Always:**
+
 - `X-Correlation-ID` - Request tracking ID
 
 **Rate Limiting:**
+
 - `Retry-After` - Seconds until retry allowed
 
 ---
@@ -315,10 +326,12 @@ const ws = new WebSocket('ws://127.0.0.1:8001/ws/client-123');
 ## Rate Limiting
 
 **Default Limits:**
+
 - 60 requests per minute per client
 - Burst size: 10 requests
 
 **Headers:**
+
 - `X-RateLimit-Limit` - Max requests
 - `X-RateLimit-Remaining` - Remaining requests
 - `X-RateLimit-Reset` - Reset timestamp
@@ -330,11 +343,13 @@ const ws = new WebSocket('ws://127.0.0.1:8001/ws/client-123');
 ### cURL
 
 **Health Check:**
+
 ```bash
 curl http://127.0.0.1:8001/health
 ```
 
 **API Info:**
+
 ```bash
 curl http://127.0.0.1:8001/
 ```
@@ -342,6 +357,7 @@ curl http://127.0.0.1:8001/
 ### Python
 
 **Health Check:**
+
 ```python
 import requests
 
@@ -350,6 +366,7 @@ print(response.json())
 ```
 
 **WebSocket:**
+
 ```python
 import asyncio
 import websockets
@@ -363,7 +380,7 @@ async def connect():
             "type": "ping",
             "payload": {}
         }))
-        
+
         # Receive pong
         response = await ws.recv()
         print(json.loads(response))
@@ -374,19 +391,22 @@ asyncio.run(connect())
 ### JavaScript
 
 **WebSocket:**
+
 ```javascript
-const ws = new WebSocket('ws://127.0.0.1:8001/ws/js-client');
+const ws = new WebSocket("ws://127.0.0.1:8001/ws/js-client");
 
 ws.onopen = () => {
-  ws.send(JSON.stringify({
-    type: 'ping',
-    payload: {}
-  }));
+  ws.send(
+    JSON.stringify({
+      type: "ping",
+      payload: {},
+    }),
+  );
 };
 
 ws.onmessage = (event) => {
   const data = JSON.parse(event.data);
-  console.log('Received:', data);
+  console.log("Received:", data);
 };
 ```
 

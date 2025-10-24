@@ -18,12 +18,14 @@ This guide addresses the critical issue where Windows crashes with a black scree
 ## 🚨 Critical Issue: Black Screen Crash During VM Platform Enablement
 
 ### Symptoms
+
 - System reboots after enabling Virtual Machine Platform
 - Update process reaches ~15% then reboots again
 - Black screen appears after BIOS (screen active but showing black pixels)
 - System becomes unresponsive or stuck in boot loop
 
 ### Root Causes
+
 1. **Virtualization disabled in BIOS/UEFI**
 2. **Outdated BIOS/UEFI firmware**
 3. **Incompatible or outdated chipset drivers**
@@ -38,12 +40,14 @@ This guide addresses the critical issue where Windows crashes with a black scree
 ### Before You Start
 
 Run full diagnostics:
+
 ```powershell
 # Run as Administrator
 .\scripts\WSL-Docker-SafeMode-Recovery.ps1 -Mode FullDiagnostics
 ```
 
 This will check:
+
 - ✅ CPU virtualization support (VT-x/AMD-V)
 - ✅ BIOS settings status
 - ✅ Windows version compatibility
@@ -53,13 +57,13 @@ This will check:
 
 ### System Requirements
 
-| Requirement | Minimum | Recommended |
-|------------|---------|-------------|
-| Windows Version | Windows 10 Build 19041+ | Windows 11 22H2+ |
-| RAM | 4 GB | 8 GB+ |
-| CPU | 64-bit with VT-x/AMD-V | Multi-core with SLAT |
-| Disk Space | 20 GB free | 50 GB+ free |
-| BIOS | Virtualization enabled | Latest firmware |
+| Requirement     | Minimum                 | Recommended          |
+| --------------- | ----------------------- | -------------------- |
+| Windows Version | Windows 10 Build 19041+ | Windows 11 22H2+     |
+| RAM             | 4 GB                    | 8 GB+                |
+| CPU             | 64-bit with VT-x/AMD-V  | Multi-core with SLAT |
+| Disk Space      | 20 GB free              | 50 GB+ free          |
+| BIOS            | Virtualization enabled  | Latest firmware      |
 
 ---
 
@@ -68,6 +72,7 @@ This will check:
 ### Phase 1: Prepare Your System
 
 #### 1.1 Update Windows
+
 ```powershell
 # Open Windows Update
 ms-settings:windowsupdate
@@ -82,6 +87,7 @@ ms-settings:windowsupdate
 **⚠️ CRITICAL: Backup all data before BIOS update!**
 
 1. Identify your system:
+
    ```powershell
    Get-CimInstance -ClassName Win32_ComputerSystem | Select-Object Manufacturer, Model
    Get-CimInstance -ClassName Win32_BIOS | Select-Object SMBIOSBIOSVersion
@@ -101,6 +107,7 @@ ms-settings:windowsupdate
 #### 1.3 Update Chipset & Virtualization Drivers
 
 Download and install from manufacturer:
+
 - Chipset drivers
 - Intel Management Engine (ME) drivers
 - AMD chipset drivers
@@ -113,24 +120,27 @@ Download and install from manufacturer:
 **Settings to enable:**
 
 **Intel Systems:**
+
 - Intel Virtualization Technology (VT-x)
 - Intel VT for Directed I/O (VT-d)
 
 **AMD Systems:**
+
 - SVM Mode (Secure Virtual Machine)
 - AMD IOMMU
 
 **Common BIOS paths by manufacturer:**
 
-| Manufacturer | Path |
-|--------------|------|
-| **Dell** | Advanced > Virtualization > Intel Virtualization Technology |
-| **HP** | Advanced > System Options > Virtualization Technology |
-| **Lenovo** | Configuration > Intel Virtual Technology |
-| **ASUS** | Advanced > CPU Configuration > Intel Virtualization Technology |
-| **MSI** | OC > CPU Features > Intel Virtualization Tech |
+| Manufacturer | Path                                                           |
+| ------------ | -------------------------------------------------------------- |
+| **Dell**     | Advanced > Virtualization > Intel Virtualization Technology    |
+| **HP**       | Advanced > System Options > Virtualization Technology          |
+| **Lenovo**   | Configuration > Intel Virtual Technology                       |
+| **ASUS**     | Advanced > CPU Configuration > Intel Virtualization Technology |
+| **MSI**      | OC > CPU Features > Intel Virtualization Tech                  |
 
 **After enabling:**
+
 1. Save and Exit (usually F10)
 2. Allow system to restart
 3. Boot into Windows normally
@@ -139,12 +149,14 @@ Download and install from manufacturer:
 ### Phase 2: Create Safety Net
 
 #### 2.1 Create System Restore Point
+
 ```powershell
 # Run as Administrator
 .\scripts\WSL-Docker-SafeMode-Recovery.ps1 -Mode CreateRestorePoint
 ```
 
 #### 2.2 Backup Important Data
+
 - Documents
 - Projects
 - Configuration files
@@ -153,12 +165,14 @@ Download and install from manufacturer:
 ### Phase 3: Safe Feature Enablement
 
 #### 3.1 Run Safe Installation Script
+
 ```powershell
 # Run as Administrator
 .\scripts\WSL-Docker-Setup-Enterprise.ps1 -Mode FullSetup
 ```
 
 This script:
+
 - ✅ Validates system requirements
 - ✅ Cleans previous installations
 - ✅ Enables features gradually
@@ -168,12 +182,14 @@ This script:
 #### 3.2 Monitor First Restart
 
 **IMPORTANT:** After enabling Virtual Machine Platform:
+
 - System will restart automatically
 - Update process will run (may reach 15-30%)
 - **Normal:** System restarts and boots normally
 - **Problem:** Black screen or boot loop
 
 **If black screen occurs:**
+
 1. Wait 5 minutes for automatic recovery
 2. If no recovery, force power off (hold power button 10s)
 3. Proceed to Recovery Process below
@@ -185,12 +201,14 @@ This script:
 ### Step 1: Boot into Safe Mode
 
 **Method A: From lock screen**
+
 1. Hold `Shift` key
 2. Click `Restart`
 3. Navigate: Troubleshoot > Advanced Options > Startup Settings > Restart
 4. Press `F4` or `F5` to enter Safe Mode
 
 **Method B: Force Safe Mode (if can't reach lock screen)**
+
 1. Force power off during boot (3 times)
 2. Windows will enter Automatic Repair
 3. Select: Advanced Options > Startup Settings > Restart
@@ -204,6 +222,7 @@ This script:
 ```
 
 Or manually:
+
 ```powershell
 # Shutdown WSL
 wsl --shutdown
@@ -225,12 +244,14 @@ After system is stable:
    - Check for BIOS updates
 
 2. **Update all drivers**
+
    ```powershell
    # Use Windows Update for drivers
    # Or download from manufacturer
    ```
 
 3. **Check Windows integrity**
+
    ```powershell
    # Run as Administrator
    DISM /Online /Cleanup-Image /RestoreHealth
@@ -260,6 +281,7 @@ After system is stable:
 **Cause:** Corrupted or outdated 32-bit WSL installer in temp folder
 
 **Fix:**
+
 ```powershell
 # Run as Administrator
 
@@ -280,6 +302,7 @@ wsl --version
 **Symptoms:** `wsl` command not found or not in PATH
 
 **Fix:**
+
 ```powershell
 # Verify wsl.exe exists
 Test-Path "$env:SystemRoot\System32\wsl.exe"
@@ -297,6 +320,7 @@ Start-Process msiexec.exe -ArgumentList "/i `"$msiPath`" /passive /norestart" -W
 **Symptoms:** Docker installed but won't run
 
 **Fix:**
+
 ```bash
 # Inside WSL Ubuntu
 
@@ -321,6 +345,7 @@ sudo chmod 666 /var/run/docker.sock
 **Symptoms:** WSL --version shows old kernel
 
 **Fix:**
+
 ```powershell
 # Download kernel update
 $kernelUrl = "https://wslstorestorage.blob.core.windows.net/wslblob/wsl_update_x64.msi"
@@ -337,6 +362,7 @@ wsl --set-default-version 2
 ## 📊 Diagnostic Commands Reference
 
 ### System Information
+
 ```powershell
 # OS and build
 Get-CimInstance Win32_OperatingSystem | Select-Object Caption, Version, BuildNumber
@@ -352,6 +378,7 @@ Get-CimInstance Win32_BIOS | Select-Object SMBIOSBIOSVersion, ReleaseDate
 ```
 
 ### WSL Commands
+
 ```powershell
 # WSL version
 wsl --version
@@ -373,6 +400,7 @@ wsl --shutdown
 ```
 
 ### Windows Features
+
 ```powershell
 # Check feature status
 dism.exe /online /Get-FeatureInfo /FeatureName:Microsoft-Windows-Subsystem-Linux
@@ -383,6 +411,7 @@ Get-WindowsOptionalFeature -Online | Where-Object {$_.FeatureName -like "*Hyper*
 ```
 
 ### Docker in WSL
+
 ```bash
 # Docker version
 docker --version
@@ -405,26 +434,31 @@ sudo journalctl -u docker
 ## 🛠️ Quick Reference: Script Usage
 
 ### Full Diagnostics
+
 ```powershell
 .\scripts\WSL-Docker-SafeMode-Recovery.ps1 -Mode FullDiagnostics
 ```
 
 ### Safe Installation
+
 ```powershell
 .\scripts\WSL-Docker-Setup-Enterprise.ps1 -Mode FullSetup
 ```
 
 ### Recovery Mode (Safe Mode)
+
 ```powershell
 .\scripts\WSL-Docker-SafeMode-Recovery.ps1 -Mode DisableAndRecover
 ```
 
 ### Cleanup Only
+
 ```powershell
 .\scripts\WSL-Docker-Setup-Enterprise.ps1 -Mode CleanupOnly
 ```
 
 ### Validation Only
+
 ```powershell
 .\scripts\WSL-Docker-Setup-Enterprise.ps1 -Mode Validate -DistroName Ubuntu-24.04
 ```
@@ -434,6 +468,7 @@ sudo journalctl -u docker
 ## ✅ Post-Installation Validation
 
 ### Verify WSL2
+
 ```powershell
 # Check WSL version
 wsl --version
@@ -444,6 +479,7 @@ wsl --version
 ```
 
 ### Verify Ubuntu
+
 ```powershell
 # List distributions
 wsl --list --verbose
@@ -452,6 +488,7 @@ wsl --list --verbose
 ```
 
 ### Verify Docker
+
 ```bash
 # Inside WSL
 docker --version
@@ -465,13 +502,16 @@ docker run hello-world
 ## 🔐 Security Considerations
 
 ### Firewall Rules
+
 After installation, configure Windows Firewall:
+
 ```powershell
 # Allow WSL network
 New-NetFirewallRule -DisplayName "WSL2" -Direction Inbound -Action Allow
 ```
 
 ### User Permissions
+
 ```bash
 # Inside WSL - verify docker group
 groups
@@ -480,6 +520,7 @@ groups
 ```
 
 ### Network Configuration
+
 ```bash
 # Inside WSL - check network
 ip addr show
@@ -492,16 +533,19 @@ ip addr show
 ## 📞 Additional Resources
 
 ### Official Documentation
+
 - [WSL Documentation](https://docs.microsoft.com/en-us/windows/wsl/)
 - [Docker Documentation](https://docs.docker.com/desktop/wsl/)
 - [Hyper-V Documentation](https://docs.microsoft.com/en-us/virtualization/hyper-v-on-windows/)
 
 ### Community Support
+
 - [WSL GitHub Issues](https://github.com/microsoft/WSL/issues)
 - [Docker Community Forums](https://forums.docker.com/)
 - [Microsoft Q&A](https://learn.microsoft.com/en-us/answers/)
 
 ### Hardware-Specific Guides
+
 - Search: "[Your PC Model] enable virtualization BIOS"
 - Check manufacturer support forums
 - Contact manufacturer support if issues persist
@@ -511,6 +555,7 @@ ip addr show
 ## 🎯 Success Criteria
 
 Your installation is successful when:
+
 - ✅ `wsl --version` shows WSL 2.x.x
 - ✅ `wsl --list --verbose` shows Ubuntu-24.04 VERSION 2
 - ✅ `wsl -d Ubuntu-24.04` launches successfully
@@ -553,6 +598,7 @@ Log Location:
 ## 🏆 AURA-DEV GODMODE Compliance
 
 This solution follows enterprise standards:
+
 - ✅ Zero Technical Debt (Clean automation, comprehensive docs)
 - ✅ Security by Design (Safe Mode recovery, system restore points)
 - ✅ Automation Over Manual Labor (Scripted diagnostics and installation)

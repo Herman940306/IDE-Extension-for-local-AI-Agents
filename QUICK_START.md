@@ -1,17 +1,17 @@
 # AuraIA Quick Start Guide
 
-**Last Updated:** 2025-10-19  \
+**Last Updated:** 2025-10-19 \
 **Maintainer:** Platform Engineering
 
 ---
 
 ## Environment Options
 
-| Scenario | Path | Notes |
-|----------|------|-------|
-| Daily development | Local virtual environment | Fast iteration with hot reload (`run.py`). |
-| Team validation | Docker Compose | Launches backend, Redis, Ollama, Prometheus, Grafana. |
-| Production rollout | Azure Container Apps | Follow `PRODUCTION_DEPLOYMENT_GUIDE.md` for provisioning. |
+| Scenario           | Path                      | Notes                                                     |
+| ------------------ | ------------------------- | --------------------------------------------------------- |
+| Daily development  | Local virtual environment | Fast iteration with hot reload (`run.py`).                |
+| Team validation    | Docker Compose            | Launches backend, Redis, Ollama, Prometheus, Grafana.     |
+| Production rollout | Azure Container Apps      | Follow `PRODUCTION_DEPLOYMENT_GUIDE.md` for provisioning. |
 
 ---
 
@@ -35,6 +35,7 @@
    - Health check: <http://localhost:8001/health>
 
 **Common commands**
+
 ```powershell
 pytest backend/tests -v            # 411 passed / 5 skipped (2025-10-19)
 black backend --line-length 100
@@ -46,6 +47,7 @@ flake8 backend
 ## Docker Compose Stack
 
 From the repository root:
+
 ```powershell
 copy backend\\env.example backend\\.env.production   # populate with Key Vault secrets first
 docker compose up -d --build
@@ -53,6 +55,7 @@ docker compose logs -f backend
 ```
 
 Services:
+
 - Backend API → <http://localhost:8001>
 - Prometheus → <http://localhost:9090>
 - Grafana → <http://localhost:3000> (`GF_SECURITY_ADMIN_*` credentials)
@@ -97,18 +100,18 @@ Stop the stack with `docker compose down`.
 
 ## Verification Checklist
 
-- [ ] Backend health endpoint returns `healthy`.  \
-- [ ] Extension commands reach backend successfully.  \
-- [ ] Prometheus targets report `UP` (compose or cloud).  \
-- [ ] Secret scanning workflow is green on the latest commit.  \
+- [ ] Backend health endpoint returns `healthy`. \
+- [ ] Extension commands reach backend successfully. \
+- [ ] Prometheus targets report `UP` (compose or cloud). \
+- [ ] Secret scanning workflow is green on the latest commit. \
 - [ ] Optional: `pytest backend/tests -v` passes locally.
 
 ---
 
 ## Next Steps
 
-- Review `PRODUCTION_DEPLOYMENT_GUIDE.md` for Azure Container Apps rollout guidance.  \
-- Consult `MONITORING_GUIDE.md` to configure alert routing and on-call rotations.  \
+- Review `PRODUCTION_DEPLOYMENT_GUIDE.md` for Azure Container Apps rollout guidance. \
+- Consult `MONITORING_GUIDE.md` to configure alert routing and on-call rotations. \
 - Track remaining Phase 5 work items in `TASK.md`.
 
 Need assistance? Reach out via the #aura-ops channel or open a repository issue.

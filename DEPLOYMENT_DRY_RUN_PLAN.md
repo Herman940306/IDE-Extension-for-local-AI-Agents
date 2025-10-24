@@ -1,7 +1,7 @@
 # AuraIA Phase 5 Deployment Dry-Run Plan
 
-**Owner:** Platform Engineering  \
-**Last Updated:** 2025-10-19  \
+**Owner:** Platform Engineering \
+**Last Updated:** 2025-10-19 \
 **Status:** Completed (executed 2025-10-19 10:30 UTC)
 
 ---
@@ -16,12 +16,12 @@
 
 ## Environments
 
-| Role | Target | Notes |
-|------|--------|-------|
-| Control | Developer workstation | Executes `az` CLI, docker, and validation scripts. |
-| Staging | Azure Container Apps (resource group `rg-auraia-stg`) | Mirrors production topology; uses staging secrets. |
-| Monitoring | Prometheus + Grafana stack | Hosted via docker compose on staging VM `monitor-stg-01`. |
-| Data Stores | Azure Cache for Redis (Basic C0), Azure Files share `auraia-chroma-stg` | Provisioned through Terraform stack `infra/staging`. |
+| Role        | Target                                                                  | Notes                                                     |
+| ----------- | ----------------------------------------------------------------------- | --------------------------------------------------------- |
+| Control     | Developer workstation                                                   | Executes `az` CLI, docker, and validation scripts.        |
+| Staging     | Azure Container Apps (resource group `rg-auraia-stg`)                   | Mirrors production topology; uses staging secrets.        |
+| Monitoring  | Prometheus + Grafana stack                                              | Hosted via docker compose on staging VM `monitor-stg-01`. |
+| Data Stores | Azure Cache for Redis (Basic C0), Azure Files share `auraia-chroma-stg` | Provisioned through Terraform stack `infra/staging`.      |
 
 ---
 
@@ -82,12 +82,12 @@
 
 ## Roles & Communication
 
-| Role | Owner | Responsibilities |
-|------|-------|------------------|
+| Role            | Owner                | Responsibilities                                       |
+| --------------- | -------------------- | ------------------------------------------------------ |
 | Deployment Lead | Platform Engineering | Execute plan, coordinate validation, archive evidence. |
-| Security | SecOps Lead | Monitor secret handling, approve rollback exercise. |
-| QA | Quality Guild | Review smoke test outputs, confirm acceptance. |
-| Observability | SRE | Validate monitoring dashboards and alerts. |
+| Security        | SecOps Lead          | Monitor secret handling, approve rollback exercise.    |
+| QA              | Quality Guild        | Review smoke test outputs, confirm acceptance.         |
+| Observability   | SRE                  | Validate monitoring dashboards and alerts.             |
 
 Communication channel: `#aura-ops` (Teams/Slack bridge). Escalate blockers via incident priority P2.
 
@@ -104,12 +104,12 @@ Communication channel: `#aura-ops` (Teams/Slack bridge). Escalate blockers via i
 
 ## Risk & Mitigation
 
-| Risk | Impact | Mitigation |
-|------|--------|------------|
-| Container App scaling limits throttle smoke tests | Medium | Pre-scale to 3 instances before running tests. |
-| Secret rotation drifts from production values | Low | Use Key Vault backup/restore script `scripts/kv-backup.ps1`. |
-| Alert channel misconfigured | Medium | Fire a manual Prometheus alert to confirm. |
-| Rollback exercise disrupts test metrics | Low | Schedule rollback during low-traffic window and document blip. |
+| Risk                                              | Impact | Mitigation                                                     |
+| ------------------------------------------------- | ------ | -------------------------------------------------------------- |
+| Container App scaling limits throttle smoke tests | Medium | Pre-scale to 3 instances before running tests.                 |
+| Secret rotation drifts from production values     | Low    | Use Key Vault backup/restore script `scripts/kv-backup.ps1`.   |
+| Alert channel misconfigured                       | Medium | Fire a manual Prometheus alert to confirm.                     |
+| Rollback exercise disrupts test metrics           | Low    | Schedule rollback during low-traffic window and document blip. |
 
 ---
 

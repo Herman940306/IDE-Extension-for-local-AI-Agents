@@ -77,15 +77,18 @@ LOG_LEVEL=INFO
 ## Step 4: Start Redis (Optional)
 
 **Option A: Docker**
+
 ```bash
 docker run -d -p 6379:6379 redis:latest
 ```
 
 **Option B: Windows Service**
+
 - Download Redis for Windows
 - Install and start service
 
 **Option C: Skip Redis**
+
 - Backend will run without caching/rate limiting
 
 ---
@@ -105,11 +108,13 @@ python -m uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload
 ## Step 6: Verify Deployment
 
 **Health Check:**
+
 ```bash
 curl http://localhost:8000/health
 ```
 
 **Expected Response:**
+
 ```json
 {
   "status": "healthy",
@@ -131,11 +136,13 @@ curl http://localhost:8000/health
 ## Step 7: Test API
 
 **Root Endpoint:**
+
 ```bash
 curl http://localhost:8000/
 ```
 
 **API Docs:**
+
 - Swagger UI: http://localhost:8000/docs
 - ReDoc: http://localhost:8000/redoc
 
@@ -144,6 +151,7 @@ curl http://localhost:8000/
 ## Step 8: VS Code Insider Integration
 
 1. **Open Project in VS Code Insider**
+
    ```bash
    code-insiders .
    ```
@@ -154,6 +162,7 @@ curl http://localhost:8000/
    - REST Client
 
 3. **Configure Launch (`.vscode/launch.json`):**
+
    ```json
    {
      "version": "0.2.0",
@@ -165,8 +174,10 @@ curl http://localhost:8000/
          "module": "uvicorn",
          "args": [
            "src.main:app",
-           "--host", "0.0.0.0",
-           "--port", "8000",
+           "--host",
+           "0.0.0.0",
+           "--port",
+           "8000",
            "--reload"
          ],
          "cwd": "${workspaceFolder}/backend",
@@ -185,6 +196,7 @@ curl http://localhost:8000/
 ## Troubleshooting
 
 ### Redis Connection Failed
+
 ```bash
 # Check Redis is running
 redis-cli ping
@@ -195,6 +207,7 @@ redis-cli ping
 ```
 
 ### Import Errors
+
 ```bash
 # Ensure virtual environment is activated
 .venv\Scripts\activate
@@ -204,12 +217,14 @@ pip install -r requirements.txt
 ```
 
 ### Port Already in Use
+
 ```bash
 # Change port in command
 python -m uvicorn src.main:app --port 8001 --reload
 ```
 
 ### Module Not Found
+
 ```bash
 # Set PYTHONPATH
 set PYTHONPATH=%CD%\backend
@@ -267,6 +282,7 @@ docker-compose up -d
 ## Support
 
 **Issues?** Check logs:
+
 ```bash
 # Backend logs show structured JSON
 # Look for: "backend_starting", "redis_connected", "services_initialized"

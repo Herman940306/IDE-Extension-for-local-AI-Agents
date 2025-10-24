@@ -130,8 +130,8 @@ The solution aims to create an enterprise-grade AI IDE assistant that improves c
 
 ---
 
-**Project Creator:** Herman Swanepoel  
-**Document Version:** 1.0  
+**Project Creator:** Herman Swanepoel
+**Document Version:** 1.0
 **Last Updated:** 2025-01-13
 
 ### Requirement 11: Privacy-First Local Operations
@@ -194,7 +194,6 @@ The solution aims to create an enterprise-grade AI IDE assistant that improves c
 4. WHEN dependencies are outdated THEN the system SHALL suggest update strategies
 5. WHEN updates are applied THEN the system SHALL verify compatibility and run tests
 
-
 ### Requirement 16: Offline/Online Mode Toggle
 
 **User Story:** As a developer concerned about privacy and connectivity, I want a clear visual toggle to switch between offline (fully local) and online (cloud-enabled) modes, so that I have complete control over when my code can access cloud services.
@@ -214,6 +213,6 @@ The solution aims to create an enterprise-grade AI IDE assistant that improves c
 
 ---
 
-**Project Creator:** Herman Swanepoel  
-**Document Version:** 1.1  
+**Project Creator:** Herman Swanepoel
+**Document Version:** 1.1
 **Last Updated:** 2025-01-13

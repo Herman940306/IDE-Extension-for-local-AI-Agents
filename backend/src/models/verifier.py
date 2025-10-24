@@ -5,10 +5,12 @@ Project Creator: Herman Swanepoel
 
 import logging
 import time
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 import httpx
 from pydantic import BaseModel
+
+from ..config.settings import get_settings
 
 logger = logging.getLogger(__name__)
 
@@ -47,7 +49,7 @@ class AnalyticalVerifier:
         self,
         ollama_url: str = "http://localhost:11434",
         model: str = "mistral:7b",
-        timeout: float = 5.0,
+        timeout: float = 60.0,
     ):
         """
         Initialize analytical verifier.
@@ -60,7 +62,17 @@ class AnalyticalVerifier:
         self.ollama_url = ollama_url
         self.model = model
         self.timeout = timeout
-        self.client = httpx.AsyncClient(timeout=timeout)
+        # Use granular timeouts: allow long read/write during model warm-up
+        try:
+            http_timeout = httpx.Timeout(
+                connect=10.0,
+                read=timeout,
+                write=timeout,
+                pool=10.0,
+            )
+        except Exception:
+            http_timeout = timeout  # Fallback to simple float
+        self.client = httpx.AsyncClient(timeout=http_timeout)
 
         # Performance tracking
         self.total_verifications = 0
@@ -92,7 +104,9 @@ class AnalyticalVerifier:
             is_valid, issues, suggestions = self._parse_verification(response)
 
             # Calculate confidence
-            confidence = self._calculate_confidence(is_valid, issues, request.system1_confidence)
+            confidence = self._calculate_confidence(
+                is_valid, issues, request.system1_confidence
+            )
 
             # Calculate latency
             latency_ms = (time.time() - start_time) * 1000
@@ -104,7 +118,8 @@ class AnalyticalVerifier:
                 self.rejections += 1
 
             logger.info(
-                f"Verification complete: {latency_ms:.0f}ms, valid={is_valid}, conf={confidence:.2f}"  # noqa: E501
+                f"Verification complete: {latency_ms:.0f}ms, "
+                f"valid={is_valid}, conf={confidence:.2f}"
             )
 
             return VerificationResponse(
@@ -133,7 +148,8 @@ class AnalyticalVerifier:
 
     def _build_verification_prompt(self, request: VerificationRequest) -> str:
         """Build verification prompt"""
-        prompt = f"""You are an expert code reviewer. Analyze the following code for correctness, quality, and potential issues.  # noqa: E501
+        prompt = f"""You are an expert code reviewer.
+Analyze the following code for correctness, quality, and potential issues.
 
 Original Task: {request.original_task}
 
@@ -165,35 +181,68 @@ Analysis:"""
         return prompt
 
     async def _call_ollama(self, prompt: str) -> Dict[str, Any]:
-        """Call Ollama API"""
-        try:
-            response = await self.client.post(
-                f"{self.ollama_url}/api/generate",
-                json={
-                    "model": self.model,
-                    "prompt": prompt,
-                    "stream": False,
-                    "options": {
-                        "temperature": 0.3,  # Lower temperature for verification
-                        "top_p": 0.9,
-                        "num_predict": 1000,
+        """Call Ollama API with retries"""
+        settings = get_settings()
+        max_retries = max(0, int(settings.ollama_max_retries))
+        backoff = max(0.0, float(settings.ollama_retry_backoff_seconds))
+
+        attempt = 0
+        last_exc: Optional[Exception] = None
+        while attempt <= max_retries:
+            try:
+                response = await self.client.post(
+                    f"{self.ollama_url}/api/generate",
+                    json={
+                        "model": self.model,
+                        "prompt": prompt,
+                        "stream": False,
+                        "options": {
+                            "temperature": 0.3,  # Lower temperature for verification
+                            "top_p": 0.9,
+                            "num_predict": 1000,
+                        },
                     },
-                },
-            )
-            response.raise_for_status()
+                )
+                response.raise_for_status()
 
-            result = response.json()
-            return {
-                "text": result.get("response", ""),
-                "reasoning": "Analytical verification",
-            }
+                result = response.json()
+                return {
+                    "text": result.get("response", ""),
+                    "reasoning": "Analytical verification",
+                }
 
-        except httpx.TimeoutException:
-            logger.warning("Ollama verification timed out")
-            raise
-        except Exception as e:
-            logger.error(f"Ollama verification failed: {e}")
-            raise
+            except httpx.TimeoutException as e:
+                last_exc = e
+                if attempt == max_retries:
+                    logger.warning("Ollama verification timed out (final)")
+                    break
+                delay = backoff * (2**attempt)
+                logger.warning(
+                    f"Ollama verification timed out (attempt "
+                    f"{attempt+1}/{max_retries+1}), retrying in {delay:.1f}s"
+                )
+                time.sleep(delay)
+                attempt += 1
+            except httpx.HTTPStatusError as e:
+                last_exc = e
+                status = e.response.status_code if e.response is not None else None
+                if status and 500 <= status < 600 and attempt < max_retries:
+                    delay = backoff * (2**attempt)
+                    logger.warning(
+                        f"Ollama verification 5xx ({status}) on attempt "
+                        f"{attempt+1}/{max_retries+1}, retrying in {delay:.1f}s"
+                    )
+                    time.sleep(delay)
+                    attempt += 1
+                    continue
+                logger.error(f"Ollama verification HTTP error: {e}")
+                raise
+            except Exception as e:
+                logger.error(f"Ollama verification failed: {e}")
+                raise
+
+        assert last_exc is not None
+        raise last_exc
 
     def _parse_verification(
         self, response: Dict[str, Any]
@@ -208,10 +257,14 @@ Analysis:"""
         issues = []
         if "ISSUES:" in text.upper():
             issues_section = text.split("ISSUES:")[1].split("SUGGESTIONS:")[0]
-            issue_lines = [line.strip() for line in issues_section.split("\n") if line.strip()]
+            issue_lines = [
+                line.strip() for line in issues_section.split("\n") if line.strip()
+            ]
             for line in issue_lines[:5]:  # Limit to 5 issues
                 if line and not line.startswith("REASONING"):
-                    issues.append({"type": "warning", "message": line.lstrip("- ").lstrip("* ")})
+                    issues.append(
+                        {"type": "warning", "message": line.lstrip("- ").lstrip("* ")}
+                    )
 
         # Extract suggestions
         suggestions = []
@@ -252,11 +305,15 @@ Analysis:"""
     def get_stats(self) -> Dict[str, Any]:
         """Get verification statistics"""
         avg_latency = (
-            self.total_latency / self.total_verifications if self.total_verifications > 0 else 0
+            self.total_latency / self.total_verifications
+            if self.total_verifications > 0
+            else 0
         )
 
         rejection_rate = (
-            self.rejections / self.total_verifications if self.total_verifications > 0 else 0
+            self.rejections / self.total_verifications
+            if self.total_verifications > 0
+            else 0
         )
 
         return {

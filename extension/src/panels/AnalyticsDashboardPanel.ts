@@ -3,127 +3,131 @@
  * Project Creator: Herman Swanepoel
  */
 
-import * as vscode from 'vscode';
-import { AnalyticsService } from '../services/AnalyticsService';
+import * as vscode from "vscode";
+import { AnalyticsService } from "../services/AnalyticsService";
 
 export class AnalyticsDashboardPanel {
-    public static currentPanel: AnalyticsDashboardPanel | undefined;
-    private readonly _panel: vscode.WebviewPanel;
-    private _disposables: vscode.Disposable[] = [];
-    private analyticsService: AnalyticsService;
+  public static currentPanel: AnalyticsDashboardPanel | undefined;
+  private readonly _panel: vscode.WebviewPanel;
+  private _disposables: vscode.Disposable[] = [];
+  private analyticsService: AnalyticsService;
 
-    public static createOrShow(extensionUri: vscode.Uri, analyticsService: AnalyticsService) {
-        const column = vscode.ViewColumn.Two;
+  public static createOrShow(
+    extensionUri: vscode.Uri,
+    analyticsService: AnalyticsService,
+  ) {
+    const column = vscode.ViewColumn.Two;
 
-        // If we already have a panel, show it
-        if (AnalyticsDashboardPanel.currentPanel) {
-            AnalyticsDashboardPanel.currentPanel._panel.reveal(column);
-            return;
-        }
-
-        // Otherwise, create a new panel
-        const panel = vscode.window.createWebviewPanel(
-            'analyticsDashboard',
-            'AI Analytics Dashboard',
-            column,
-            {
-                enableScripts: true,
-                retainContextWhenHidden: true,
-                localResourceRoots: [extensionUri]
-            }
-        );
-
-        AnalyticsDashboardPanel.currentPanel = new AnalyticsDashboardPanel(
-            panel,
-            extensionUri,
-            analyticsService
-        );
+    // If we already have a panel, show it
+    if (AnalyticsDashboardPanel.currentPanel) {
+      AnalyticsDashboardPanel.currentPanel._panel.reveal(column);
+      return;
     }
 
-    private constructor(
-        panel: vscode.WebviewPanel,
-        _extensionUri: vscode.Uri,
-        analyticsService: AnalyticsService
-    ) {
-        this._panel = panel;
-        this.analyticsService = analyticsService;
+    // Otherwise, create a new panel
+    const panel = vscode.window.createWebviewPanel(
+      "analyticsDashboard",
+      "AI Analytics Dashboard",
+      column,
+      {
+        enableScripts: true,
+        retainContextWhenHidden: true,
+        localResourceRoots: [extensionUri],
+      },
+    );
 
-        // Set the webview's initial html content
-        this._update();
+    AnalyticsDashboardPanel.currentPanel = new AnalyticsDashboardPanel(
+      panel,
+      extensionUri,
+      analyticsService,
+    );
+  }
 
-        // Listen for when the panel is disposed
-        this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
+  private constructor(
+    panel: vscode.WebviewPanel,
+    _extensionUri: vscode.Uri,
+    analyticsService: AnalyticsService,
+  ) {
+    this._panel = panel;
+    this.analyticsService = analyticsService;
 
-        // Handle messages from the webview
-        this._panel.webview.onDidReceiveMessage(
-            message => {
-                switch (message.command) {
-                    case 'refresh':
-                        this._update();
-                        break;
-                    case 'export':
-                        this._exportData();
-                        break;
-                    case 'clear':
-                        this._clearData();
-                        break;
-                }
-            },
-            null,
-            this._disposables
-        );
-    }
+    // Set the webview's initial html content
+    this._update();
 
-    /**
-     * Update the webview content
-     */
-    private _update() {
-        this._panel.webview.html = this._getHtmlForWebview();
-    }
+    // Listen for when the panel is disposed
+    this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
 
-    /**
-     * Export analytics data
-     */
-    private async _exportData() {
-        const data = this.analyticsService.exportData();
-        const doc = await vscode.workspace.openTextDocument({
-            content: data,
-            language: 'json'
-        });
-        await vscode.window.showTextDocument(doc);
-    }
-
-    /**
-     * Clear analytics data
-     */
-    private async _clearData() {
-        const choice = await vscode.window.showWarningMessage(
-            'Are you sure you want to clear all analytics data?',
-            { modal: true },
-            'Clear',
-            'Cancel'
-        );
-
-        if (choice === 'Clear') {
-            await this.analyticsService.clearData();
+    // Handle messages from the webview
+    this._panel.webview.onDidReceiveMessage(
+      (message) => {
+        switch (message.command) {
+          case "refresh":
             this._update();
-            vscode.window.showInformationMessage('Analytics data cleared');
+            break;
+          case "export":
+            this._exportData();
+            break;
+          case "clear":
+            this._clearData();
+            break;
         }
+      },
+      null,
+      this._disposables,
+    );
+  }
+
+  /**
+   * Update the webview content
+   */
+  private _update() {
+    this._panel.webview.html = this._getHtmlForWebview();
+  }
+
+  /**
+   * Export analytics data
+   */
+  private async _exportData() {
+    const data = this.analyticsService.exportData();
+    const doc = await vscode.workspace.openTextDocument({
+      content: data,
+      language: "json",
+    });
+    await vscode.window.showTextDocument(doc);
+  }
+
+  /**
+   * Clear analytics data
+   */
+  private async _clearData() {
+    const choice = await vscode.window.showWarningMessage(
+      "Are you sure you want to clear all analytics data?",
+      { modal: true },
+      "Clear",
+      "Cancel",
+    );
+
+    if (choice === "Clear") {
+      await this.analyticsService.clearData();
+      this._update();
+      vscode.window.showInformationMessage("Analytics data cleared");
     }
+  }
 
-    /**
-     * Get HTML content for webview
-     */
-    private _getHtmlForWebview() {
-        const summary = this.analyticsService.getSummary();
-        const rates = this.analyticsService.getSuggestionRates();
-        const agentMetrics = this.analyticsService.getAgentMetrics();
-        const patterns = this.analyticsService.analyzeWorkflowPatterns();
-        const timeSeriesData = this.analyticsService.getTimeSeriesData(7);
-        const languageDistribution = this.analyticsService.getLanguageDistribution();
-        const hourlyActivity = this.analyticsService.getHourlyActivity();
+  /**
+   * Get HTML content for webview
+   */
+  private _getHtmlForWebview() {
+    const summary = this.analyticsService.getSummary();
+    const rates = this.analyticsService.getSuggestionRates();
+    const agentMetrics = this.analyticsService.getAgentMetrics();
+    const patterns = this.analyticsService.analyzeWorkflowPatterns();
+    const timeSeriesData = this.analyticsService.getTimeSeriesData(7);
+    const languageDistribution =
+      this.analyticsService.getLanguageDistribution();
+    const hourlyActivity = this.analyticsService.getHourlyActivity();
 
-        return `<!DOCTYPE html>
+    return `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -409,7 +413,9 @@ export class AnalyticsDashboardPanel {
     <div class="section">
         <div class="section-title">🤖 Agent Effectiveness</div>
         <div class="agent-list">
-            ${agentMetrics.map(agent => `
+            ${agentMetrics
+              .map(
+                (agent) => `
                 <div class="agent-item" role="listitem" tabindex="0" aria-label="${agent.agentName} agent with ${Math.round(agent.acceptanceRate * 100)}% acceptance rate">
                     <div class="agent-info">
                         <div class="agent-name">${agent.agentName}</div>
@@ -421,7 +427,9 @@ export class AnalyticsDashboardPanel {
                     </div>
                     <div class="agent-rate">${Math.round(agent.acceptanceRate * 100)}%</div>
                 </div>
-            `).join('')}
+            `,
+              )
+              .join("")}
         </div>
     </div>
 
@@ -429,13 +437,17 @@ export class AnalyticsDashboardPanel {
     <div class="section">
         <div class="section-title">💡 Workflow Insights</div>
         <div class="pattern-list">
-            ${patterns.map(pattern => `
+            ${patterns
+              .map(
+                (pattern) => `
                 <div class="pattern-item" role="listitem" tabindex="0" aria-label="${pattern.pattern} pattern with frequency ${pattern.frequency}">
                     <div class="pattern-title">${pattern.pattern}</div>
                     <div>Frequency: ${pattern.frequency}</div>
-                    ${pattern.suggestion ? `<div class="pattern-suggestion">💡 ${pattern.suggestion}</div>` : ''}
+                    ${pattern.suggestion ? `<div class="pattern-suggestion">💡 ${pattern.suggestion}</div>` : ""}
                 </div>
-            `).join('')}
+            `,
+              )
+              .join("")}
         </div>
     </div>
 
@@ -504,9 +516,9 @@ export class AnalyticsDashboardPanel {
         new Chart(languageCtx, {
             type: 'doughnut',
             data: {
-                labels: ${JSON.stringify(languageDistribution.map(l => l.language))},
+                labels: ${JSON.stringify(languageDistribution.map((l) => l.language))},
                 datasets: [{
-                    data: ${JSON.stringify(languageDistribution.map(l => l.count))},
+                    data: ${JSON.stringify(languageDistribution.map((l) => l.count))},
                     backgroundColor: [
                         'rgba(255, 99, 132, 0.8)',
                         'rgba(54, 162, 235, 0.8)',
@@ -534,10 +546,10 @@ export class AnalyticsDashboardPanel {
         new Chart(hourlyCtx, {
             type: 'bar',
             data: {
-                labels: ${JSON.stringify(hourlyActivity.map(h => `${h.hour}:00`))},
+                labels: ${JSON.stringify(hourlyActivity.map((h) => `${h.hour}:00`))},
                 datasets: [{
                     label: 'Suggestions',
-                    data: ${JSON.stringify(hourlyActivity.map(h => h.count))},
+                    data: ${JSON.stringify(hourlyActivity.map((h) => h.count))},
                     backgroundColor: 'rgba(54, 162, 235, 0.8)',
                     borderColor: 'rgba(54, 162, 235, 1)',
                     borderWidth: 1
@@ -567,22 +579,22 @@ export class AnalyticsDashboardPanel {
     </script>
 </body>
 </html>`;
+  }
+
+  /**
+   * Dispose panel
+   */
+  public dispose() {
+    AnalyticsDashboardPanel.currentPanel = undefined;
+
+    // Clean up resources
+    this._panel.dispose();
+
+    while (this._disposables.length) {
+      const disposable = this._disposables.pop();
+      if (disposable) {
+        disposable.dispose();
+      }
     }
-
-    /**
-     * Dispose panel
-     */
-    public dispose() {
-        AnalyticsDashboardPanel.currentPanel = undefined;
-
-        // Clean up resources
-        this._panel.dispose();
-
-        while (this._disposables.length) {
-            const disposable = this._disposables.pop();
-            if (disposable) {
-                disposable.dispose();
-            }
-        }
-    }
+  }
 }

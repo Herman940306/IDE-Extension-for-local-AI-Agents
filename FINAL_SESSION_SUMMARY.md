@@ -38,11 +38,13 @@
 **Need:** ~400 more tests
 
 **Priority modules:**
+
 - Services (13 remaining)
 - Adapters (5 files)
 - Agents (4 files)
 
 **Run tests:**
+
 ```bash
 cd backend
 pytest tests/unit/ -v --cov=src --cov-report=html

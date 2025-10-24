@@ -6,8 +6,9 @@ Date: 2025-10-13
 Target Coverage: 90%
 """
 
-import pytest
 import asyncio
+
+import pytest
 from src.utils.circuit_breaker import CircuitBreaker, CircuitState
 from src.utils.exceptions import CircuitBreakerOpenException
 

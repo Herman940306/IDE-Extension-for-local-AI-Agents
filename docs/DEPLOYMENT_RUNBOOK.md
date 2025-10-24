@@ -22,6 +22,7 @@
 ## Prerequisites
 
 ### Required Software
+
 - **Python**: 3.11 or higher
 - **Node.js**: 16.x or higher
 - **Docker**: 20.10 or higher
@@ -29,10 +30,12 @@
 - **Git**: 2.30 or higher
 
 ### Required Services
+
 - **Redis**: 7.x (for caching and rate limiting)
 - **Ollama**: Latest (for local LLM inference)
 
 ### Environment Variables
+
 ```bash
 # LLM Configuration
 OLLAMA_URL=http://localhost:11434
@@ -65,12 +68,14 @@ MAX_FILE_SIZE=1048576      # 1MB
 ## Local Development
 
 ### 1. Clone Repository
+
 ```bash
 git clone https://github.com/Herman940306/IDE-Extension-for-local-AI-Agents.git
 cd IDE-Extension-for-local-AI-Agents
 ```
 
 ### 2. Setup Backend
+
 ```bash
 cd backend
 
@@ -88,6 +93,7 @@ pip install -r requirements.txt
 ```
 
 ### 3. Start Services
+
 ```bash
 # Start Redis and ChromaDB
 docker-compose up -d
@@ -97,6 +103,7 @@ docker ps
 ```
 
 ### 4. Start Backend
+
 ```bash
 # Development mode with auto-reload
 python -m uvicorn src.main:app --reload --port 8000
@@ -106,6 +113,7 @@ python -m src.main
 ```
 
 ### 5. Verify Installation
+
 ```bash
 # Check health
 curl http://localhost:8000/health
@@ -130,6 +138,7 @@ open http://localhost:8000/docs
 ## Staging Deployment
 
 ### 1. Prepare Environment
+
 ```bash
 # Create staging environment file
 cp .env.example .env.staging
@@ -139,6 +148,7 @@ nano .env.staging
 ```
 
 ### 2. Build Docker Image
+
 ```bash
 # Build backend image
 docker build -t enterprise-ai-backend:staging -f backend/Dockerfile backend/
@@ -148,6 +158,7 @@ docker images | grep enterprise-ai-backend
 ```
 
 ### 3. Deploy with Docker Compose
+
 ```bash
 # Use staging compose file
 docker-compose -f docker-compose.staging.yml up -d
@@ -157,6 +168,7 @@ docker-compose -f docker-compose.staging.yml logs -f backend
 ```
 
 ### 4. Run Health Checks
+
 ```bash
 # Wait for services to start
 sleep 10
@@ -169,6 +181,7 @@ docker-compose -f docker-compose.staging.yml exec redis redis-cli ping
 ```
 
 ### 5. Run Smoke Tests
+
 ```bash
 # Test root endpoint
 curl http://staging-server:8000/
@@ -185,6 +198,7 @@ for i in {1..5}; do curl http://staging-server:8000/health; done
 ## Production Deployment
 
 ### 1. Pre-Deployment Checklist
+
 - [ ] All tests passing
 - [ ] Code review approved
 - [ ] Staging deployment successful
@@ -194,6 +208,7 @@ for i in {1..5}; do curl http://staging-server:8000/health; done
 - [ ] Maintenance window scheduled
 
 ### 2. Backup Current State
+
 ```bash
 # Backup Redis data
 docker exec enterprise-ai-redis redis-cli SAVE
@@ -204,6 +219,7 @@ cp .env .env.backup-$(date +%Y%m%d-%H%M%S)
 ```
 
 ### 3. Deploy New Version
+
 ```bash
 # Pull latest code
 git fetch origin
@@ -227,6 +243,7 @@ sleep 15
 ```
 
 ### 4. Post-Deployment Verification
+
 ```bash
 # Check health
 curl http://production-server:8000/health
@@ -242,6 +259,7 @@ docker-compose logs --tail=100 backend | grep ERROR
 ```
 
 ### 5. Monitor for Issues
+
 ```bash
 # Watch logs in real-time
 docker-compose logs -f backend
@@ -258,6 +276,7 @@ docker-compose logs -f backend
 ## Rollback Procedures
 
 ### Quick Rollback (< 5 minutes)
+
 ```bash
 # Stop current version
 docker-compose down
@@ -273,6 +292,7 @@ curl http://production-server:8000/health
 ```
 
 ### Full Rollback (< 15 minutes)
+
 ```bash
 # 1. Stop services
 docker-compose down
@@ -304,11 +324,13 @@ curl http://production-server:8000/health
 ### Issue: Redis Connection Failed
 
 **Symptoms:**
+
 - Health check shows Redis as "unhealthy"
 - Cache statistics show "disabled"
 - Logs show "Redis unavailable"
 
 **Solution:**
+
 ```bash
 # Check Redis status
 docker-compose ps redis
@@ -330,11 +352,13 @@ docker exec enterprise-ai-redis redis-cli INFO memory
 ### Issue: High Memory Usage
 
 **Symptoms:**
+
 - Backend container using >2GB memory
 - Slow response times
 - OOM errors in logs
 
 **Solution:**
+
 ```bash
 # Check memory usage
 docker stats enterprise-ai-backend
@@ -352,11 +376,13 @@ docker exec enterprise-ai-backend python -m memory_profiler src/main.py
 ### Issue: Rate Limiting Not Working
 
 **Symptoms:**
+
 - No rate limit headers in responses
 - Unlimited requests allowed
 - Logs show "Rate limiting disabled"
 
 **Solution:**
+
 ```bash
 # Check Redis connection
 curl http://localhost:8000/health | jq '.components.redis'
@@ -375,11 +401,13 @@ ENABLE_RATE_LIMITING=true docker-compose up -d
 ### Issue: Slow LLM Responses
 
 **Symptoms:**
+
 - Response times >5 seconds
 - Cache hit rate <10%
 - High CPU usage
 
 **Solution:**
+
 ```bash
 # Check cache statistics
 curl http://localhost:8000/health | jq '.components.cache'
@@ -407,6 +435,7 @@ docker-compose restart backend
 ### Key Metrics to Monitor
 
 #### Application Metrics
+
 - **Request Rate**: Requests per second
 - **Response Time**: p50, p95, p99 latencies
 - **Error Rate**: 4xx and 5xx responses
@@ -414,12 +443,14 @@ docker-compose restart backend
 - **Active Connections**: WebSocket connections
 
 #### Infrastructure Metrics
+
 - **CPU Usage**: Backend container CPU %
 - **Memory Usage**: Backend container memory
 - **Redis Memory**: Redis memory usage
 - **Disk Usage**: Log and data disk usage
 
 #### Business Metrics
+
 - **LLM Calls**: Total LLM API calls
 - **Cache Savings**: Requests served from cache
 - **Rate Limit Hits**: Requests rate limited
@@ -428,6 +459,7 @@ docker-compose restart backend
 ### Monitoring Tools
 
 #### Prometheus Queries
+
 ```promql
 # Request rate
 rate(http_requests_total[5m])
@@ -443,6 +475,7 @@ histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m]))
 ```
 
 #### Log Queries
+
 ```bash
 # Error logs in last hour
 docker-compose logs --since 1h backend | grep ERROR
@@ -459,38 +492,42 @@ docker-compose logs backend | grep "Cache hit"
 
 ### Alert Thresholds
 
-| Metric | Warning | Critical |
-|--------|---------|----------|
-| Error Rate | >1% | >5% |
-| Response Time (p95) | >2s | >5s |
-| CPU Usage | >70% | >90% |
-| Memory Usage | >80% | >95% |
-| Cache Hit Rate | <20% | <10% |
-| Redis Memory | >80% | >95% |
+| Metric              | Warning | Critical |
+| ------------------- | ------- | -------- |
+| Error Rate          | >1%     | >5%      |
+| Response Time (p95) | >2s     | >5s      |
+| CPU Usage           | >70%    | >90%     |
+| Memory Usage        | >80%    | >95%     |
+| Cache Hit Rate      | <20%    | <10%     |
+| Redis Memory        | >80%    | >95%     |
 
 ---
 
 ## Maintenance
 
 ### Daily Tasks
+
 - [ ] Check error logs
 - [ ] Review monitoring dashboards
 - [ ] Verify backup completion
 - [ ] Check disk space
 
 ### Weekly Tasks
+
 - [ ] Review performance metrics
 - [ ] Analyze cache hit rates
 - [ ] Check for security updates
 - [ ] Review rate limit statistics
 
 ### Monthly Tasks
+
 - [ ] Update dependencies
 - [ ] Review and optimize queries
 - [ ] Capacity planning review
 - [ ] Security audit
 
 ### Quarterly Tasks
+
 - [ ] Major version updates
 - [ ] Performance testing
 - [ ] Disaster recovery drill
@@ -502,13 +539,14 @@ docker-compose logs backend | grep "Cache hit"
 
 **On-Call Engineer:** [Your Team]  
 **Escalation:** [Manager]  
-**Infrastructure:** [DevOps Team]  
+**Infrastructure:** [DevOps Team]
 
 ---
 
 ## Useful Commands
 
 ### Docker Commands
+
 ```bash
 # View logs
 docker-compose logs -f backend
@@ -527,6 +565,7 @@ docker stats
 ```
 
 ### Redis Commands
+
 ```bash
 # Connect to Redis
 docker exec -it enterprise-ai-redis redis-cli
@@ -545,6 +584,7 @@ MONITOR
 ```
 
 ### Health Check Commands
+
 ```bash
 # Quick health check
 curl http://localhost:8000/health

@@ -39,7 +39,7 @@ Comprehensive accessibility implementation ensuring WCAG 2.1 AA compliance for t
 **Usage:**
 
 ```typescript
-accessibilityManager.announceToScreenReader('Task completed', 'polite');
+accessibilityManager.announceToScreenReader("Task completed", "polite");
 ```
 
 ---
@@ -60,16 +60,16 @@ accessibilityManager.announceToScreenReader('Task completed', 'polite');
 
 **Keyboard Shortcuts:**
 
-| Command | Windows/Linux | Mac | Description |
-|---------|--------------|-----|-------------|
-| Toggle Mode | Ctrl+Shift+M | Cmd+Shift+M | Toggle offline/online mode |
-| Generate Tests | Ctrl+Shift+T | Cmd+Shift+T | Generate tests for current file |
-| Refactor Selection | Ctrl+Shift+R | Cmd+Shift+R | Refactor selected code |
-| Explain Code | Ctrl+Shift+E | Cmd+Shift+E | Explain selected code |
-| Security Issues | Ctrl+Shift+S | Cmd+Shift+S | Find security issues |
-| Generate Docs | Ctrl+Shift+D | Cmd+Shift+D | Generate documentation |
-| Accessibility Settings | Ctrl+Shift+Alt+A | Cmd+Shift+Alt+A | Open accessibility settings |
-| Keyboard Help | Ctrl+Shift+Alt+H | Cmd+Shift+Alt+H | Show keyboard shortcuts |
+| Command                | Windows/Linux    | Mac             | Description                     |
+| ---------------------- | ---------------- | --------------- | ------------------------------- |
+| Toggle Mode            | Ctrl+Shift+M     | Cmd+Shift+M     | Toggle offline/online mode      |
+| Generate Tests         | Ctrl+Shift+T     | Cmd+Shift+T     | Generate tests for current file |
+| Refactor Selection     | Ctrl+Shift+R     | Cmd+Shift+R     | Refactor selected code          |
+| Explain Code           | Ctrl+Shift+E     | Cmd+Shift+E     | Explain selected code           |
+| Security Issues        | Ctrl+Shift+S     | Cmd+Shift+S     | Find security issues            |
+| Generate Docs          | Ctrl+Shift+D     | Cmd+Shift+D     | Generate documentation          |
+| Accessibility Settings | Ctrl+Shift+Alt+A | Cmd+Shift+Alt+A | Open accessibility settings     |
+| Keyboard Help          | Ctrl+Shift+Alt+H | Cmd+Shift+Alt+H | Show keyboard shortcuts         |
 
 **Implementation:**
 
@@ -105,10 +105,13 @@ accessibilityManager.announceToScreenReader('Task completed', 'polite');
 ```css
 /* High contrast mode */
 * {
-    border-color: var(--vscode-contrastBorder) !important;
+  border-color: var(--vscode-contrastBorder) !important;
 }
-button, input, select, textarea {
-    border: 2px solid var(--vscode-contrastBorder) !important;
+button,
+input,
+select,
+textarea {
+  border: 2px solid var(--vscode-contrastBorder) !important;
 }
 ```
 
@@ -165,9 +168,9 @@ await accessibilityManager.updateConfig({ fontSize: 16 });
 
 ```html
 <body role="application" aria-label="Enterprise AI Dashboard">
-    <div role="status" aria-live="polite" aria-atomic="true">
-        Status updates appear here
-    </div>
+  <div role="status" aria-live="polite" aria-atomic="true">
+    Status updates appear here
+  </div>
 </body>
 ```
 
@@ -298,13 +301,13 @@ await accessibilityManager.updateConfig({ fontSize: 16 });
 
 ```css
 *:focus {
-    outline: 2px solid var(--vscode-focusBorder);
-    outline-offset: 2px;
+  outline: 2px solid var(--vscode-focusBorder);
+  outline-offset: 2px;
 }
 
 .keyboard-focus {
-    outline: 3px solid var(--vscode-focusBorder);
-    outline-offset: 3px;
+  outline: 3px solid var(--vscode-focusBorder);
+  outline-offset: 3px;
 }
 ```
 
@@ -312,23 +315,27 @@ await accessibilityManager.updateConfig({ fontSize: 16 });
 
 ```css
 * {
-    border-color: var(--vscode-contrastBorder) !important;
+  border-color: var(--vscode-contrastBorder) !important;
 }
 
-button, input, select, textarea {
-    border: 2px solid var(--vscode-contrastBorder) !important;
+button,
+input,
+select,
+textarea {
+  border: 2px solid var(--vscode-contrastBorder) !important;
 }
 ```
 
 ### Touch Targets
 
 ```css
-button, a {
-    min-height: 44px;
-    min-width: 44px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
+button,
+a {
+  min-height: 44px;
+  min-width: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 ```
 
@@ -336,15 +343,15 @@ button, a {
 
 ```css
 .sr-only {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    white-space: nowrap;
-    border-width: 0;
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
 }
 ```
 
@@ -358,12 +365,12 @@ All accessibility settings are configurable via VS Code settings:
 
 ```json
 {
-    "enterpriseAI.accessibility.screenReaderEnabled": false,
-    "enterpriseAI.accessibility.highContrastMode": false,
-    "enterpriseAI.accessibility.fontSize": 14,
-    "enterpriseAI.accessibility.keyboardNavigationEnabled": true,
-    "enterpriseAI.accessibility.announceActions": true,
-    "enterpriseAI.accessibility.reducedMotion": false
+  "enterpriseAI.accessibility.screenReaderEnabled": false,
+  "enterpriseAI.accessibility.highContrastMode": false,
+  "enterpriseAI.accessibility.fontSize": 14,
+  "enterpriseAI.accessibility.keyboardNavigationEnabled": true,
+  "enterpriseAI.accessibility.announceActions": true,
+  "enterpriseAI.accessibility.reducedMotion": false
 }
 ```
 
@@ -526,13 +533,13 @@ Report accessibility issues via:
 ✅ **Screen Reader Compatible** - Full screen reader support  
 ✅ **High Contrast Support** - Automatic detection and support  
 ✅ **Configurable** - All features configurable  
-✅ **Well Documented** - Comprehensive documentation  
+✅ **Well Documented** - Comprehensive documentation
 
 ---
 
 **Status:** ✅ **PRODUCTION READY**  
 **Compliance:** **WCAG 2.1 AA (100%)**  
-**Quality:** **ENTERPRISE GRADE**  
+**Quality:** **ENTERPRISE GRADE**
 
 ---
 
@@ -543,6 +550,6 @@ Report accessibility issues via:
 
 ---
 
-*"Accessibility is not a feature, it's a fundamental right."*
+_"Accessibility is not a feature, it's a fundamental right."_
 
 **ACCESSIBILITY IMPLEMENTATION COMPLETE** ✨

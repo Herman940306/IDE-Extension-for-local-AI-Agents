@@ -1,8 +1,8 @@
 # Onboarding Flow - Requirements Document
 
-**Project Creator:** Herman Swanepoel  
-**Sprint:** Beta Deployment Sprint (Week 3-4)  
-**Priority:** HIGH  
+**Project Creator:** Herman Swanepoel
+**Sprint:** Beta Deployment Sprint (Week 3-4)
+**Priority:** HIGH
 **Estimated Time:** 2 days
 
 ---
@@ -55,6 +55,7 @@ This document outlines the requirements for implementing a comprehensive onboard
 6. WHEN each step is shown THEN it SHALL announce the content to screen readers
 
 **Tour Steps:**
+
 1. Multi-Agent System - Explain the 6 specialized AI agents
 2. Offline/Online Mode - Explain privacy-first local operations
 3. Inline Suggestions - Demonstrate real-time code suggestions
@@ -109,6 +110,7 @@ This document outlines the requirements for implementing a comprehensive onboard
 7. WHEN tooltips appear THEN they SHALL be announced to screen readers
 
 **Tooltip Locations:**
+
 - Mode toggle button
 - Command palette commands
 - Status bar items
@@ -169,6 +171,7 @@ This document outlines the requirements for implementing a comprehensive onboard
 7. WHEN metrics are collected THEN they SHALL not include personally identifiable information
 
 **Metrics to Track:**
+
 - Onboarding start count
 - Onboarding completion count
 - Onboarding skip count
@@ -230,18 +233,21 @@ This document outlines the requirements for implementing a comprehensive onboard
 ## Success Criteria
 
 ### User Experience
+
 - 90% of users complete onboarding
 - Average completion time < 5 minutes
 - User satisfaction rating > 4/5
 - Less than 10% skip rate
 
 ### Technical
+
 - Zero accessibility violations
 - 100% keyboard navigable
 - Full screen reader support
 - Responsive design (works at all zoom levels)
 
 ### Performance
+
 - Onboarding initialization < 100ms
 - Step transitions < 50ms
 - No memory leaks
@@ -252,21 +258,25 @@ This document outlines the requirements for implementing a comprehensive onboard
 ## Non-Functional Requirements
 
 ### Performance
+
 - Onboarding screens SHALL load in less than 100ms
 - Step transitions SHALL be smooth (60fps)
 - Memory usage SHALL not exceed 10MB
 
 ### Reliability
+
 - Onboarding SHALL handle interruptions gracefully
 - Progress SHALL be persisted reliably
 - Errors SHALL not crash the extension
 
 ### Usability
+
 - Onboarding SHALL be intuitive and self-explanatory
 - Language SHALL be clear and concise
 - Visual design SHALL be consistent with VS Code
 
 ### Accessibility
+
 - WCAG 2.1 AA compliance (100%)
 - Keyboard navigation (100%)
 - Screen reader support (100%)
@@ -294,20 +304,24 @@ This document outlines the requirements for implementing a comprehensive onboard
 ## Risks and Mitigations
 
 ### Risk 1: Users skip onboarding
+
 **Mitigation:** Make onboarding engaging and valuable; offer to replay later
 
 ### Risk 2: Onboarding takes too long
+
 **Mitigation:** Keep it under 5 minutes; allow skipping steps
 
 ### Risk 3: Accessibility issues
+
 **Mitigation:** Test with screen readers; follow WCAG 2.1 AA guidelines
 
 ### Risk 4: Backend connection fails during setup
+
 **Mitigation:** Provide clear troubleshooting; allow offline mode
 
 ---
 
-**Project Creator:** Herman Swanepoel  
-**Document Version:** 1.0  
-**Last Updated:** 2025-10-13  
+**Project Creator:** Herman Swanepoel
+**Document Version:** 1.0
+**Last Updated:** 2025-10-13
 **Status:** Ready for Design

@@ -12,6 +12,7 @@
 **Base URL:** `http://127.0.0.1:8001`
 
 **Key Endpoints:**
+
 - `GET /` - API info
 - `GET /health` - Health check
 - `GET /docs` - Swagger UI
@@ -24,21 +25,23 @@
 ### Connect to Backend
 
 ```typescript
-const ws = new WebSocket('ws://127.0.0.1:8001/ws/client-123');
+const ws = new WebSocket("ws://127.0.0.1:8001/ws/client-123");
 
 ws.onopen = () => {
-  console.log('Connected to backend');
+  console.log("Connected to backend");
 };
 
 ws.onmessage = (event) => {
   const data = JSON.parse(event.data);
-  console.log('Received:', data);
+  console.log("Received:", data);
 };
 
-ws.send(JSON.stringify({
-  type: 'ping',
-  payload: {}
-}));
+ws.send(
+  JSON.stringify({
+    type: "ping",
+    payload: {},
+  }),
+);
 ```
 
 ---
@@ -48,6 +51,7 @@ ws.send(JSON.stringify({
 ### Client → Server
 
 **Ping:**
+
 ```json
 {
   "type": "ping",
@@ -56,6 +60,7 @@ ws.send(JSON.stringify({
 ```
 
 **Task Request:**
+
 ```json
 {
   "type": "task_request",
@@ -71,6 +76,7 @@ ws.send(JSON.stringify({
 ```
 
 **Mode Change:**
+
 ```json
 {
   "type": "mode_change",
@@ -85,6 +91,7 @@ ws.send(JSON.stringify({
 ### Server → Client
 
 **Connection Established:**
+
 ```json
 {
   "type": "connection_established",
@@ -97,6 +104,7 @@ ws.send(JSON.stringify({
 ```
 
 **Pong:**
+
 ```json
 {
   "type": "pong",
@@ -107,6 +115,7 @@ ws.send(JSON.stringify({
 ```
 
 **Agent Response:**
+
 ```json
 {
   "type": "agent_response",
@@ -134,32 +143,34 @@ npm install @types/ws --save-dev
 
 ```typescript
 // src/services/backendService.ts
-import * as WebSocket from 'ws';
+import * as WebSocket from "ws";
 
 export class BackendService {
   private ws: WebSocket | null = null;
-  private readonly url = 'ws://127.0.0.1:8001/ws';
-  
+  private readonly url = "ws://127.0.0.1:8001/ws";
+
   connect(clientId: string) {
     this.ws = new WebSocket(`${this.url}/${clientId}`);
-    
-    this.ws.on('open', () => {
-      console.log('Backend connected');
+
+    this.ws.on("open", () => {
+      console.log("Backend connected");
     });
-    
-    this.ws.on('message', (data) => {
+
+    this.ws.on("message", (data) => {
       const message = JSON.parse(data.toString());
       this.handleMessage(message);
     });
   }
-  
+
   sendTask(task: any) {
-    this.ws?.send(JSON.stringify({
-      type: 'task_request',
-      payload: task
-    }));
+    this.ws?.send(
+      JSON.stringify({
+        type: "task_request",
+        payload: task,
+      }),
+    );
   }
-  
+
   private handleMessage(message: any) {
     // Handle different message types
   }
@@ -170,24 +181,24 @@ export class BackendService {
 
 ```typescript
 // src/extension.ts
-import { BackendService } from './services/backendService';
+import { BackendService } from "./services/backendService";
 
 export function activate(context: vscode.ExtensionContext) {
   const backend = new BackendService();
-  backend.connect('vscode-client-' + Date.now());
-  
+  backend.connect("vscode-client-" + Date.now());
+
   // Register commands
   context.subscriptions.push(
-    vscode.commands.registerCommand('aura.generateCode', () => {
+    vscode.commands.registerCommand("aura.generateCode", () => {
       backend.sendTask({
-        id: 'task-' + Date.now(),
-        type: 'code_generation',
+        id: "task-" + Date.now(),
+        type: "code_generation",
         context: {
-          language: 'python',
-          description: 'Generate function'
-        }
+          language: "python",
+          description: "Generate function",
+        },
       });
-    })
+    }),
   );
 }
 ```
@@ -234,12 +245,12 @@ curl http://127.0.0.1:8001/health
 ## Error Handling
 
 ```typescript
-ws.on('error', (error) => {
+ws.on("error", (error) => {
   vscode.window.showErrorMessage(`Backend error: ${error.message}`);
 });
 
-ws.on('close', () => {
-  vscode.window.showWarningMessage('Backend disconnected');
+ws.on("close", () => {
+  vscode.window.showWarningMessage("Backend disconnected");
   // Attempt reconnect
 });
 ```

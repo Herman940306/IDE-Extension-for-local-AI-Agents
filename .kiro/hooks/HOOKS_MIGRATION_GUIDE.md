@@ -1,6 +1,6 @@
 # 🔄 Agent Hooks Migration Guide
 
-**Date:** 2025-01-10  
+**Date:** 2025-01-10
 **Action:** Consolidated 4 hook files into 1 unified hook
 
 ---
@@ -8,12 +8,14 @@
 ## ✅ What Changed
 
 ### Before (4 Hooks):
+
 1. `accessibility-check.kiro.hook` - UI accessibility validation
 2. `auto-test-on-save.kiro.hook` - Automatic test execution
 3. `full-autonomous-mode.kiro.hook` - Auto-approve all operations
 4. `steering-agent-godmode.kiro.hook` - Apply all steering rules
 
 ### After (1 Hook):
+
 - `00-unified-master-hook.kiro.hook` - Modular with toggle system
 
 ---
@@ -36,12 +38,14 @@ Edit `.kiro/hooks/00-unified-master-hook.kiro.hook` and modify the prompt sectio
 
 ```markdown
 ### Optional Hooks (Toggle by editing this hook file)
+
 - [x] **Auto Test on Save** - ENABLED
 - [ ] **Accessibility Check** - DISABLED
 - [x] **Code Quality Review** - ENABLED
 ```
 
 ### Core Hooks (Always Active)
+
 - ✅ **Error Detection** - Catches syntax/type errors immediately
 - ✅ **Sprint Alignment** - Verifies changes support current sprint
 
@@ -63,21 +67,23 @@ Old hook files moved to `.kiro/_archive_hooks/`:
 
 ## 🔧 Hook Mapping
 
-| Old Hook | New Location | Status |
-|----------|--------------|--------|
-| accessibility-check | Optional Module (Accessibility Check) | ✅ Merged |
-| auto-test-on-save | Optional Module (Auto Test) | ✅ Merged |
-| full-autonomous-mode | Removed (use workspace settings) | ❌ Deprecated |
-| steering-agent-godmode | Core Hooks (Error + Sprint) | ✅ Simplified |
+| Old Hook               | New Location                          | Status        |
+| ---------------------- | ------------------------------------- | ------------- |
+| accessibility-check    | Optional Module (Accessibility Check) | ✅ Merged     |
+| auto-test-on-save      | Optional Module (Auto Test)           | ✅ Merged     |
+| full-autonomous-mode   | Removed (use workspace settings)      | ❌ Deprecated |
+| steering-agent-godmode | Core Hooks (Error + Sprint)           | ✅ Simplified |
 
 ---
 
 ## ⚠️ Important Changes
 
 ### Full Autonomous Mode Removed
+
 The `full-autonomous-mode` hook has been **deprecated**. Use workspace settings instead:
 
 **File:** `.kiro/settings/workspace.json`
+
 ```json
 {
   "kiro": {
@@ -98,11 +104,13 @@ This is more reliable and doesn't require hook processing.
 ## 🚀 Performance Impact
 
 ### Before:
+
 - **4 hooks** firing on every file save
 - Overlapping checks and redundant processing
 - Heavy prompt processing for each hook
 
 ### After:
+
 - **1 hook** with modular execution
 - Only enabled modules execute
 - Streamlined, focused checks
@@ -144,6 +152,7 @@ After migration:
 ## 📝 Recommended Configuration
 
 For **Beta Sprint (Week 3-4)**, enable:
+
 - ✅ Error Detection (Core - always on)
 - ✅ Sprint Alignment (Core - always on)
 - ✅ Accessibility Check (Optional - for Task 18)
@@ -152,6 +161,6 @@ For **Beta Sprint (Week 3-4)**, enable:
 
 ---
 
-**Migration Status:** ✅ Complete  
-**Performance Gain:** 2-4x faster file saves  
+**Migration Status:** ✅ Complete
+**Performance Gain:** 2-4x faster file saves
 **Hooks Reduced:** 4 → 1

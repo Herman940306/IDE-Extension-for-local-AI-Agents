@@ -3,9 +3,10 @@ Backend Runner Script
 Project Creator: Herman Swanepoel
 """
 
-import uvicorn
-import sys
 import os
+import sys
+
+import uvicorn
 
 # Add backend to path
 sys.path.insert(0, os.path.dirname(__file__))

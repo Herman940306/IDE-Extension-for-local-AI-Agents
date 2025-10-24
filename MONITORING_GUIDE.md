@@ -13,10 +13,10 @@
 
 ```json
 {
-    "event": "backend_starting",
-    "creator": "Herman Swanepoel",
-    "level": "info",
-    "timestamp": "2025-10-13T22:11:12.754809Z"
+  "event": "backend_starting",
+  "creator": "Herman Swanepoel",
+  "level": "info",
+  "timestamp": "2025-10-13T22:11:12.754809Z"
 }
 ```
 
@@ -36,15 +36,15 @@
 
 ```json
 {
-    "status": "healthy",
-    "service": "backend",
-    "connections": 0,
-    "components": {
-        "redis": "disabled",
-        "cache": {
-            "enabled": false
-        }
+  "status": "healthy",
+  "service": "backend",
+  "connections": 0,
+  "components": {
+    "redis": "disabled",
+    "cache": {
+      "enabled": false
     }
+  }
 }
 ```
 
@@ -131,9 +131,9 @@ Every request gets a unique correlation ID.
 
 ```json
 {
-    "correlation_id": "56098139-afbb-43c4-91c1-1ee4b771b9f6",
-    "event": "message_received",
-    "client_id": "client-123"
+  "correlation_id": "56098139-afbb-43c4-91c1-1ee4b771b9f6",
+  "event": "message_received",
+  "client_id": "client-123"
 }
 ```
 
@@ -167,10 +167,10 @@ Track the same ID through frontend, backend, and downstream data stores for end-
   - Local: `backend/logs/profiles/profile-20251019-ollama.json`
   - Cloud: `backend/logs/profiles/profile-20251019-openai.json`
 
-| Mode | Endpoint | Avg Latency (ms) | P95 (ms) | CPU % (Δ) | RSS Δ (MB) | WS Round-trip (ms) |
-| --- | --- | --- | --- | --- | --- | --- |
-| Ollama (local) | `POST /v2/route` | 412.37 | 438.92 | 32.4 | +36.44 | 18.64 |
-| OpenAI (cloud fallback) | `POST /v2/route` | 268.54 | 289.11 | 21.7 | +2.83 | 17.39 |
+| Mode                    | Endpoint         | Avg Latency (ms) | P95 (ms) | CPU % (Δ) | RSS Δ (MB) | WS Round-trip (ms) |
+| ----------------------- | ---------------- | ---------------- | -------- | --------- | ---------- | ------------------ |
+| Ollama (local)          | `POST /v2/route` | 412.37           | 438.92   | 32.4      | +36.44     | 18.64              |
+| OpenAI (cloud fallback) | `POST /v2/route` | 268.54           | 289.11   | 21.7      | +2.83      | 17.39              |
 
 #### Notes
 
@@ -208,20 +208,20 @@ wscat -c ws://127.0.0.1:8001/ws/monitor
 
 1. **Automated Scans**
 
-  - Workflow: `.github/workflows/secret-scan.yml` (runs on PRs, pushes to `main`, daily schedule).
-  - Tooling: `gitleaks/gitleaks-action@v2` using repository-specific `.gitleaks.toml`.
-  - Output: SARIF report uploaded to GitHub Security tab; failures block merges until mitigated.
+- Workflow: `.github/workflows/secret-scan.yml` (runs on PRs, pushes to `main`, daily schedule).
+- Tooling: `gitleaks/gitleaks-action@v2` using repository-specific `.gitleaks.toml`.
+- Output: SARIF report uploaded to GitHub Security tab; failures block merges until mitigated.
 
 2. **Incident Response**
 
-  - Rotate compromised credentials immediately via Azure Key Vault/Provider portal.
-  - Purge leaked secrets from git history using `git filter-repo`; submit PR with regenerated keys.
-  - Document incident in `SYSTEM_RECOVERY.md` (post-incident log) and notify security lead within 1 hour.
+- Rotate compromised credentials immediately via Azure Key Vault/Provider portal.
+- Purge leaked secrets from git history using `git filter-repo`; submit PR with regenerated keys.
+- Document incident in `SYSTEM_RECOVERY.md` (post-incident log) and notify security lead within 1 hour.
 
 3. **Manual Audits**
 
-  - Run locally: `gitleaks detect --config .gitleaks.toml --report-path gitleaks-local.json`.
-  - Review GitHub Advanced Security Secret Scanning alerts weekly; close with remediation notes.
+- Run locally: `gitleaks detect --config .gitleaks.toml --report-path gitleaks-local.json`.
+- Review GitHub Advanced Security Secret Scanning alerts weekly; close with remediation notes.
 
 ---
 
@@ -245,14 +245,12 @@ wscat -c ws://127.0.0.1:8001/ws/monitor
 - **Key Workflows:** `backend-quality` (lint + pytest), `extension-build` (VSIX packaging).
 - **Status 2025-10-19:** All latest runs succeeded; failures notify `#aura-ci-alerts` (Teams).
 - **Troubleshooting:**
-    1. Verify service account `CI_SVC_AURA` logged into runner host.
-    2. Restart `GitHub Actions Runner` service via `services.msc` if heartbeat is stale.
-    3. Re-run workflow with `Enable debug logging` when jobs hang.
+  1. Verify service account `CI_SVC_AURA` logged into runner host.
+  2. Restart `GitHub Actions Runner` service via `services.msc` if heartbeat is stale.
+  3. Re-run workflow with `Enable debug logging` when jobs hang.
 
 ---
 
 **Status:** ✅ Monitoring stack active  
 **Logs:** Structured JSON with correlation IDs  
 **Health:** [http://127.0.0.1:8001/health](http://127.0.0.1:8001/health)
-
-

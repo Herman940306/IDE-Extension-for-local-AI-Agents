@@ -1,43 +1,43 @@
 /**
  * Onboarding Manager - First-time user experience
- * 
+ *
  * Provides a smooth onboarding experience including:
  * - Welcome screen
  * - Feature tour
  * - Initial setup wizard
  * - Tutorial tooltips
  * - Quick start guide
- * 
+ *
  * Project Creator: Herman Swanepoel
  */
 
-import * as vscode from 'vscode';
-import { WelcomePanel } from '../panels/WelcomePanel';
-import { TourPanel, TourStep } from '../panels/TourPanel';
-import { SetupWizard, SetupConfiguration } from '../panels/SetupWizard';
-import { QuickStartGuide } from '../panels/QuickStartGuide';
-import { TooltipManager } from './TooltipManager';
+import * as vscode from "vscode";
+import { WelcomePanel } from "../panels/WelcomePanel";
+import { TourPanel, TourStep } from "../panels/TourPanel";
+import { SetupWizard, SetupConfiguration } from "../panels/SetupWizard";
+import { QuickStartGuide } from "../panels/QuickStartGuide";
+import { TooltipManager } from "./TooltipManager";
 
 // ============================================================================
 // Type Definitions
 // ============================================================================
 
-export type OnboardingStep = 
-  | 'welcome'
-  | 'tour-agents'
-  | 'tour-modes'
-  | 'tour-suggestions'
-  | 'tour-discussion'
-  | 'tour-analytics'
-  | 'setup-backend'
-  | 'setup-llm'
-  | 'setup-privacy'
-  | 'setup-accessibility'
-  | 'setup-shortcuts'
-  | 'complete';
+export type OnboardingStep =
+  | "welcome"
+  | "tour-agents"
+  | "tour-modes"
+  | "tour-suggestions"
+  | "tour-discussion"
+  | "tour-analytics"
+  | "setup-backend"
+  | "setup-llm"
+  | "setup-privacy"
+  | "setup-accessibility"
+  | "setup-shortcuts"
+  | "complete";
 
 export interface OnboardingOptions {
-  skillLevel?: 'beginner' | 'intermediate' | 'advanced';
+  skillLevel?: "beginner" | "intermediate" | "advanced";
   skipWelcome?: boolean;
   skipTour?: boolean;
   skipSetup?: boolean;
@@ -50,14 +50,14 @@ export interface OnboardingState {
   completedSteps: OnboardingStep[];
   startTime?: number;
   completionTime?: number;
-  skillLevel: 'beginner' | 'intermediate' | 'advanced';
+  skillLevel: "beginner" | "intermediate" | "advanced";
   configuration: Partial<ExtensionConfiguration>;
 }
 
 export interface ExtensionConfiguration {
   backendUrl: string;
   backendPort: number;
-  llmProvider: 'ollama' | 'lmstudio' | 'cloud';
+  llmProvider: "ollama" | "lmstudio" | "cloud";
   telemetryEnabled: boolean;
   cloudFallbackEnabled: boolean;
   screenReaderEnabled: boolean;
@@ -72,14 +72,14 @@ export interface StoredOnboardingState {
   completedSteps: OnboardingStep[];
   startTime?: number;
   completionTime?: number;
-  skillLevel: 'beginner' | 'intermediate' | 'advanced';
+  skillLevel: "beginner" | "intermediate" | "advanced";
   seenTooltips: string[];
   tooltipsEnabled: boolean;
   configuration: Partial<ExtensionConfiguration>;
 }
 
 export interface OnboardingEvent {
-  type: 'started' | 'completed' | 'skipped' | 'step-completed' | 'step-skipped';
+  type: "started" | "completed" | "skipped" | "step-completed" | "step-skipped";
   step?: OnboardingStep;
   timestamp: number;
   metadata?: Record<string, any>;
@@ -92,7 +92,7 @@ export interface OnboardingAnalytics {
   totalDuration?: number;
   isCompleted: boolean;
   isSkipped: boolean;
-  skillLevel: 'beginner' | 'intermediate' | 'advanced';
+  skillLevel: "beginner" | "intermediate" | "advanced";
   steps: StepAnalytics[];
   dropOffPoint?: OnboardingStep;
 }
@@ -111,9 +111,9 @@ export interface StepAnalytics {
 // ============================================================================
 
 export class OnboardingManager {
-  private static readonly STATE_VERSION = '1.0.0';
-  private static readonly STATE_KEY = 'enterpriseAI.onboarding.state';
-  
+  private static readonly STATE_VERSION = "1.0.0";
+  private static readonly STATE_KEY = "enterpriseAI.onboarding.state";
+
   private context: vscode.ExtensionContext;
   private state: OnboardingState;
   private analytics: OnboardingAnalytics;
@@ -126,11 +126,11 @@ export class OnboardingManager {
 
   constructor(context: vscode.ExtensionContext) {
     this.context = context;
-    
+
     // Initialize with default state
     this.state = this.getDefaultState();
     this.analytics = this.createAnalyticsSession();
-    
+
     // Initialize tooltip manager
     this.tooltipManager = new TooltipManager(context);
   }
@@ -147,13 +147,13 @@ export class OnboardingManager {
     try {
       // Load persisted state
       await this.loadState();
-      
+
       // Validate and migrate state if needed
       await this.validateAndMigrateState();
-      
-      console.log('[OnboardingManager] Initialized successfully');
+
+      console.log("[OnboardingManager] Initialized successfully");
     } catch (error) {
-      console.error('[OnboardingManager] Initialization failed:', error);
+      console.error("[OnboardingManager] Initialization failed:", error);
       // Reset to default state on error
       this.state = this.getDefaultState();
       await this.saveState();
@@ -165,10 +165,10 @@ export class OnboardingManager {
    */
   public dispose(): void {
     // Dispose all disposables
-    this.disposables.forEach(d => d.dispose());
+    this.disposables.forEach((d) => d.dispose());
     this.disposables = [];
-    
-    console.log('[OnboardingManager] Disposed');
+
+    console.log("[OnboardingManager] Disposed");
   }
 
   // ============================================================================
@@ -189,21 +189,21 @@ export class OnboardingManager {
     try {
       // Update current step
       this.state.currentStep = step;
-      
+
       // Add to completed steps if not already there
       if (!this.state.completedSteps.includes(step)) {
         this.state.completedSteps.push(step);
       }
-      
+
       // Track analytics
       this.trackStepCompletion(step);
-      
+
       // Persist state
       await this.saveState();
-      
+
       console.log(`[OnboardingManager] Progress updated to step: ${step}`);
     } catch (error) {
-      console.error('[OnboardingManager] Failed to update progress:', error);
+      console.error("[OnboardingManager] Failed to update progress:", error);
       throw error;
     }
   }
@@ -215,18 +215,19 @@ export class OnboardingManager {
     try {
       this.state.isComplete = true;
       this.state.completionTime = Date.now();
-      this.state.currentStep = 'complete';
-      
+      this.state.currentStep = "complete";
+
       // Update analytics
       this.analytics.isCompleted = true;
       this.analytics.completionTime = Date.now();
-      this.analytics.totalDuration = this.analytics.completionTime - this.analytics.startTime;
-      
+      this.analytics.totalDuration =
+        this.analytics.completionTime - this.analytics.startTime;
+
       await this.saveState();
-      
-      console.log('[OnboardingManager] Onboarding marked as complete');
+
+      console.log("[OnboardingManager] Onboarding marked as complete");
     } catch (error) {
-      console.error('[OnboardingManager] Failed to mark complete:', error);
+      console.error("[OnboardingManager] Failed to mark complete:", error);
       throw error;
     }
   }
@@ -239,16 +240,16 @@ export class OnboardingManager {
       this.state.isSkipped = true;
       this.state.isComplete = true;
       this.state.completionTime = Date.now();
-      
+
       // Update analytics
       this.analytics.isSkipped = true;
       this.analytics.dropOffPoint = this.state.currentStep;
-      
+
       await this.saveState();
-      
-      console.log('[OnboardingManager] Onboarding marked as skipped');
+
+      console.log("[OnboardingManager] Onboarding marked as skipped");
     } catch (error) {
-      console.error('[OnboardingManager] Failed to mark skipped:', error);
+      console.error("[OnboardingManager] Failed to mark skipped:", error);
       throw error;
     }
   }
@@ -271,7 +272,11 @@ export class OnboardingManager {
    * Check if onboarding is in progress
    */
   public isInProgress(): boolean {
-    return !this.state.isComplete && !this.state.isSkipped && this.state.completedSteps.length > 0;
+    return (
+      !this.state.isComplete &&
+      !this.state.isSkipped &&
+      this.state.completedSteps.length > 0
+    );
   }
 
   // ============================================================================
@@ -284,9 +289,9 @@ export class OnboardingManager {
   private async loadState(): Promise<void> {
     try {
       const stored = this.context.workspaceState.get<StoredOnboardingState>(
-        OnboardingManager.STATE_KEY
+        OnboardingManager.STATE_KEY,
       );
-      
+
       if (stored) {
         // Convert stored state to runtime state
         this.state = {
@@ -297,13 +302,13 @@ export class OnboardingManager {
           startTime: stored.startTime,
           completionTime: stored.completionTime,
           skillLevel: stored.skillLevel,
-          configuration: stored.configuration
+          configuration: stored.configuration,
         };
-        
-        console.log('[OnboardingManager] State loaded from storage');
+
+        console.log("[OnboardingManager] State loaded from storage");
       }
     } catch (error) {
-      console.error('[OnboardingManager] Failed to load state:', error);
+      console.error("[OnboardingManager] Failed to load state:", error);
       throw error;
     }
   }
@@ -324,17 +329,17 @@ export class OnboardingManager {
         skillLevel: this.state.skillLevel,
         seenTooltips: [],
         tooltipsEnabled: true,
-        configuration: this.state.configuration
+        configuration: this.state.configuration,
       };
-      
+
       await this.context.workspaceState.update(
         OnboardingManager.STATE_KEY,
-        stored
+        stored,
       );
-      
-      console.log('[OnboardingManager] State saved to storage');
+
+      console.log("[OnboardingManager] State saved to storage");
     } catch (error) {
-      console.error('[OnboardingManager] Failed to save state:', error);
+      console.error("[OnboardingManager] Failed to save state:", error);
       // Don't throw - continue in-memory only
     }
   }
@@ -345,30 +350,34 @@ export class OnboardingManager {
   private async validateAndMigrateState(): Promise<void> {
     try {
       const stored = this.context.workspaceState.get<StoredOnboardingState>(
-        OnboardingManager.STATE_KEY
+        OnboardingManager.STATE_KEY,
       );
-      
+
       if (!stored) {
         return;
       }
-      
+
       // Check version
       if (stored.version !== OnboardingManager.STATE_VERSION) {
-        console.log(`[OnboardingManager] Migrating state from ${stored.version} to ${OnboardingManager.STATE_VERSION}`);
-        
+        console.log(
+          `[OnboardingManager] Migrating state from ${stored.version} to ${OnboardingManager.STATE_VERSION}`,
+        );
+
         // Perform migration (currently just reset)
         this.state = this.getDefaultState();
         await this.saveState();
       }
-      
+
       // Validate state structure
       if (!this.isValidState(this.state)) {
-        console.warn('[OnboardingManager] Invalid state detected, resetting to default');
+        console.warn(
+          "[OnboardingManager] Invalid state detected, resetting to default",
+        );
         this.state = this.getDefaultState();
         await this.saveState();
       }
     } catch (error) {
-      console.error('[OnboardingManager] State validation failed:', error);
+      console.error("[OnboardingManager] State validation failed:", error);
       this.state = this.getDefaultState();
       await this.saveState();
     }
@@ -379,11 +388,11 @@ export class OnboardingManager {
    */
   private isValidState(state: OnboardingState): boolean {
     return (
-      typeof state.isComplete === 'boolean' &&
-      typeof state.isSkipped === 'boolean' &&
-      typeof state.currentStep === 'string' &&
+      typeof state.isComplete === "boolean" &&
+      typeof state.isSkipped === "boolean" &&
+      typeof state.currentStep === "string" &&
       Array.isArray(state.completedSteps) &&
-      ['beginner', 'intermediate', 'advanced'].includes(state.skillLevel)
+      ["beginner", "intermediate", "advanced"].includes(state.skillLevel)
     );
   }
 
@@ -394,12 +403,12 @@ export class OnboardingManager {
     return {
       isComplete: false,
       isSkipped: false,
-      currentStep: 'welcome',
+      currentStep: "welcome",
       completedSteps: [],
       startTime: undefined,
       completionTime: undefined,
-      skillLevel: 'beginner',
-      configuration: {}
+      skillLevel: "beginner",
+      configuration: {},
     };
   }
 
@@ -417,7 +426,7 @@ export class OnboardingManager {
       isCompleted: false,
       isSkipped: false,
       skillLevel: this.state.skillLevel,
-      steps: []
+      steps: [],
     };
   }
 
@@ -425,17 +434,18 @@ export class OnboardingManager {
    * Track step completion
    */
   private trackStepCompletion(step: OnboardingStep): void {
-    const existingStep = this.analytics.steps.find(s => s.step === step);
-    
+    const existingStep = this.analytics.steps.find((s) => s.step === step);
+
     if (existingStep) {
       existingStep.completionTime = Date.now();
-      existingStep.duration = existingStep.completionTime - existingStep.startTime;
+      existingStep.duration =
+        existingStep.completionTime - existingStep.startTime;
     } else {
       this.analytics.steps.push({
         step,
         startTime: Date.now(),
         skipped: false,
-        interactions: 0
+        interactions: 0,
       });
     }
   }
@@ -475,9 +485,9 @@ export class OnboardingManager {
 
       // Track start event
       this.trackEvent({
-        type: 'started',
+        type: "started",
         timestamp: Date.now(),
-        metadata: { skillLevel: this.state.skillLevel }
+        metadata: { skillLevel: this.state.skillLevel },
       });
 
       // Show welcome screen unless skipped
@@ -494,7 +504,7 @@ export class OnboardingManager {
 
       await this.saveState();
     } catch (error) {
-      console.error('[OnboardingManager] Failed to start onboarding:', error);
+      console.error("[OnboardingManager] Failed to start onboarding:", error);
       throw error;
     }
   }
@@ -506,17 +516,21 @@ export class OnboardingManager {
     try {
       const currentStep = this.state.currentStep;
 
-      if (currentStep === 'welcome') {
+      if (currentStep === "welcome") {
         await this.showWelcome();
-      } else if (currentStep.startsWith('tour-')) {
+      } else if (currentStep.startsWith("tour-")) {
         // TODO: Resume tour at specific step
-        console.log(`[OnboardingManager] Resuming tour at step: ${currentStep}`);
-      } else if (currentStep.startsWith('setup-')) {
+        console.log(
+          `[OnboardingManager] Resuming tour at step: ${currentStep}`,
+        );
+      } else if (currentStep.startsWith("setup-")) {
         // TODO: Resume setup at specific step
-        console.log(`[OnboardingManager] Resuming setup at step: ${currentStep}`);
+        console.log(
+          `[OnboardingManager] Resuming setup at step: ${currentStep}`,
+        );
       }
     } catch (error) {
-      console.error('[OnboardingManager] Failed to resume onboarding:', error);
+      console.error("[OnboardingManager] Failed to resume onboarding:", error);
       throw error;
     }
   }
@@ -527,11 +541,11 @@ export class OnboardingManager {
   public async skipOnboarding(): Promise<void> {
     try {
       await this.markSkipped();
-      
+
       this.trackEvent({
-        type: 'skipped',
+        type: "skipped",
         step: this.state.currentStep,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       });
 
       // Close any open panels
@@ -540,10 +554,10 @@ export class OnboardingManager {
       }
 
       vscode.window.showInformationMessage(
-        'Onboarding skipped. You can restart it anytime from the command palette.'
+        "Onboarding skipped. You can restart it anytime from the command palette.",
       );
     } catch (error) {
-      console.error('[OnboardingManager] Failed to skip onboarding:', error);
+      console.error("[OnboardingManager] Failed to skip onboarding:", error);
       throw error;
     }
   }
@@ -556,13 +570,13 @@ export class OnboardingManager {
       // Reset state
       this.state = this.getDefaultState();
       this.analytics = this.createAnalyticsSession();
-      
+
       await this.saveState();
-      
+
       // Start fresh
       await this.startOnboarding();
     } catch (error) {
-      console.error('[OnboardingManager] Failed to restart onboarding:', error);
+      console.error("[OnboardingManager] Failed to restart onboarding:", error);
       throw error;
     }
   }
@@ -586,9 +600,9 @@ export class OnboardingManager {
       });
 
       // Update progress
-      await this.updateProgress('welcome');
+      await this.updateProgress("welcome");
     } catch (error) {
-      console.error('[OnboardingManager] Failed to show welcome:', error);
+      console.error("[OnboardingManager] Failed to show welcome:", error);
       throw error;
     }
   }
@@ -604,9 +618,9 @@ export class OnboardingManager {
         this.state.skillLevel = skillLevel;
         this.analytics.skillLevel = skillLevel;
         await this.saveState();
-        
+
         console.log(`[OnboardingManager] Skill level set to: ${skillLevel}`);
-        
+
         // Hide welcome panel
         this.welcomePanel.hide();
       }
@@ -614,7 +628,7 @@ export class OnboardingManager {
       // Show tour
       await this.showTour();
     } catch (error) {
-      console.error('[OnboardingManager] Failed to handle get started:', error);
+      console.error("[OnboardingManager] Failed to handle get started:", error);
       throw error;
     }
   }
@@ -625,7 +639,7 @@ export class OnboardingManager {
   private async showTour(): Promise<void> {
     try {
       const steps = this.getTourSteps();
-      
+
       // Create or show tour panel
       this.tourPanel = TourPanel.createOrShow(this.context.extensionUri, steps);
 
@@ -650,9 +664,9 @@ export class OnboardingManager {
       });
 
       // Update progress to first tour step
-      await this.updateProgress('tour-agents');
+      await this.updateProgress("tour-agents");
     } catch (error) {
-      console.error('[OnboardingManager] Failed to show tour:', error);
+      console.error("[OnboardingManager] Failed to show tour:", error);
       throw error;
     }
   }
@@ -663,10 +677,11 @@ export class OnboardingManager {
   private getTourSteps(): TourStep[] {
     return [
       {
-        id: 'tour-agents',
-        title: 'Multi-Agent System',
-        description: 'Six specialized AI agents work together to provide expert assistance',
-        icon: '🤖',
+        id: "tour-agents",
+        title: "Multi-Agent System",
+        description:
+          "Six specialized AI agents work together to provide expert assistance",
+        icon: "🤖",
         content: `
           <p><strong>Meet your AI team:</strong></p>
           <p>• <strong>Code Agent:</strong> Writes and refactors code with best practices</p>
@@ -676,26 +691,26 @@ export class OnboardingManager {
           <p>• <strong>Documentation Agent:</strong> Generates clear documentation</p>
           <p>• <strong>Architecture Agent:</strong> Designs scalable system architectures</p>
           <p>Each agent specializes in their domain, collaborating to solve complex problems.</p>
-        `
+        `,
       },
       {
-        id: 'tour-modes',
-        title: 'Offline & Online Modes',
-        description: 'Privacy-first design with local LLM support',
-        icon: '🔒',
+        id: "tour-modes",
+        title: "Offline & Online Modes",
+        description: "Privacy-first design with local LLM support",
+        icon: "🔒",
         content: `
           <p><strong>Your code, your choice:</strong></p>
           <p>• <strong>Offline Mode:</strong> Run completely locally with Ollama or LM Studio. Your code never leaves your machine.</p>
           <p>• <strong>Online Mode:</strong> Optionally use cloud LLMs for enhanced capabilities when needed.</p>
           <p>• <strong>Hybrid Mode:</strong> Start offline, fallback to cloud only when necessary.</p>
           <p>All modes respect your privacy preferences and give you full control over your data.</p>
-        `
+        `,
       },
       {
-        id: 'tour-suggestions',
-        title: 'Inline Suggestions',
-        description: 'Real-time AI-powered code suggestions as you type',
-        icon: '⚡',
+        id: "tour-suggestions",
+        title: "Inline Suggestions",
+        description: "Real-time AI-powered code suggestions as you type",
+        icon: "⚡",
         content: `
           <p><strong>Code faster with intelligent assistance:</strong></p>
           <p>• Get context-aware suggestions as you type</p>
@@ -704,13 +719,13 @@ export class OnboardingManager {
           <p>• Works with multiple programming languages</p>
           <p>• Respects your project's conventions and patterns</p>
           <p>The AI learns from your codebase to provide relevant, accurate suggestions.</p>
-        `
+        `,
       },
       {
-        id: 'tour-discussion',
-        title: 'Agent Discussion Panel',
-        description: 'Watch agents collaborate and discuss solutions',
-        icon: '💬',
+        id: "tour-discussion",
+        title: "Agent Discussion Panel",
+        description: "Watch agents collaborate and discuss solutions",
+        icon: "💬",
         content: `
           <p><strong>See AI collaboration in action:</strong></p>
           <p>• Agents discuss different approaches to your problem</p>
@@ -719,13 +734,13 @@ export class OnboardingManager {
           <p>• Understand trade-offs between different solutions</p>
           <p>• Gain insights into best practices and patterns</p>
           <p>It's like having a team of senior developers reviewing your code together.</p>
-        `
+        `,
       },
       {
-        id: 'tour-analytics',
-        title: 'Analytics Dashboard',
-        description: 'Track your productivity and AI assistance impact',
-        icon: '📊',
+        id: "tour-analytics",
+        title: "Analytics Dashboard",
+        description: "Track your productivity and AI assistance impact",
+        icon: "📊",
         content: `
           <p><strong>Measure your progress:</strong></p>
           <p>• See how much time AI assistance saves you</p>
@@ -734,8 +749,8 @@ export class OnboardingManager {
           <p>• Analyze your coding patterns and habits</p>
           <p>• Set goals and monitor achievements</p>
           <p>All analytics are stored locally and respect your privacy settings.</p>
-        `
-      }
+        `,
+      },
     ];
   }
 
@@ -750,7 +765,7 @@ export class OnboardingManager {
         await this.updateProgress(step.id as OnboardingStep);
       }
     } catch (error) {
-      console.error('[OnboardingManager] Failed to handle tour next:', error);
+      console.error("[OnboardingManager] Failed to handle tour next:", error);
     }
   }
 
@@ -762,7 +777,10 @@ export class OnboardingManager {
       // Just log for now, state is already tracked
       console.log(`[OnboardingManager] Tour previous to step ${stepIndex}`);
     } catch (error) {
-      console.error('[OnboardingManager] Failed to handle tour previous:', error);
+      console.error(
+        "[OnboardingManager] Failed to handle tour previous:",
+        error,
+      );
     }
   }
 
@@ -779,7 +797,10 @@ export class OnboardingManager {
       // Show setup wizard
       await this.showSetup();
     } catch (error) {
-      console.error('[OnboardingManager] Failed to handle tour complete:', error);
+      console.error(
+        "[OnboardingManager] Failed to handle tour complete:",
+        error,
+      );
       throw error;
     }
   }
@@ -813,9 +834,9 @@ export class OnboardingManager {
       });
 
       // Update progress to first setup step
-      await this.updateProgress('setup-backend');
+      await this.updateProgress("setup-backend");
     } catch (error) {
-      console.error('[OnboardingManager] Failed to show setup:', error);
+      console.error("[OnboardingManager] Failed to show setup:", error);
       throw error;
     }
   }
@@ -825,12 +846,17 @@ export class OnboardingManager {
    */
   private async handleSetupNext(stepIndex: number): Promise<void> {
     try {
-      const steps = ['setup-backend', 'setup-llm', 'setup-privacy', 'setup-accessibility'];
+      const steps = [
+        "setup-backend",
+        "setup-llm",
+        "setup-privacy",
+        "setup-accessibility",
+      ];
       if (stepIndex < steps.length) {
         await this.updateProgress(steps[stepIndex] as OnboardingStep);
       }
     } catch (error) {
-      console.error('[OnboardingManager] Failed to handle setup next:', error);
+      console.error("[OnboardingManager] Failed to handle setup next:", error);
     }
   }
 
@@ -841,7 +867,10 @@ export class OnboardingManager {
     try {
       console.log(`[OnboardingManager] Setup previous to step ${stepIndex}`);
     } catch (error) {
-      console.error('[OnboardingManager] Failed to handle setup previous:', error);
+      console.error(
+        "[OnboardingManager] Failed to handle setup previous:",
+        error,
+      );
     }
   }
 
@@ -863,16 +892,19 @@ export class OnboardingManager {
 
       // Show completion message
       const result = await vscode.window.showInformationMessage(
-        'Setup complete! Would you like to view the Quick Start Guide?',
-        'View Guide',
-        'Close'
+        "Setup complete! Would you like to view the Quick Start Guide?",
+        "View Guide",
+        "Close",
       );
 
-      if (result === 'View Guide') {
+      if (result === "View Guide") {
         this.showQuickStartGuide();
       }
     } catch (error) {
-      console.error('[OnboardingManager] Failed to handle setup complete:', error);
+      console.error(
+        "[OnboardingManager] Failed to handle setup complete:",
+        error,
+      );
       throw error;
     }
   }
@@ -882,10 +914,16 @@ export class OnboardingManager {
    */
   public showQuickStartGuide(section?: string): void {
     try {
-      this.quickStartGuide = QuickStartGuide.createOrShow(this.context.extensionUri, section);
-      console.log('[OnboardingManager] Quick start guide shown');
+      this.quickStartGuide = QuickStartGuide.createOrShow(
+        this.context.extensionUri,
+        section,
+      );
+      console.log("[OnboardingManager] Quick start guide shown");
     } catch (error) {
-      console.error('[OnboardingManager] Failed to show quick start guide:', error);
+      console.error(
+        "[OnboardingManager] Failed to show quick start guide:",
+        error,
+      );
     }
   }
 
@@ -899,49 +937,49 @@ export class OnboardingManager {
 
     // Mode toggle tooltip
     this.tooltipManager.register({
-      id: 'mode-toggle',
-      title: 'Mode Toggle',
-      description: 'Switch between Offline and Online modes',
-      shortcut: 'Ctrl+Shift+M',
-      position: 'bottom',
-      trigger: 'hover',
-      dismissible: true
+      id: "mode-toggle",
+      title: "Mode Toggle",
+      description: "Switch between Offline and Online modes",
+      shortcut: "Ctrl+Shift+M",
+      position: "bottom",
+      trigger: "hover",
+      dismissible: true,
     });
 
     // Command palette tooltip
     this.tooltipManager.register({
-      id: 'ask-agents',
-      title: 'Ask AI Agents',
-      description: 'Get help from specialized AI agents',
-      shortcut: 'Ctrl+Shift+A',
-      position: 'top',
-      trigger: 'manual',
-      dismissible: true
+      id: "ask-agents",
+      title: "Ask AI Agents",
+      description: "Get help from specialized AI agents",
+      shortcut: "Ctrl+Shift+A",
+      position: "top",
+      trigger: "manual",
+      dismissible: true,
     });
 
     // Agent discussion tooltip
     this.tooltipManager.register({
-      id: 'agent-discussion',
-      title: 'Agent Discussion',
-      description: 'Watch agents collaborate on solutions',
-      shortcut: 'Ctrl+Shift+D',
-      position: 'right',
-      trigger: 'hover',
-      dismissible: true
+      id: "agent-discussion",
+      title: "Agent Discussion",
+      description: "Watch agents collaborate on solutions",
+      shortcut: "Ctrl+Shift+D",
+      position: "right",
+      trigger: "hover",
+      dismissible: true,
     });
 
     // Analytics dashboard tooltip
     this.tooltipManager.register({
-      id: 'analytics',
-      title: 'Analytics Dashboard',
-      description: 'Track your productivity metrics',
-      shortcut: 'Ctrl+Shift+Y',
-      position: 'left',
-      trigger: 'hover',
-      dismissible: true
+      id: "analytics",
+      title: "Analytics Dashboard",
+      description: "Track your productivity metrics",
+      shortcut: "Ctrl+Shift+Y",
+      position: "left",
+      trigger: "hover",
+      dismissible: true,
     });
 
-    console.log('[OnboardingManager] Tooltips registered');
+    console.log("[OnboardingManager] Tooltips registered");
   }
 
   /**
@@ -978,14 +1016,14 @@ export class OnboardingManager {
       } else if (this.shouldResumeOnboarding()) {
         // Interrupted onboarding
         const result = await vscode.window.showInformationMessage(
-          'Would you like to continue the onboarding?',
-          'Continue',
-          'Skip'
+          "Would you like to continue the onboarding?",
+          "Continue",
+          "Skip",
         );
 
-        if (result === 'Continue') {
+        if (result === "Continue") {
           await this.resumeOnboarding();
-        } else if (result === 'Skip') {
+        } else if (result === "Skip") {
           await this.skipOnboarding();
         }
       } else {
@@ -993,7 +1031,10 @@ export class OnboardingManager {
         this.registerTooltips();
       }
     } catch (error) {
-      console.error('[OnboardingManager] Failed to handle setup complete:', error);
+      console.error(
+        "[OnboardingManager] Failed to handle setup complete:",
+        error,
+      );
       throw error;
     }
   }
@@ -1004,22 +1045,21 @@ export class OnboardingManager {
   private async handleConnectionTest(data: any): Promise<void> {
     try {
       const { backendUrl, backendPort } = data;
-      
+
       vscode.window.showInformationMessage(
-        `Testing connection to ${backendUrl}:${backendPort}...`
+        `Testing connection to ${backendUrl}:${backendPort}...`,
       );
 
       // TODO: Implement actual connection test using WebSocketClient
       // For now, simulate success
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise((resolve) => setTimeout(resolve, 1000));
 
-      vscode.window.showInformationMessage(
-        '✓ Connection successful!',
-        { modal: false }
-      );
+      vscode.window.showInformationMessage("✓ Connection successful!", {
+        modal: false,
+      });
     } catch (error) {
       vscode.window.showErrorMessage(
-        `Connection failed: ${error}. Please check your backend configuration.`
+        `Connection failed: ${error}. Please check your backend configuration.`,
       );
     }
   }
@@ -1029,23 +1069,51 @@ export class OnboardingManager {
    */
   private async saveConfiguration(config: SetupConfiguration): Promise<void> {
     try {
-      const configuration = vscode.workspace.getConfiguration('enterpriseAI');
+      const configuration = vscode.workspace.getConfiguration("enterpriseAI");
 
-      await configuration.update('backend.url', config.backendUrl, vscode.ConfigurationTarget.Global);
-      await configuration.update('backend.port', config.backendPort, vscode.ConfigurationTarget.Global);
-      await configuration.update('llm.provider', config.llmProvider, vscode.ConfigurationTarget.Global);
-      await configuration.update('privacy.telemetry', config.telemetryEnabled, vscode.ConfigurationTarget.Global);
-      await configuration.update('privacy.cloudFallback', config.cloudFallbackEnabled, vscode.ConfigurationTarget.Global);
-      await configuration.update('accessibility.screenReader', config.screenReaderEnabled, vscode.ConfigurationTarget.Global);
-      await configuration.update('accessibility.keyboardShortcuts', config.keyboardShortcutsEnabled, vscode.ConfigurationTarget.Global);
+      await configuration.update(
+        "backend.url",
+        config.backendUrl,
+        vscode.ConfigurationTarget.Global,
+      );
+      await configuration.update(
+        "backend.port",
+        config.backendPort,
+        vscode.ConfigurationTarget.Global,
+      );
+      await configuration.update(
+        "llm.provider",
+        config.llmProvider,
+        vscode.ConfigurationTarget.Global,
+      );
+      await configuration.update(
+        "privacy.telemetry",
+        config.telemetryEnabled,
+        vscode.ConfigurationTarget.Global,
+      );
+      await configuration.update(
+        "privacy.cloudFallback",
+        config.cloudFallbackEnabled,
+        vscode.ConfigurationTarget.Global,
+      );
+      await configuration.update(
+        "accessibility.screenReader",
+        config.screenReaderEnabled,
+        vscode.ConfigurationTarget.Global,
+      );
+      await configuration.update(
+        "accessibility.keyboardShortcuts",
+        config.keyboardShortcutsEnabled,
+        vscode.ConfigurationTarget.Global,
+      );
 
       // Store in state as well
       this.state.configuration = config;
       await this.saveState();
 
-      console.log('[OnboardingManager] Configuration saved successfully');
+      console.log("[OnboardingManager] Configuration saved successfully");
     } catch (error) {
-      console.error('[OnboardingManager] Failed to save configuration:', error);
+      console.error("[OnboardingManager] Failed to save configuration:", error);
       throw error;
     }
   }
@@ -1054,24 +1122,27 @@ export class OnboardingManager {
    * Track an onboarding event
    */
   public trackEvent(event: OnboardingEvent): void {
-    console.log('[OnboardingManager] Event:', event);
-    
+    console.log("[OnboardingManager] Event:", event);
+
     // Update analytics
-    if (event.type === 'step-completed' && event.step) {
-      const stepAnalytics = this.analytics.steps.find(s => s.step === event.step);
+    if (event.type === "step-completed" && event.step) {
+      const stepAnalytics = this.analytics.steps.find(
+        (s) => s.step === event.step,
+      );
       if (stepAnalytics) {
         stepAnalytics.completionTime = event.timestamp;
-        stepAnalytics.duration = stepAnalytics.completionTime - stepAnalytics.startTime;
+        stepAnalytics.duration =
+          stepAnalytics.completionTime - stepAnalytics.startTime;
       }
     }
-    
+
     // Send to telemetry if enabled
-    const config = vscode.workspace.getConfiguration('enterpriseAI');
-    const telemetryEnabled = config.get<boolean>('privacy.telemetry', false);
-    
+    const config = vscode.workspace.getConfiguration("enterpriseAI");
+    const telemetryEnabled = config.get<boolean>("privacy.telemetry", false);
+
     if (telemetryEnabled) {
       // TODO: Send to analytics service
-      console.log('[OnboardingManager] Would send to analytics:', event);
+      console.log("[OnboardingManager] Would send to analytics:", event);
     }
   }
 
@@ -1090,7 +1161,7 @@ export class OnboardingManager {
     if (!this.state.startTime) {
       return 0;
     }
-    
+
     const endTime = this.state.completionTime || Date.now();
     return endTime - this.state.startTime;
   }
@@ -1102,7 +1173,7 @@ export class OnboardingManager {
     return {
       ...this.analytics,
       totalDuration: this.getTimeSpent(),
-      dropOffPoint: this.state.isSkipped ? this.state.currentStep : undefined
+      dropOffPoint: this.state.isSkipped ? this.state.currentStep : undefined,
     };
   }
 }

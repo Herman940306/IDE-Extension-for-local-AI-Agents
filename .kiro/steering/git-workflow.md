@@ -41,6 +41,7 @@ priority: critical
    - Otherwise, ALWAYS assume feature branch workflow
 
 6. **Commit and Push Workflow:**
+
    ```bash
    # Standard workflow (ALWAYS use this unless told otherwise)
    git checkout -b feature/[task-name]  # Create feature branch if needed
@@ -62,6 +63,6 @@ Violation of this rule (pushing to main without explicit permission) is consider
 
 ---
 
-**Rule Created By:** Herman Swanepoel  
-**Date:** 2025-01-13  
+**Rule Created By:** Herman Swanepoel
+**Date:** 2025-01-13
 **Version:** 1.0

@@ -8,7 +8,6 @@ from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-
 from src.orchestrator.cognitive_trace import CognitiveTraceStore
 from src.orchestrator.meta_controller import MetaController
 from src.orchestrator.task_router import TaskRouter

@@ -3,309 +3,345 @@
  * Project Creator: Herman Swanepoel
  */
 
-import * as vscode from 'vscode';
-import { WebSocketClient } from '../services/WebSocketClient';
+import * as vscode from "vscode";
+import { WebSocketClient } from "../services/WebSocketClient";
 
 interface AgentMessage {
-    agent_id: string;
-    agent_name: string;
-    message: string;
-    vote?: 'approve' | 'approve_with_changes' | 'reject';
-    timestamp: number;
-    confidence?: number;
-    reasoning?: string;
+  agent_id: string;
+  agent_name: string;
+  message: string;
+  vote?: "approve" | "approve_with_changes" | "reject";
+  timestamp: number;
+  confidence?: number;
+  reasoning?: string;
 }
 
 interface Discussion {
-    id: string;
-    task_id: string;
-    title: string;
-    messages: AgentMessage[];
-    status: 'active' | 'resolved' | 'cancelled';
-    created_at: number;
+  id: string;
+  task_id: string;
+  title: string;
+  messages: AgentMessage[];
+  status: "active" | "resolved" | "cancelled";
+  created_at: number;
 }
 
 export class AgentDiscussionPanel {
-    public static currentPanel: AgentDiscussionPanel | undefined;
-    private readonly _panel: vscode.WebviewPanel;
-    private _disposables: vscode.Disposable[] = [];
-    private wsClient: WebSocketClient;
-    private currentDiscussion: Discussion | null = null;
-    private conversationHistory: Map<string, Discussion> = new Map();
+  public static currentPanel: AgentDiscussionPanel | undefined;
+  private readonly _panel: vscode.WebviewPanel;
+  private _disposables: vscode.Disposable[] = [];
+  private wsClient: WebSocketClient;
+  private currentDiscussion: Discussion | null = null;
+  private conversationHistory: Map<string, Discussion> = new Map();
 
-    public static createOrShow(extensionUri: vscode.Uri, wsClient: WebSocketClient) {
-        const column = vscode.window.activeTextEditor
-            ? vscode.window.activeTextEditor.viewColumn
-            : undefined;
+  public static createOrShow(
+    extensionUri: vscode.Uri,
+    wsClient: WebSocketClient,
+  ) {
+    const column = vscode.window.activeTextEditor
+      ? vscode.window.activeTextEditor.viewColumn
+      : undefined;
 
-        // If we already have a panel, show it
-        if (AgentDiscussionPanel.currentPanel) {
-            AgentDiscussionPanel.currentPanel._panel.reveal(column);
-            return;
+    // If we already have a panel, show it
+    if (AgentDiscussionPanel.currentPanel) {
+      AgentDiscussionPanel.currentPanel._panel.reveal(column);
+      return;
+    }
+
+    // Otherwise, create a new panel
+    const panel = vscode.window.createWebviewPanel(
+      "agentDiscussion",
+      "Agent Discussion",
+      column || vscode.ViewColumn.Two,
+      {
+        enableScripts: true,
+        retainContextWhenHidden: true,
+        localResourceRoots: [extensionUri],
+      },
+    );
+
+    AgentDiscussionPanel.currentPanel = new AgentDiscussionPanel(
+      panel,
+      extensionUri,
+      wsClient,
+    );
+  }
+
+  private constructor(
+    panel: vscode.WebviewPanel,
+    _extensionUri: vscode.Uri,
+    wsClient: WebSocketClient,
+  ) {
+    this._panel = panel;
+    this.wsClient = wsClient;
+
+    // Set the webview's initial html content
+    this._update();
+
+    // Listen for when the panel is disposed
+    this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
+
+    // Handle messages from the webview
+    this._panel.webview.onDidReceiveMessage(
+      (message) => {
+        switch (message.command) {
+          case "sendMessage":
+            this._handleSendMessage(message.text);
+            break;
+          case "approveSuggestion":
+            this._handleApproveSuggestion(message.messageId);
+            break;
+          case "rejectSuggestion":
+            this._handleRejectSuggestion(message.messageId);
+            break;
+          case "closeDiscussion":
+            this._handleCloseDiscussion();
+            break;
         }
+      },
+      null,
+      this._disposables,
+    );
 
-        // Otherwise, create a new panel
-        const panel = vscode.window.createWebviewPanel(
-            'agentDiscussion',
-            'Agent Discussion',
-            column || vscode.ViewColumn.Two,
-            {
-                enableScripts: true,
-                retainContextWhenHidden: true,
-                localResourceRoots: [extensionUri]
-            }
-        );
+    // Listen for agent responses from backend
+    this.wsClient.on("agent_discussion", (payload: any) => {
+      this._handleAgentDiscussion(payload);
+    });
+  }
 
-        AgentDiscussionPanel.currentPanel = new AgentDiscussionPanel(panel, extensionUri, wsClient);
+  /**
+   * Start a new discussion
+   */
+  public startDiscussion(taskId: string, title: string) {
+    this.currentDiscussion = {
+      id: `discussion-${Date.now()}`,
+      task_id: taskId,
+      title,
+      messages: [],
+      status: "active",
+      created_at: Date.now(),
+    };
+
+    // Save to history
+    this.conversationHistory.set(
+      this.currentDiscussion.id,
+      this.currentDiscussion,
+    );
+
+    this._update();
+
+    // Notify backend
+    this.wsClient.send("start_discussion", {
+      discussion_id: this.currentDiscussion.id,
+      task_id: taskId,
+      title,
+    });
+  }
+
+  /**
+   * Load a previous discussion from history
+   */
+  public loadDiscussion(discussionId: string) {
+    const discussion = this.conversationHistory.get(discussionId);
+    if (discussion) {
+      this.currentDiscussion = discussion;
+      this._update();
+    }
+  }
+
+  /**
+   * Get all conversation history
+   */
+  public getConversationHistory(): Discussion[] {
+    return Array.from(this.conversationHistory.values());
+  }
+
+  /**
+   * Clear conversation history
+   */
+  public clearHistory() {
+    this.conversationHistory.clear();
+  }
+
+  /**
+   * Handle sending a message
+   */
+  private async _handleSendMessage(text: string) {
+    if (!this.currentDiscussion) {
+      return;
     }
 
-    private constructor(panel: vscode.WebviewPanel, _extensionUri: vscode.Uri, wsClient: WebSocketClient) {
-        this._panel = panel;
-        this.wsClient = wsClient;
+    // Add user message
+    const userMessage: AgentMessage = {
+      agent_id: "user",
+      agent_name: "You",
+      message: text,
+      timestamp: Date.now(),
+    };
 
-        // Set the webview's initial html content
-        this._update();
+    this.currentDiscussion.messages.push(userMessage);
 
-        // Listen for when the panel is disposed
-        this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
+    // Update history
+    this.conversationHistory.set(
+      this.currentDiscussion.id,
+      this.currentDiscussion,
+    );
 
-        // Handle messages from the webview
-        this._panel.webview.onDidReceiveMessage(
-            message => {
-                switch (message.command) {
-                    case 'sendMessage':
-                        this._handleSendMessage(message.text);
-                        break;
-                    case 'approveSuggestion':
-                        this._handleApproveSuggestion(message.messageId);
-                        break;
-                    case 'rejectSuggestion':
-                        this._handleRejectSuggestion(message.messageId);
-                        break;
-                    case 'closeDiscussion':
-                        this._handleCloseDiscussion();
-                        break;
-                }
-            },
-            null,
-            this._disposables
-        );
+    this._update();
 
-        // Listen for agent responses from backend
-        this.wsClient.on('agent_discussion', (payload: any) => {
-            this._handleAgentDiscussion(payload);
-        });
+    // Send to backend
+    await this.wsClient.send("discussion_message", {
+      discussion_id: this.currentDiscussion.id,
+      message: text,
+      timestamp: Date.now(),
+    });
+  }
+
+  /**
+   * Handle agent discussion from backend
+   */
+  private _handleAgentDiscussion(payload: any) {
+    if (
+      !this.currentDiscussion ||
+      payload.discussion_id !== this.currentDiscussion.id
+    ) {
+      return;
     }
 
-    /**
-     * Start a new discussion
-     */
-    public startDiscussion(taskId: string, title: string) {
-        this.currentDiscussion = {
-            id: `discussion-${Date.now()}`,
-            task_id: taskId,
-            title,
-            messages: [],
-            status: 'active',
-            created_at: Date.now()
+    // Add agent messages
+    if (payload.agents && Array.isArray(payload.agents)) {
+      for (const agent of payload.agents) {
+        const agentMessage: AgentMessage = {
+          agent_id: agent.agent_id,
+          agent_name: agent.agent_name || agent.agent_id,
+          message: agent.message,
+          vote: agent.vote,
+          timestamp: Date.now(),
+          confidence: agent.confidence,
+          reasoning: agent.reasoning,
         };
 
-        // Save to history
-        this.conversationHistory.set(this.currentDiscussion.id, this.currentDiscussion);
+        this.currentDiscussion.messages.push(agentMessage);
+      }
 
-        this._update();
+      // Update history
+      this.conversationHistory.set(
+        this.currentDiscussion.id,
+        this.currentDiscussion,
+      );
 
-        // Notify backend
-        this.wsClient.send('start_discussion', {
-            discussion_id: this.currentDiscussion.id,
-            task_id: taskId,
-            title
-        });
+      this._update();
+    }
+  }
+
+  /**
+   * Handle approving a suggestion
+   */
+  private async _handleApproveSuggestion(messageId: string) {
+    if (!this.currentDiscussion) {
+      return;
     }
 
-    /**
-     * Load a previous discussion from history
-     */
-    public loadDiscussion(discussionId: string) {
-        const discussion = this.conversationHistory.get(discussionId);
-        if (discussion) {
-            this.currentDiscussion = discussion;
-            this._update();
-        }
+    await this.wsClient.send("approve_suggestion", {
+      discussion_id: this.currentDiscussion.id,
+      message_id: messageId,
+      timestamp: Date.now(),
+    });
+
+    vscode.window.showInformationMessage("Suggestion approved");
+  }
+
+  /**
+   * Handle rejecting a suggestion
+   */
+  private async _handleRejectSuggestion(messageId: string) {
+    if (!this.currentDiscussion) {
+      return;
     }
 
-    /**
-     * Get all conversation history
-     */
-    public getConversationHistory(): Discussion[] {
-        return Array.from(this.conversationHistory.values());
+    await this.wsClient.send("reject_suggestion", {
+      discussion_id: this.currentDiscussion.id,
+      message_id: messageId,
+      timestamp: Date.now(),
+    });
+
+    vscode.window.showInformationMessage("Suggestion rejected");
+  }
+
+  /**
+   * Handle closing discussion
+   */
+  private _handleCloseDiscussion() {
+    if (this.currentDiscussion) {
+      this.currentDiscussion.status = "resolved";
+      this.wsClient.send("close_discussion", {
+        discussion_id: this.currentDiscussion.id,
+        timestamp: Date.now(),
+      });
     }
 
-    /**
-     * Clear conversation history
-     */
-    public clearHistory() {
-        this.conversationHistory.clear();
-    }
+    this._panel.dispose();
+  }
 
-    /**
-     * Handle sending a message
-     */
-    private async _handleSendMessage(text: string) {
-        if (!this.currentDiscussion) {
-            return;
-        }
+  /**
+   * Update the webview content
+   */
+  private _update() {
+    this._panel.title = this.currentDiscussion?.title || "Agent Discussion";
+    this._panel.webview.html = this._getHtmlForWebview(this._panel.webview);
+  }
 
-        // Add user message
-        const userMessage: AgentMessage = {
-            agent_id: 'user',
-            agent_name: 'You',
-            message: text,
-            timestamp: Date.now()
-        };
+  /**
+   * Get HTML content for webview
+   */
+  private _getHtmlForWebview(_webview: vscode.Webview) {
+    const messages = this.currentDiscussion?.messages || [];
+    const isActive = this.currentDiscussion?.status === "active";
 
-        this.currentDiscussion.messages.push(userMessage);
-
-        // Update history
-        this.conversationHistory.set(this.currentDiscussion.id, this.currentDiscussion);
-
-        this._update();
-
-        // Send to backend
-        await this.wsClient.send('discussion_message', {
-            discussion_id: this.currentDiscussion.id,
-            message: text,
-            timestamp: Date.now()
-        });
-    }
-
-    /**
-     * Handle agent discussion from backend
-     */
-    private _handleAgentDiscussion(payload: any) {
-        if (!this.currentDiscussion || payload.discussion_id !== this.currentDiscussion.id) {
-            return;
-        }
-
-        // Add agent messages
-        if (payload.agents && Array.isArray(payload.agents)) {
-            for (const agent of payload.agents) {
-                const agentMessage: AgentMessage = {
-                    agent_id: agent.agent_id,
-                    agent_name: agent.agent_name || agent.agent_id,
-                    message: agent.message,
-                    vote: agent.vote,
-                    timestamp: Date.now(),
-                    confidence: agent.confidence,
-                    reasoning: agent.reasoning
-                };
-
-                this.currentDiscussion.messages.push(agentMessage);
-            }
-
-            // Update history
-            this.conversationHistory.set(this.currentDiscussion.id, this.currentDiscussion);
-
-            this._update();
-        }
-    }
-
-    /**
-     * Handle approving a suggestion
-     */
-    private async _handleApproveSuggestion(messageId: string) {
-        if (!this.currentDiscussion) {
-            return;
-        }
-
-        await this.wsClient.send('approve_suggestion', {
-            discussion_id: this.currentDiscussion.id,
-            message_id: messageId,
-            timestamp: Date.now()
-        });
-
-        vscode.window.showInformationMessage('Suggestion approved');
-    }
-
-    /**
-     * Handle rejecting a suggestion
-     */
-    private async _handleRejectSuggestion(messageId: string) {
-        if (!this.currentDiscussion) {
-            return;
-        }
-
-        await this.wsClient.send('reject_suggestion', {
-            discussion_id: this.currentDiscussion.id,
-            message_id: messageId,
-            timestamp: Date.now()
-        });
-
-        vscode.window.showInformationMessage('Suggestion rejected');
-    }
-
-    /**
-     * Handle closing discussion
-     */
-    private _handleCloseDiscussion() {
-        if (this.currentDiscussion) {
-            this.currentDiscussion.status = 'resolved';
-            this.wsClient.send('close_discussion', {
-                discussion_id: this.currentDiscussion.id,
-                timestamp: Date.now()
-            });
-        }
-
-        this._panel.dispose();
-    }
-
-    /**
-     * Update the webview content
-     */
-    private _update() {
-        this._panel.title = this.currentDiscussion?.title || 'Agent Discussion';
-        this._panel.webview.html = this._getHtmlForWebview(this._panel.webview);
-    }
-
-    /**
-     * Get HTML content for webview
-     */
-    private _getHtmlForWebview(_webview: vscode.Webview) {
-        const messages = this.currentDiscussion?.messages || [];
-        const isActive = this.currentDiscussion?.status === 'active';
-
-        const messagesHtml = messages.length === 0
-            ? `<div class="empty-state">
+    const messagesHtml =
+      messages.length === 0
+        ? `<div class="empty-state">
                 <div class="empty-state-icon">💬</div>
                 <p>No messages yet. Start the conversation by asking a question or requesting agent input.</p>
             </div>`
-            : messages.map((msg, index) => `
-                <div class="message ${msg.agent_id === 'user' ? 'user' : ''}">
+        : messages
+            .map(
+              (msg, index) => `
+                <div class="message ${msg.agent_id === "user" ? "user" : ""}">
                     <div class="message-header">
                         <div>
-                            <span class="agent-icon">${msg.agent_id === 'user' ? '👤' : '🤖'}</span>
+                            <span class="agent-icon">${msg.agent_id === "user" ? "👤" : "🤖"}</span>
                             <span class="agent-name">${this._escapeHtml(msg.agent_name)}</span>
                         </div>
                         <span class="timestamp">${new Date(msg.timestamp).toLocaleTimeString()}</span>
                     </div>
                     <div class="message-content">${this._escapeHtml(msg.message)}</div>
-                    ${msg.vote || msg.confidence || msg.reasoning ? `
+                    ${
+                      msg.vote || msg.confidence || msg.reasoning
+                        ? `
                         <div class="message-meta">
-                            ${msg.vote ? `<span class="vote ${msg.vote}">${msg.vote.replace('_', ' ').toUpperCase()}</span>` : ''}
-                            ${msg.confidence ? `<span class="confidence">Confidence: ${Math.round(msg.confidence * 100)}%</span>` : ''}
+                            ${msg.vote ? `<span class="vote ${msg.vote}">${msg.vote.replace("_", " ").toUpperCase()}</span>` : ""}
+                            ${msg.confidence ? `<span class="confidence">Confidence: ${Math.round(msg.confidence * 100)}%</span>` : ""}
                         </div>
-                    ` : ''}
-                    ${msg.reasoning ? `<div class="message-content" style="font-style: italic; opacity: 0.8;">Reasoning: ${this._escapeHtml(msg.reasoning)}</div>` : ''}
-                    ${msg.agent_id !== 'user' && isActive ? `
+                    `
+                        : ""
+                    }
+                    ${msg.reasoning ? `<div class="message-content" style="font-style: italic; opacity: 0.8;">Reasoning: ${this._escapeHtml(msg.reasoning)}</div>` : ""}
+                    ${
+                      msg.agent_id !== "user" && isActive
+                        ? `
                         <div class="message-actions">
                             <button class="approve" onclick="approveSuggestion('${msg.agent_id}-${index}')">✓ Approve</button>
                             <button class="reject" onclick="rejectSuggestion('${msg.agent_id}-${index}')">✗ Reject</button>
                         </div>
-                    ` : ''}
+                    `
+                        : ""
+                    }
                 </div>
-            `).join('');
+            `,
+            )
+            .join("");
 
-        return `<!DOCTYPE html>
+    return `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -534,15 +570,17 @@ export class AgentDiscussionPanel {
 </head>
 <body>
     <div class="header">
-        <h1>${this._escapeHtml(this.currentDiscussion?.title || 'Agent Discussion')}</h1>
-        <span class="status ${this.currentDiscussion?.status || 'active'}">${(this.currentDiscussion?.status || 'active').toUpperCase()}</span>
+        <h1>${this._escapeHtml(this.currentDiscussion?.title || "Agent Discussion")}</h1>
+        <span class="status ${this.currentDiscussion?.status || "active"}">${(this.currentDiscussion?.status || "active").toUpperCase()}</span>
     </div>
 
     <div class="messages-container" id="messagesContainer">
         ${messagesHtml}
     </div>
 
-    ${isActive ? `
+    ${
+      isActive
+        ? `
         <div class="input-container">
             <div class="input-row">
                 <input type="text" id="messageInput" placeholder="Ask a question or provide feedback..." />
@@ -550,7 +588,9 @@ export class AgentDiscussionPanel {
                 <button class="close" onclick="closeDiscussion()">Close</button>
             </div>
         </div>
-    ` : ''}
+    `
+        : ""
+    }
 
     <script>
         const vscode = acquireVsCodeApi();
@@ -603,36 +643,36 @@ export class AgentDiscussionPanel {
     </script>
 </body>
 </html>`;
+  }
+
+  /**
+   * Escape HTML to prevent XSS
+   */
+  private _escapeHtml(text: string): string {
+    const map: { [key: string]: string } = {
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#039;",
+    };
+    return text.replace(/[&<>"']/g, (m) => map[m]);
+  }
+
+  /**
+   * Dispose panel
+   */
+  public dispose() {
+    AgentDiscussionPanel.currentPanel = undefined;
+
+    // Clean up resources
+    this._panel.dispose();
+
+    while (this._disposables.length) {
+      const disposable = this._disposables.pop();
+      if (disposable) {
+        disposable.dispose();
+      }
     }
-
-    /**
-     * Escape HTML to prevent XSS
-     */
-    private _escapeHtml(text: string): string {
-        const map: { [key: string]: string } = {
-            '&': '&amp;',
-            '<': '&lt;',
-            '>': '&gt;',
-            '"': '&quot;',
-            "'": '&#039;'
-        };
-        return text.replace(/[&<>"']/g, m => map[m]);
-    }
-
-    /**
-     * Dispose panel
-     */
-    public dispose() {
-        AgentDiscussionPanel.currentPanel = undefined;
-
-        // Clean up resources
-        this._panel.dispose();
-
-        while (this._disposables.length) {
-            const disposable = this._disposables.pop();
-            if (disposable) {
-                disposable.dispose();
-            }
-        }
-    }
+  }
 }

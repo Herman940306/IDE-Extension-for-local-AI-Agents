@@ -63,6 +63,7 @@ backend/src/
 ## 🧠 2. Implement Meta-Controller
 
 ### Purpose
+
 Supervise dynamic agent communication through a **graph-based reasoning topology**.
 
 ```python
@@ -75,11 +76,11 @@ class MetaController:
     Meta-controller for dynamic agent orchestration
     Project Creator: Herman Swanepoel
     """
-    
+
     def __init__(self):
         self.graph = nx.DiGraph()
         self._build_default_graph()
-    
+
     def _build_default_graph(self):
         """Build default reasoning graph"""
         self.graph.add_edges_from([
@@ -87,15 +88,15 @@ class MetaController:
             ("Reasoner", "Verifier"),
             ("Verifier", "Aggregator")
         ])
-    
+
     def route(self, task_type: str, complexity: float) -> List[str]:
         """
         Determine execution path based on task characteristics
-        
+
         Args:
             task_type: Type of task (refactor, explain, generate)
             complexity: Complexity score (0.0 to 1.0)
-            
+
         Returns:
             List of agent names in execution order
         """
@@ -105,11 +106,11 @@ class MetaController:
         else:
             # Complex task: full pipeline
             return nx.shortest_path(self.graph, "Planner", "Aggregator")
-    
+
     def update_graph(self, performance_metrics: Dict[str, float]):
         """
         Dynamically adjust graph based on performance
-        
+
         Args:
             performance_metrics: Agent performance scores
         """
@@ -128,6 +129,7 @@ class MetaController:
 ## 🧩 3. Cognitive Trace Store
 
 ### Purpose
+
 Capture reasoning metadata from each agent to ensure explainability.
 
 ```python
@@ -142,16 +144,16 @@ class CognitiveTraceStore:
     Store and manage cognitive traces for explainability
     Project Creator: Herman Swanepoel
     """
-    
+
     def __init__(self, path: str = "./data/trace_logs.jsonl"):
         self.path = Path(path)
         self.path.parent.mkdir(parents=True, exist_ok=True)
-    
+
     def record(
-        self, 
-        agent: str, 
-        action: str, 
-        confidence: float, 
+        self,
+        agent: str,
+        action: str,
+        confidence: float,
         notes: str = "",
         metadata: Dict[str, Any] = None
     ):
@@ -164,21 +166,21 @@ class CognitiveTraceStore:
             "notes": notes,
             "metadata": metadata or {}
         }
-        
+
         with open(self.path, "a") as f:
             f.write(json.dumps(log) + "\n")
-    
+
     def get_traces(
-        self, 
-        agent: str = None, 
+        self,
+        agent: str = None,
         limit: int = 100
     ) -> List[Dict[str, Any]]:
         """Retrieve recent traces"""
         traces = []
-        
+
         if not self.path.exists():
             return traces
-        
+
         with open(self.path, "r") as f:
             for line in f:
                 trace = json.loads(line)
@@ -186,16 +188,16 @@ class CognitiveTraceStore:
                     traces.append(trace)
                     if len(traces) >= limit:
                         break
-        
+
         return traces[-limit:]
-    
+
     def summarize(self, traces: List[Dict[str, Any]]) -> str:
         """
         Summarize traces using a small LLM
-        
+
         Args:
             traces: List of trace entries
-            
+
         Returns:
             Human-readable summary
         """
@@ -228,18 +230,18 @@ class EpisodicCache:
     Short-term conversation state using Redis LRU
     Project Creator: Herman Swanepoel
     """
-    
+
     def __init__(self, host: str = "localhost", port: int = 6379):
         self.client = redis.Redis(host=host, port=port, decode_responses=True)
-    
+
     def store(self, key: str, value: Any, ttl: int = 300):
         """Store with time-to-live"""
         self.client.set(key, value, ex=ttl)
-    
+
     def retrieve(self, key: str) -> Optional[str]:
         """Retrieve from cache"""
         return self.client.get(key)
-    
+
     def delete(self, key: str):
         """Remove from cache"""
         self.client.delete(key)
@@ -259,13 +261,13 @@ class SemanticStore:
     Long-term embeddings for code patterns
     Project Creator: Herman Swanepoel
     """
-    
+
     def __init__(self, dimension: int = 768):
         self.dimension = dimension
         self.index = faiss.IndexFlatL2(dimension)
         self.chroma_client = chromadb.Client()
         self.collection = self.chroma_client.create_collection("code_patterns")
-    
+
     def add_embedding(self, embedding: np.ndarray, metadata: dict):
         """Add code embedding to store"""
         self.index.add(embedding.reshape(1, -1))
@@ -274,16 +276,16 @@ class SemanticStore:
             metadatas=[metadata],
             ids=[metadata["id"]]
         )
-    
+
     def search(self, query_embedding: np.ndarray, k: int = 5) -> List[Tuple[float, dict]]:
         """Search for similar code patterns"""
         distances, indices = self.index.search(query_embedding.reshape(1, -1), k)
-        
+
         results = self.collection.query(
             query_embeddings=[query_embedding.tolist()],
             n_results=k
         )
-        
+
         return list(zip(distances[0], results["metadatas"][0]))
 ```
 
@@ -300,7 +302,7 @@ class ProceduralMemory:
     Learned behaviors using LoRA adapters
     Project Creator: Herman Swanepoel
     """
-    
+
     def __init__(self, base_model_name: str):
         self.base_model = AutoModelForCausalLM.from_pretrained(base_model_name)
         self.lora_config = LoraConfig(
@@ -310,16 +312,16 @@ class ProceduralMemory:
             lora_dropout=0.1
         )
         self.model = get_peft_model(self.base_model, self.lora_config)
-    
+
     def train_adapter(self, training_data: Dict[str, Any]):
         """Train LoRA adapter on user feedback"""
         # TODO: Implement training loop
         pass
-    
+
     def save_adapter(self, path: str):
         """Save trained adapter"""
         self.model.save_pretrained(path)
-    
+
     def load_adapter(self, path: str):
         """Load trained adapter"""
         self.model.load_adapter(path)
@@ -344,7 +346,7 @@ from typing import Dict, Any
 
 class ASTChecker:
     """Syntax validation using AST parsing"""
-    
+
     def validate(self, code: str, language: str = "python") -> bool:
         """Check if code is syntactically valid"""
         if language == "python":
@@ -358,10 +360,10 @@ class ASTChecker:
 
 class LLMVerifier:
     """Semantic validation using LLM"""
-    
+
     def __init__(self, model):
         self.model = model
-    
+
     def evaluate(self, code: str, context: str) -> Dict[str, Any]:
         """Evaluate code logic and semantics"""
         prompt = f"Verify this code is logically correct:\n{code}\n\nContext: {context}"
@@ -376,24 +378,24 @@ class VerifierEnsemble:
     Combined AST + LLM verification
     Project Creator: Herman Swanepoel
     """
-    
+
     def __init__(self, ast_checker: ASTChecker, llm_verifier: LLMVerifier):
         self.ast_checker = ast_checker
         self.llm_verifier = llm_verifier
-    
+
     def verify(self, code: str, language: str, context: str) -> Dict[str, Any]:
         """Run full verification pipeline"""
         ast_valid = self.ast_checker.validate(code, language)
-        
+
         if not ast_valid:
             return {
                 "valid": False,
                 "reason": "Syntax error detected",
                 "confidence": 1.0
             }
-        
+
         llm_result = self.llm_verifier.evaluate(code, context)
-        
+
         return {
             "valid": llm_result["valid"],
             "reason": llm_result["reasoning"],
@@ -422,11 +424,11 @@ class PredictivePolicy:
     Reinforcement learning policy for predictive caching
     Project Creator: Herman Swanepoel
     """
-    
+
     def __init__(self):
         self.model = CatBoostClassifier(iterations=100, depth=4, verbose=False)
         self.history = []
-    
+
     def observe(self, event: str, language: str, hour: int, file_type: str):
         """Record user activity"""
         self.history.append({
@@ -435,11 +437,11 @@ class PredictivePolicy:
             "hour": hour,
             "file_type": file_type
         })
-    
+
     def predict(self, current_context: Dict) -> List[str]:
         """
         Predict next likely actions
-        
+
         Returns:
             List of models to pre-warm
         """
@@ -449,20 +451,20 @@ class PredictivePolicy:
             hash(current_context["language"]) % 100,
             hash(current_context["file_type"]) % 100
         ]
-        
+
         # Predict next action
         if len(self.history) > 100:
             # Train model on history
-            X = np.array([[h["hour"], hash(h["language"]) % 100, hash(h["file_type"]) % 100] 
+            X = np.array([[h["hour"], hash(h["language"]) % 100, hash(h["file_type"]) % 100]
                           for h in self.history[:-1]])
             y = [h["event"] for h in self.history[1:]]
             self.model.fit(X, y)
-            
+
             prediction = self.model.predict([features])[0]
             return self._action_to_models(prediction)
-        
+
         return []
-    
+
     def _action_to_models(self, action: str) -> List[str]:
         """Map predicted action to required models"""
         mapping = {
@@ -495,11 +497,11 @@ class ProvenanceStore:
     Immutable audit logs for all inferences
     Project Creator: Herman Swanepoel
     """
-    
+
     def __init__(self, db_path: str = "./data/provenance.db"):
         self.conn = sqlite3.connect(db_path)
         self._create_table()
-    
+
     def _create_table(self):
         """Create provenance table"""
         self.conn.execute("""
@@ -515,12 +517,12 @@ class ProvenanceStore:
             )
         """)
         self.conn.commit()
-    
+
     def log(
-        self, 
-        agent: str, 
-        task_type: str, 
-        input_data: str, 
+        self,
+        agent: str,
+        task_type: str,
+        input_data: str,
         output_data: str,
         confidence: float,
         metadata: Dict[str, Any] = None
@@ -529,12 +531,12 @@ class ProvenanceStore:
         log_id = hashlib.sha256(
             f"{agent}{task_type}{input_data}{datetime.utcnow()}".encode()
         ).hexdigest()
-        
+
         input_hash = hashlib.sha256(input_data.encode()).hexdigest()
         output_hash = hashlib.sha256(output_data.encode()).hexdigest()
-        
+
         self.conn.execute("""
-            INSERT INTO provenance 
+            INSERT INTO provenance
             (id, timestamp, agent, task_type, input_hash, output_hash, confidence, metadata)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """, (
@@ -590,13 +592,13 @@ async def test_valid_code_verification():
     ast_checker = ASTChecker()
     llm_verifier = LLMVerifier(model=mock_model)
     ensemble = VerifierEnsemble(ast_checker, llm_verifier)
-    
+
     result = ensemble.verify(
         code="def hello(): return 'world'",
         language="python",
         context="Simple function"
     )
-    
+
     assert result["valid"] == True
 ```
 
@@ -657,14 +659,14 @@ FLASH_ATTENTION_ENABLED=true
 
 ## 📈 10. Milestones Summary
 
-| Phase | Deliverable | Timeline | Status |
-|--------|--------------|----------|--------|
-| **1** | Meta-Controller prototype | Week 1 | ⬜ Not Started |
-| **2** | Cognitive Trace integration | Week 2 | ⬜ Not Started |
-| **3** | Memory layering complete | Week 3 | ⬜ Not Started |
-| **4** | Verifier ensemble active | Week 4 | ⬜ Not Started |
-| **5** | RL caching online | Week 6 | ⬜ Not Started |
-| **6** | End-to-end test run | Week 8 | ⬜ Not Started |
+| Phase | Deliverable                 | Timeline | Status         |
+| ----- | --------------------------- | -------- | -------------- |
+| **1** | Meta-Controller prototype   | Week 1   | ⬜ Not Started |
+| **2** | Cognitive Trace integration | Week 2   | ⬜ Not Started |
+| **3** | Memory layering complete    | Week 3   | ⬜ Not Started |
+| **4** | Verifier ensemble active    | Week 4   | ⬜ Not Started |
+| **5** | RL caching online           | Week 6   | ⬜ Not Started |
+| **6** | End-to-end test run         | Week 8   | ⬜ Not Started |
 
 ---
 

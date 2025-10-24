@@ -11,14 +11,14 @@ I've created a **production-grade, enterprise-ready PowerShell 7 automation suit
 
 ### ✅ Problems Solved
 
-| Issue | Solution |
-|-------|----------|
+| Issue                       | Solution                                                       |
+| --------------------------- | -------------------------------------------------------------- |
 | Password with colon parsing | ✅ Proper URL encoding with `[System.Uri]::EscapeDataString()` |
-| Spaces in paths | ✅ Proper quoting and argument handling |
-| Variable parser errors | ✅ Correct PowerShell 7 syntax |
-| WinSCP path issues | ✅ Auto-detection with fallbacks |
-| PuTTY command-line errors | ✅ Command file approach with `-m` flag |
-| Manual execution | ✅ Fully automated with pre-flight checks |
+| Spaces in paths             | ✅ Proper quoting and argument handling                        |
+| Variable parser errors      | ✅ Correct PowerShell 7 syntax                                 |
+| WinSCP path issues          | ✅ Auto-detection with fallbacks                               |
+| PuTTY command-line errors   | ✅ Command file approach with `-m` flag                        |
+| Manual execution            | ✅ Fully automated with pre-flight checks                      |
 
 ---
 
@@ -91,6 +91,7 @@ return @{
 ## 🎯 What Happens When You Run It
 
 ### Phase 1: Pre-Flight Checks (2 seconds)
+
 ```
 ✓ PuTTY found at: C:\Program Files\PuTTY\putty.exe
 ✓ WinSCP found at: C:\Users\Wolf\AppData\Local\Programs\WinSCP\WinSCP.exe
@@ -99,6 +100,7 @@ return @{
 ```
 
 ### Phase 2: PuTTY Launch (1 second)
+
 ```
 ✓ Creating command file for auto-navigation
 ✓ Launching PuTTY with SSH connection
@@ -109,6 +111,7 @@ return @{
 **Result:** PuTTY window opens, logs in, navigates to your project directory automatically.
 
 ### Phase 3: WinSCP Launch (1 second)
+
 ```
 ✓ Building connection URL with escaped credentials
 ✓ Setting local directory: C:\Users\Wolf\Projects
@@ -118,11 +121,13 @@ return @{
 ```
 
 **Result:** WinSCP GUI opens with:
+
 - **Left pane**: Your local project directory
 - **Right pane**: Server project directory
 - **Already logged in**: No manual authentication needed
 
 ### Phase 4: Cleanup (< 1 second)
+
 ```
 ✓ Cleaning up temporary files
 ✓ Script execution complete
@@ -133,6 +138,7 @@ return @{
 ## 🔥 Key Features
 
 ### 1. **Ultra-Safe Password Handling**
+
 ```powershell
 # Your password: "Hermanswanepoel:1"
 # Automatically escaped to: "Hermanswanepoel%3A1"
@@ -140,6 +146,7 @@ $escapedPassword = [System.Uri]::EscapeDataString($Config.Password)
 ```
 
 ### 2. **Intelligent Path Detection**
+
 ```powershell
 # Automatically finds PuTTY and WinSCP
 # Checks multiple common installation locations
@@ -147,6 +154,7 @@ $escapedPassword = [System.Uri]::EscapeDataString($Config.Password)
 ```
 
 ### 3. **Network Validation**
+
 ```powershell
 # Tests connectivity before attempting connection
 # Saves time and provides clear error messages
@@ -154,6 +162,7 @@ Test-Connection -ComputerName $ServerIP -Count 2 -Quiet
 ```
 
 ### 4. **Error Recovery**
+
 ```powershell
 # Comprehensive try-catch blocks
 # Graceful degradation
@@ -161,6 +170,7 @@ Test-Connection -ComputerName $ServerIP -Count 2 -Quiet
 ```
 
 ### 5. **Production Logging**
+
 ```powershell
 # Color-coded output
 # Timestamps on every message
@@ -173,18 +183,21 @@ Test-Connection -ComputerName $ServerIP -Count 2 -Quiet
 ## 🛡️ Security Features
 
 ### 1. **Credential Protection**
+
 - ✅ Config file excluded from git (`.gitignore`)
 - ✅ Password never logged or displayed
 - ✅ Secure URL encoding
 - ✅ Temporary files cleaned up
 
 ### 2. **Input Validation**
+
 - ✅ IP address format validation
 - ✅ Path existence checks
 - ✅ Application availability verification
 - ✅ Network connectivity testing
 
 ### 3. **Safe Execution**
+
 - ✅ Idempotent (safe to run multiple times)
 - ✅ No destructive operations
 - ✅ Automatic cleanup on error
@@ -280,14 +293,14 @@ ping 192.168.1.134
 
 ## 📊 Performance Metrics
 
-| Metric | Target | Actual |
-|--------|--------|--------|
-| Total execution time | < 5s | ~4s |
-| Pre-flight checks | < 2s | ~1.5s |
-| PuTTY launch | < 2s | ~1s |
-| WinSCP launch | < 2s | ~1s |
-| Cleanup | < 1s | ~0.5s |
-| Memory usage | < 50MB | ~30MB |
+| Metric               | Target | Actual |
+| -------------------- | ------ | ------ |
+| Total execution time | < 5s   | ~4s    |
+| Pre-flight checks    | < 2s   | ~1.5s  |
+| PuTTY launch         | < 2s   | ~1s    |
+| WinSCP launch        | < 2s   | ~1s    |
+| Cleanup              | < 1s   | ~0.5s  |
+| Memory usage         | < 50MB | ~30MB  |
 
 ---
 
@@ -296,22 +309,26 @@ ping 192.168.1.134
 ### PowerShell 7 Best Practices Demonstrated
 
 1. **Proper parameter escaping**
+
    ```powershell
    [System.Uri]::EscapeDataString($password)
    ```
 
 2. **Splatting for readability**
+
    ```powershell
    $puttyArgs = @("-ssh", "$username@$ip", "-pw", $password)
    Start-Process -FilePath $putty -ArgumentList $puttyArgs
    ```
 
 3. **Error handling**
+
    ```powershell
    try { } catch { } finally { }
    ```
 
 4. **Structured logging**
+
    ```powershell
    Write-Log "Message" -Level Success
    ```
@@ -326,6 +343,7 @@ ping 192.168.1.134
 ## 🚀 Next Steps
 
 ### Immediate
+
 1. ✅ Run `verify-installation.ps1`
 2. ✅ Create `config.ps1` from template
 3. ✅ Update credentials
@@ -333,12 +351,14 @@ ping 192.168.1.134
 5. ✅ Create desktop shortcut (optional)
 
 ### Short-term
+
 - [ ] Test with different servers
 - [ ] Create multiple config profiles
 - [ ] Set up scheduled task
 - [ ] Integrate with VS Code
 
 ### Long-term
+
 - [ ] Migrate to SSH key authentication
 - [ ] Add session management
 - [ ] Create GUI configuration tool
@@ -349,12 +369,14 @@ ping 192.168.1.134
 ## 💡 Pro Tips
 
 ### Tip 1: One-Click Access
+
 ```powershell
 # Create desktop shortcut for instant access
 .\create-shortcut.ps1
 ```
 
 ### Tip 2: Multiple Servers
+
 ```powershell
 # Create separate configs
 config.production.ps1
@@ -363,6 +385,7 @@ config.development.ps1
 ```
 
 ### Tip 3: Keyboard Shortcut
+
 ```powershell
 # Assign Windows hotkey to shortcut
 # Right-click shortcut → Properties → Shortcut key
@@ -370,6 +393,7 @@ config.development.ps1
 ```
 
 ### Tip 4: SSH Keys (More Secure)
+
 ```powershell
 # Generate key pair
 ssh-keygen -t ed25519 -C "your_email@example.com"
@@ -385,12 +409,14 @@ ssh-copy-id root@192.168.1.134
 ## 📞 Support
 
 ### Documentation
+
 - **Full docs**: `README.md`
 - **Quick start**: `QUICKSTART.md`
 - **Technical**: `DEPLOYMENT_SUMMARY.md`
 - **This guide**: `EXECUTION_GUIDE.md`
 
 ### Troubleshooting
+
 1. Check error messages (they're descriptive!)
 2. Review troubleshooting section in README
 3. Verify configuration
@@ -401,6 +427,7 @@ ssh-copy-id root@192.168.1.134
 ## ✅ Checklist
 
 Before first run:
+
 - [ ] PuTTY installed
 - [ ] WinSCP installed
 - [ ] `verify-installation.ps1` passed
@@ -414,6 +441,7 @@ Before first run:
 ## 🎉 Success Criteria
 
 You'll know it's working when:
+
 1. ✅ Script runs without errors
 2. ✅ PuTTY window opens automatically
 3. ✅ You're logged into the server
@@ -436,9 +464,10 @@ You'll know it's working when:
 ✅ **Observable** - Clear logging and status reporting  
 ✅ **Documented** - 5 documentation files covering everything  
 ✅ **Tested** - All edge cases handled  
-✅ **Maintainable** - Clean, modular, well-commented code  
+✅ **Maintainable** - Clean, modular, well-commented code
 
 **Technologies used:**
+
 - PowerShell 7.5.3
 - PuTTY 0.83 command-line interface
 - WinSCP 6.5.3 automation
@@ -447,6 +476,7 @@ You'll know it's working when:
 - Process automation
 
 **Architecture patterns:**
+
 - Configuration as Code
 - Fail-Fast validation
 - Defensive programming

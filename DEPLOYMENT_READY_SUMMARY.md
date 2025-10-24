@@ -1,7 +1,7 @@
 # 🚀 AuraIA Deployment Readiness Summary
 
-**Dry-Run Date:** 2025-10-19  \
-**Go/No-Go Decision:** GO (2025-10-22)  \
+**Dry-Run Date:** 2025-10-19 \
+**Go/No-Go Decision:** GO (2025-10-22) \
 **Owner:** Platform Engineering
 
 ---
@@ -22,30 +22,30 @@ All Phase 5 launch gates are now satisfied. Go/no-go review completed on 2025-10
 
 ## 🗓 Dry-Run Timeline
 
-| Time (UTC) | Step | Result | Evidence |
-|------------|------|--------|----------|
-| 08:00 | GHCR artifact digest verified (`main-20251019`) | ✅ | `logs/deployment/2025-10-19/artifact-verification.txt` |
-| 08:20 | Terraform staging refresh | ✅ | `terraform.tfstate` diff = ∅ |
-| 08:40 | Secret sync to Container Apps | ✅ | `scripts/sync-secrets.ps1` transcript |
-| 09:05 | Container App revision deploy (`rev-main-20251019`) | ✅ | `az containerapp revision list` snapshot |
-| 09:20 | VSIX compatibility smoke (inline suggestion, code action) | ✅ | `logs/deployment/2025-10-19/vsix-smoke.md` |
-| 09:45 | Prometheus/Grafana health + alert test | ✅ | Alert ID `ALERT-STG-2319` delivered to Teams |
-| 10:00 | API smoke tests (`scripts/smoke_tests.py --env staging`) | ✅ | `logs/deployment/2025-10-19/smoke-report.json` |
-| 10:20 | Rollback to previous revision, traffic validation, restore latest | ✅ | `logs/deployment/2025-10-19/revision-rollback.md` |
+| Time (UTC) | Step                                                              | Result | Evidence                                               |
+| ---------- | ----------------------------------------------------------------- | ------ | ------------------------------------------------------ |
+| 08:00      | GHCR artifact digest verified (`main-20251019`)                   | ✅     | `logs/deployment/2025-10-19/artifact-verification.txt` |
+| 08:20      | Terraform staging refresh                                         | ✅     | `terraform.tfstate` diff = ∅                           |
+| 08:40      | Secret sync to Container Apps                                     | ✅     | `scripts/sync-secrets.ps1` transcript                  |
+| 09:05      | Container App revision deploy (`rev-main-20251019`)               | ✅     | `az containerapp revision list` snapshot               |
+| 09:20      | VSIX compatibility smoke (inline suggestion, code action)         | ✅     | `logs/deployment/2025-10-19/vsix-smoke.md`             |
+| 09:45      | Prometheus/Grafana health + alert test                            | ✅     | Alert ID `ALERT-STG-2319` delivered to Teams           |
+| 10:00      | API smoke tests (`scripts/smoke_tests.py --env staging`)          | ✅     | `logs/deployment/2025-10-19/smoke-report.json`         |
+| 10:20      | Rollback to previous revision, traffic validation, restore latest | ✅     | `logs/deployment/2025-10-19/revision-rollback.md`      |
 
 ---
 
 ## 📊 Key Metrics (2025-10-19)
 
-| Metric | Value | Notes |
-|--------|-------|-------|
-| Backend tests | 411 passed / 5 skipped | `pytest backend/tests -v` (Python 3.11.9) |
-| Lint/Format | ✅ | `black`, `flake8` clean |
-| Coverage | 43% statements | `coverage.xml` generated post-run |
-| Secret scanning | ✅ | `.github/workflows/secret-scan.yml` manual dispatch green |
-| Smoke SLA | 312 ms p50 / 441 ms p95 | `scripts/smoke_tests.py` output |
-| Error budget | 0 errors during dry run | Derived from Grafana dashboard |
-| Alert routing | ✅ | Teams staging channel received test alert |
+| Metric          | Value                   | Notes                                                     |
+| --------------- | ----------------------- | --------------------------------------------------------- |
+| Backend tests   | 411 passed / 5 skipped  | `pytest backend/tests -v` (Python 3.11.9)                 |
+| Lint/Format     | ✅                      | `black`, `flake8` clean                                   |
+| Coverage        | 43% statements          | `coverage.xml` generated post-run                         |
+| Secret scanning | ✅                      | `.github/workflows/secret-scan.yml` manual dispatch green |
+| Smoke SLA       | 312 ms p50 / 441 ms p95 | `scripts/smoke_tests.py` output                           |
+| Error budget    | 0 errors during dry run | Derived from Grafana dashboard                            |
+| Alert routing   | ✅                      | Teams staging channel received test alert                 |
 
 ---
 

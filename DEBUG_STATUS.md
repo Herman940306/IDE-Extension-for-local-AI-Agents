@@ -6,12 +6,14 @@
 ## Current State
 
 ### Backend ✅
+
 - Running: http://127.0.0.1:8001
 - Redis: Unavailable (optional)
 - WebSocket: /ws/{client_id}
 - Status: OPERATIONAL
 
 ### Frontend ⚠️
+
 - Running: http://localhost:3000
 - WebSocket: Attempting connection
 - Status: DEBUGGING

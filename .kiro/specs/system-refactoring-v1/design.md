@@ -1,8 +1,8 @@
 # System Refactoring v1 - Design Document
 
-**Project Creator:** Herman Swanepoel  
-**Team:** DevOps Lead + System Architect  
-**Mission:** Zero-Breaking Refactoring  
+**Project Creator:** Herman Swanepoel
+**Team:** DevOps Lead + System Architect
+**Mission:** Zero-Breaking Refactoring
 **Date:** 2025-10-13
 
 ---
@@ -26,12 +26,14 @@ This design document outlines a comprehensive, zero-breaking refactoring strateg
 ### Current State Assessment
 
 #### Strengths ✅
+
 - Foundation hardening complete (exception handling, caching, rate limiting)
 - Multi-agent architecture with adapter pattern
 - Hexagonal architecture (ports & adapters)
 - Comprehensive documentation
 
 #### Areas for Improvement ⚠️
+
 - Code duplication across adapters (40%+ duplicate code)
 - Inconsistent async/await patterns
 - No connection pooling for Redis/ChromaDB
@@ -44,15 +46,19 @@ This design document outlines a comprehensive, zero-breaking refactoring strateg
 ## Refactoring Strategy
 
 ### Phase 1: Foundation (Week 1)
+
 **Focus:** Test infrastructure, configuration, logging
 
 ### Phase 2: Service Layer (Week 2)
+
 **Focus:** Dependency injection, connection pooling, async patterns
 
 ### Phase 3: Optimization (Week 3)
+
 **Focus:** Performance, caching, database queries
 
 ### Phase 4: Scalability (Week 4)
+
 **Focus:** Horizontal scaling, load balancing, state management
 
 ---
@@ -69,33 +75,33 @@ from dependency_injector import containers, providers
 
 class Container(containers.DeclarativeContainer):
     \"\"\"Dependency injection container\"\"\"
-    
+
     # Configuration
     config = providers.Singleton(Settings)
-    
+
     # Infrastructure
     redis_pool = providers.Singleton(
         RedisConnectionPool,
         url=config.provided.redis_url
     )
-    
+
     chroma_client = providers.Singleton(
         ChromaDBClient,
         persist_dir=config.provided.chroma_persist_dir
     )
-    
+
     # Services
     llm_manager = providers.Singleton(
         LLMManager,
         config=config,
         response_cache=response_cache
     )
-    
+
     response_cache = providers.Singleton(
         ResponseCache,
         redis_client=redis_pool
     )
-    
+
     rate_limiter = providers.Singleton(
         RateLimiter,
         redis_client=redis_pool
@@ -103,6 +109,7 @@ class Container(containers.DeclarativeContainer):
 ```
 
 **Benefits:**
+
 - Centralized dependency management
 - Easy mocking for tests
 - Clear dependency graph
@@ -121,7 +128,7 @@ from typing import Optional
 
 class RedisConnectionPool:
     \"\"\"Redis connection pool manager\"\"\"
-    
+
     def __init__(
         self,
         url: str,
@@ -134,13 +141,13 @@ class RedisConnectionPool:
             decode_responses=True
         )
         self._client: Optional[Redis] = None
-    
+
     async def get_client(self) -> Redis:
         \"\"\"Get Redis client from pool\"\"\"
         if not self._client:
             self._client = Redis(connection_pool=self.pool)
         return self._client
-    
+
     async def close(self):
         \"\"\"Close all connections\"\"\"
         if self._client:
@@ -149,6 +156,7 @@ class RedisConnectionPool:
 ```
 
 **Benefits:**
+
 - 60% reduction in connection overhead
 - Automatic connection recycling
 - Configurable pool size
@@ -161,6 +169,7 @@ class RedisConnectionPool:
 **Purpose:** Consistent async patterns throughout codebase
 
 **Pattern:**
+
 ```python
 # BEFORE (inconsistent)
 def sync_operation():
@@ -175,6 +184,7 @@ async def async_operation():
 ```
 
 **Guidelines:**
+
 1. All I/O operations use async/await
 2. Blocking operations moved to thread pools
 3. Async context managers for resources
@@ -193,7 +203,7 @@ from typing import Protocol
 
 class CacheService(Protocol):
     \"\"\"Cache service interface\"\"\"
-    
+
     async def get(self, key: str) -> Optional[Any]: ...
     async def set(self, key: str, value: Any, ttl: int) -> bool: ...
     async def delete(self, key: str) -> bool: ...
@@ -201,17 +211,18 @@ class CacheService(Protocol):
 
 class LLMService(Protocol):
     \"\"\"LLM service interface\"\"\"
-    
+
     async def generate(
         self,
         prompt: str,
         **kwargs
     ) -> str: ...
-    
+
     async def health_check(self) -> bool: ...
 ```
 
 **Benefits:**
+
 - Clear contracts
 - Easy mocking
 - Type safety
@@ -234,18 +245,18 @@ class DatabaseSettings(BaseSettings):
     redis_url: str = "redis://localhost:6379"
     redis_max_connections: int = 50
     chroma_persist_dir: str = "./data/chroma"
-    
+
 class LLMSettings(BaseSettings):
     \"\"\"LLM configuration\"\"\"
     ollama_url: str = "http://localhost:11434"
     default_model: str = "codellama:7b"
     timeout: int = 30
-    
+
 class AppSettings(BaseSettings):
     \"\"\"Application settings\"\"\"
     database: DatabaseSettings = DatabaseSettings()
     llm: LLMSettings = LLMSettings()
-    
+
     class Config:
         env_file = ".env"
         env_nested_delimiter = "__"
@@ -256,6 +267,7 @@ def get_settings() -> AppSettings:
 ```
 
 **Benefits:**
+
 - Single source of truth
 - Environment-specific configs
 - Type-safe settings
@@ -301,6 +313,7 @@ logger.info(
 ```
 
 **Benefits:**
+
 - Structured, searchable logs
 - Automatic context injection
 - Correlation ID tracking
@@ -346,6 +359,7 @@ def sample_code_context():
 ```
 
 **Benefits:**
+
 - Reusable test fixtures
 - Easy mocking
 - Isolated tests
@@ -356,24 +370,28 @@ def sample_code_context():
 ## Migration Strategy
 
 ### Step 1: Add Tests (No Code Changes)
+
 1. Write tests for existing functionality
 2. Achieve 85%+ coverage
 3. Establish baseline performance metrics
 4. Document current behavior
 
 ### Step 2: Refactor with Tests (Incremental)
+
 1. Refactor one component at a time
 2. Run tests after each change
 3. Monitor performance impact
 4. Rollback if tests fail
 
 ### Step 3: Optimize (Measured)
+
 1. Identify bottlenecks
 2. Optimize critical paths
 3. Measure improvements
 4. Document changes
 
 ### Step 4: Scale (Validated)
+
 1. Test horizontal scaling
 2. Validate state sharing
 3. Load test
@@ -383,20 +401,21 @@ def sample_code_context():
 
 ## Performance Targets
 
-| Metric | Current | Target | Improvement |
-|--------|---------|--------|-------------|
-| Cache Hit Rate | 30% | 60% | +100% |
-| p95 Latency | 2000ms | 1200ms | -40% |
-| Connection Overhead | 100ms | 40ms | -60% |
-| Error Recovery | 50% | 75% | +50% |
-| Code Duplication | 40% | 10% | -75% |
-| Test Coverage | 0% | 85% | +85% |
+| Metric              | Current | Target | Improvement |
+| ------------------- | ------- | ------ | ----------- |
+| Cache Hit Rate      | 30%     | 60%    | +100%       |
+| p95 Latency         | 2000ms  | 1200ms | -40%        |
+| Connection Overhead | 100ms   | 40ms   | -60%        |
+| Error Recovery      | 50%     | 75%    | +50%        |
+| Code Duplication    | 40%     | 10%    | -75%        |
+| Test Coverage       | 0%      | 85%    | +85%        |
 
 ---
 
 ## Rollback Plan
 
 ### Immediate Rollback (< 5 min)
+
 ```bash
 # Revert to previous commit
 git revert HEAD
@@ -407,6 +426,7 @@ docker-compose restart backend
 ```
 
 ### Partial Rollback (< 15 min)
+
 ```bash
 # Disable feature flag
 export ENABLE_NEW_FEATURE=false
@@ -416,6 +436,7 @@ docker-compose up -d
 ```
 
 ### Full Rollback (< 30 min)
+
 ```bash
 # Checkout previous version
 git checkout v1.0.0
@@ -430,6 +451,7 @@ docker-compose up -d
 ## Monitoring & Alerts
 
 ### Key Metrics to Monitor
+
 - Request latency (p50, p95, p99)
 - Error rate (4xx, 5xx)
 - Cache hit rate
@@ -438,6 +460,7 @@ docker-compose up -d
 - CPU usage
 
 ### Alert Thresholds
+
 - Error rate > 1%: WARNING
 - Error rate > 5%: CRITICAL
 - p95 latency > 2s: WARNING
@@ -450,6 +473,7 @@ docker-compose up -d
 ## Success Criteria
 
 ### Must Have ✅
+
 - [ ] All existing tests pass
 - [ ] 85%+ test coverage
 - [ ] Zero breaking changes
@@ -457,12 +481,14 @@ docker-compose up -d
 - [ ] Documentation updated
 
 ### Should Have 🎯
+
 - [ ] 30%+ performance improvement
 - [ ] 40%+ code duplication reduction
 - [ ] 50%+ error recovery improvement
 - [ ] Horizontal scalability validated
 
 ### Nice to Have 💡
+
 - [ ] 10x load capacity
 - [ ] Sub-second p95 latency
 - [ ] 90%+ test coverage
@@ -470,6 +496,6 @@ docker-compose up -d
 
 ---
 
-**Project Creator:** Herman Swanepoel  
-**Document Version:** 1.0  
+**Project Creator:** Herman Swanepoel
+**Document Version:** 1.0
 **Last Updated:** 2025-10-13

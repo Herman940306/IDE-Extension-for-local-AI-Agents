@@ -8,6 +8,7 @@
 ## What's Ready
 
 ### 1. Backend ✅
+
 - Production-ready FastAPI
 - WebSocket support
 - Health monitoring
@@ -15,12 +16,14 @@
 - **Running:** http://127.0.0.1:8001
 
 ### 2. Frontend ✅
+
 - React + TypeScript
 - Real-time WebSocket
 - Health dashboard
 - **Setup:** `cd frontend && npm install && npm run dev`
 
 ### 3. VS Code Extension ✅
+
 - 4 AI commands
 - Backend integration
 - Real-time communication
@@ -31,11 +34,13 @@
 ## Quick Deploy
 
 ### Backend
+
 ```bash
 start-backend.bat
 ```
 
 ### Frontend
+
 ```bash
 cd frontend
 npm install
@@ -43,6 +48,7 @@ npm run dev
 ```
 
 ### Extension
+
 ```bash
 cd extension
 npm install
@@ -55,11 +61,13 @@ npm run compile
 ## Production Deployment
 
 ### Docker (Full Stack)
+
 ```bash
 docker-compose up -d
 ```
 
 ### Manual
+
 ```bash
 # Backend
 cd backend

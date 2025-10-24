@@ -11,48 +11,56 @@ A comprehensive multi-agent AI coding assistant with privacy-first local operati
 ## 🌟 Features
 
 ### Multi-Agent Collaboration
+
 - **CrewAI Integration** - Collaborative documentation and test generation
 - **SuperAGI Integration** - Autonomous code generation with tool support
 - **AutoGPT Integration** - Deep research and complex analysis
 - **Specialized Agents** - Refactor, Bug, Doc, and Test agents
 
 ### AI-Powered Code Actions
+
 - **8+ Action Types** - Extract function, simplify, optimize, fix diagnostics
 - **Preview Before Apply** - See changes before committing
 - **One-Click Rollback** - Undo any AI-generated changes
 - **Confidence Scoring** - Know how reliable each suggestion is
 
 ### Inline Suggestions
+
 - **Real-Time Completions** - <200ms response time with caching
 - **LRU Cache** - Intelligent caching with request deduplication
 - **Acceptance Tracking** - Learn from your preferences
 - **Alternative Suggestions** - Get multiple options
 
 ### Security & Bug Detection
+
 - **6+ Security Patterns** - SQL injection, XSS, hardcoded secrets, etc.
 - **Static Analysis** - Language-specific checks
 - **LLM-Powered Detection** - Deep code analysis
 - **Severity Categorization** - Critical/High/Medium/Low
 
 ### Documentation Generation
+
 - **Python Docstrings** - Google-style automatic generation
 - **JSDoc Comments** - JavaScript/TypeScript support
 - **README Templates** - Project documentation
 - **API Documentation** - Comprehensive API docs
 
 ### Productivity Analytics
+
 - **Acceptance Rates** - Track suggestion effectiveness
 - **Agent Metrics** - Monitor agent performance
 - **Workflow Patterns** - Identify productivity trends
 - **Interactive Dashboard** - Visualize your data with charts
 
 ### Workspace Management
+
 - **Multi-Workspace Support** - Switch between projects seamlessly
 - **State Preservation** - Restore open files and cursor positions
 - **Per-Workspace Settings** - Configure agents per project
 - **Quick Switcher** - Fast workspace navigation
 
 ### Privacy First
+
 - **Local LLM Support** - Ollama integration for offline operation
 - **Cloud Fallback** - Optional OpenAI/Anthropic with privacy controls
 - **No Data Collection** - All analytics stored locally
@@ -63,6 +71,7 @@ A comprehensive multi-agent AI coding assistant with privacy-first local operati
 ## 📦 Installation
 
 ### Prerequisites
+
 - **VS Code** 1.85.0 or higher
 - **Python** 3.10 or higher
 - **Node.js** 16.x or higher
@@ -71,6 +80,7 @@ A comprehensive multi-agent AI coding assistant with privacy-first local operati
 ### Quick Start
 
 1. **Install the Extension**
+
    ```bash
    # From VS Code Marketplace (coming soon)
    # Or install from VSIX
@@ -85,16 +95,19 @@ A comprehensive multi-agent AI coding assistant with privacy-first local operati
    pip install -r requirements.txt
    ```
 
-  > ℹ️ **Optional local Ollama extras:** to enable the on-device LLM stack, install the
-  > additional packages from `requirements-ollama.txt` in a separate environment or after
-  > removing the base `httpx`/`anyio` pins:
-  > ```bash
-  > pip install -r requirements-ollama.txt
-  > ```
-  > These packages raise the `httpx` and `anyio` versions that FastAPI's legacy TestClient
-  > cannot use, so keep them isolated when developing against the standard test suite.
+> ℹ️ **Optional local Ollama extras:** to enable the on-device LLM stack, install the
+> additional packages from `requirements-ollama.txt` in a separate environment or after
+> removing the base `httpx`/`anyio` pins:
+>
+> ```bash
+> pip install -r requirements-ollama.txt
+> ```
+>
+> These packages raise the `httpx` and `anyio` versions that FastAPI's legacy TestClient
+> cannot use, so keep them isolated when developing against the standard test suite.
 
 3. **Start Backend Services**
+
    ```bash
    # Start with Docker Compose (recommended)
    docker-compose up -d
@@ -117,6 +130,7 @@ A comprehensive multi-agent AI coding assistant with privacy-first local operati
 ### Quick Actions
 
 **Keyboard Shortcuts:**
+
 - `Ctrl+Shift+M` - Toggle Offline/Online Mode
 - `Ctrl+Shift+T` - Generate Tests
 - `Ctrl+Shift+R` - Refactor Selection
@@ -184,19 +198,19 @@ Press `Ctrl+Shift+P` and type "Enterprise AI" to see all available commands:
 {
   // Backend Configuration
   "enterpriseAI.backend.url": "http://localhost:8000",
-  
+
   // Privacy Settings
   "enterpriseAI.privacy.allowCloud": false,
   "enterpriseAI.privacy.allowTelemetry": false,
-  
+
   // LLM Configuration
   "enterpriseAI.llm.provider": "ollama",
   "enterpriseAI.llm.model": "codellama:7b",
-  
+
   // Suggestions
   "enterpriseAI.suggestions.autoTrigger": true,
   "enterpriseAI.suggestions.debounceMs": 200,
-  
+
   // Accessibility
   "enterpriseAI.accessibility.screenReaderEnabled": false,
   "enterpriseAI.accessibility.highContrastMode": false,
@@ -256,6 +270,7 @@ PORT=8000
 ## 🏗️ Architecture
 
 ### Frontend (VS Code Extension)
+
 ```
 extension/
 ├── src/
@@ -277,6 +292,7 @@ extension/
 ```
 
 ### Backend (Python FastAPI)
+
 ```
 backend/
 ├── src/
@@ -301,40 +317,47 @@ backend/
 ## 🤖 Agents
 
 ### Refactor Agent
+
 - Code smell detection
 - Design pattern suggestions
 - Performance optimization
 - Maintainability improvements
 
 ### Bug Agent
+
 - Security vulnerability detection
 - Static code analysis
 - LLM-powered bug detection
 - Fix generation with explanations
 
 ### Doc Agent
+
 - Python docstring generation
 - JSDoc comment generation
 - README template creation
 - API documentation
 
 ### Test Agent (via CrewAI)
+
 - Unit test generation
 - Integration test scaffolding
 - Edge case identification
 - Test coverage analysis
 
 ### CrewAI Agents
+
 - Collaborative multi-agent execution
 - Doc and Test specialists
 - Sequential workflow processing
 
 ### SuperAGI Agents
+
 - Autonomous code generation
 - Tool-based execution
 - Goal-driven development
 
 ### AutoGPT Agents
+
 - Deep research and analysis
 - Complex multi-step tasks
 - Memory-based execution
@@ -344,6 +367,7 @@ backend/
 ## 📊 Analytics
 
 ### Metrics Tracked
+
 - Suggestion acceptance/rejection rates
 - Agent effectiveness scores
 - Language usage distribution
@@ -351,6 +375,7 @@ backend/
 - Workflow insights
 
 ### Privacy
+
 - All data stored locally
 - 90-day retention policy
 - Opt-out available
@@ -361,6 +386,7 @@ backend/
 ## 🔒 Security
 
 ### Security Patterns Detected
+
 - SQL Injection
 - Command Injection
 - Hardcoded Secrets
@@ -369,6 +395,7 @@ backend/
 - Insecure Random
 
 ### Privacy Controls
+
 - Local-first operation
 - Optional cloud fallback
 - Data sanitization
@@ -466,4 +493,3 @@ MIT License - see LICENSE file for details
 **Project Creator:** Herman Swanepoel  
 **Last Updated:** 2025-10-13  
 **Version:** 1.0.0
-

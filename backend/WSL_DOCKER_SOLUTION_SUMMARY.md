@@ -260,23 +260,23 @@ $checks = @{
 
 ### WSL-Docker-Setup-Enterprise.ps1
 
-| Mode | Purpose | Use Case |
-|------|---------|----------|
-| `FullSetup` | Complete installation | Fresh system or full reinstall |
-| `CleanupOnly` | Remove WSL/Docker | Preparing for reinstall |
-| `InstallOnly` | Install without cleanup | Already cleaned system |
-| `DiagnosticsOnly` | System information | Initial assessment |
-| `Validate` | Verify installation | Post-install check |
+| Mode              | Purpose                 | Use Case                       |
+| ----------------- | ----------------------- | ------------------------------ |
+| `FullSetup`       | Complete installation   | Fresh system or full reinstall |
+| `CleanupOnly`     | Remove WSL/Docker       | Preparing for reinstall        |
+| `InstallOnly`     | Install without cleanup | Already cleaned system         |
+| `DiagnosticsOnly` | System information      | Initial assessment             |
+| `Validate`        | Verify installation     | Post-install check             |
 
 ### WSL-Docker-SafeMode-Recovery.ps1
 
-| Mode | Purpose | Use Case |
-|------|---------|----------|
-| `FullDiagnostics` | Complete system check | Before installation |
-| `DiagnoseBIOS` | BIOS/virtualization check | Hardware validation |
-| `SafeEnable` | Gradual enablement | After BIOS fixes |
-| `DisableAndRecover` | Feature rollback | System crashed |
-| `CreateRestorePoint` | Backup system state | Before major changes |
+| Mode                 | Purpose                   | Use Case             |
+| -------------------- | ------------------------- | -------------------- |
+| `FullDiagnostics`    | Complete system check     | Before installation  |
+| `DiagnoseBIOS`       | BIOS/virtualization check | Hardware validation  |
+| `SafeEnable`         | Gradual enablement        | After BIOS fixes     |
+| `DisableAndRecover`  | Feature rollback          | System crashed       |
+| `CreateRestorePoint` | Backup system state       | Before major changes |
 
 ---
 
@@ -507,8 +507,8 @@ Include:
 
 **🎯 Status: PRODUCTION READY**  
 **📅 Date: 2025-10-19**  
-**🏆 Version: 1.0-ENTERPRISE**  
+**🏆 Version: 1.0-ENTERPRISE**
 
 ---
 
-*This solution demonstrates enterprise-grade DevOps automation with comprehensive error handling, security considerations, and user-friendly documentation. Ready for deployment in production environments.*
+_This solution demonstrates enterprise-grade DevOps automation with comprehensive error handling, security considerations, and user-friendly documentation. Ready for deployment in production environments._

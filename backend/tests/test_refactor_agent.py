@@ -3,16 +3,16 @@ Unit tests for RefactorAgent
 Project Creator: Herman Swanepoel
 """
 
-import pytest
-from unittest.mock import Mock, AsyncMock
+from unittest.mock import AsyncMock, Mock
 
-from src.agents.refactor_agent import RefactorAgent
+import pytest
 from src.adapters.base_adapter import AgentConfig, Capability
-from src.models.task import Task, TaskType, Priority
+from src.agents.refactor_agent import RefactorAgent
 from src.models.context import CodeContext
 from src.models.response import AgentResponse
-from src.services.llm_manager import LLMManager
+from src.models.task import Priority, Task, TaskType
 from src.services.code_smell_detector import CodeSmellDetector
+from src.services.llm_manager import LLMManager
 
 
 @pytest.fixture
@@ -417,7 +417,7 @@ def func1():
 @pytest.mark.asyncio
 async def test_memory_integration(agent_config, mock_llm_manager, mock_code_smell_detector):
     """Test memory service integration"""
-    from src.services.memory_service import MemoryService, MemoryConfig, StorageBackend
+    from src.services.memory_service import MemoryConfig, MemoryService, StorageBackend
 
     # Create memory service
     memory_config = MemoryConfig(backend=StorageBackend.SQLITE)

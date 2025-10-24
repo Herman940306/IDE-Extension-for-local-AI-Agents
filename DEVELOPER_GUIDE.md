@@ -151,23 +151,23 @@ extension/
 
 ```typescript
 // extension/src/providers/MyProvider.ts
-import * as vscode from 'vscode';
+import * as vscode from "vscode";
 
 export class MyProvider implements vscode.SomeProvider {
-    constructor(private wsClient: WebSocketClient) {}
+  constructor(private wsClient: WebSocketClient) {}
 
-    async provideSomething(
-        document: vscode.TextDocument,
-        position: vscode.Position
-    ): Promise<vscode.Something[]> {
-        // Your implementation
-        const response = await this.wsClient.sendWithResponse(
-            'my_action',
-            { document, position }
-        );
-        
-        return this.convertResponse(response);
-    }
+  async provideSomething(
+    document: vscode.TextDocument,
+    position: vscode.Position,
+  ): Promise<vscode.Something[]> {
+    // Your implementation
+    const response = await this.wsClient.sendWithResponse("my_action", {
+      document,
+      position,
+    });
+
+    return this.convertResponse(response);
+  }
 }
 ```
 
@@ -176,10 +176,10 @@ export class MyProvider implements vscode.SomeProvider {
 ```typescript
 // In extension.ts
 const myCommand = vscode.commands.registerCommand(
-    'enterpriseAI.myCommand',
-    async () => {
-        // Command implementation
-    }
+  "enterpriseAI.myCommand",
+  async () => {
+    // Command implementation
+  },
 );
 
 context.subscriptions.push(myCommand);
@@ -189,19 +189,19 @@ context.subscriptions.push(myCommand);
 
 ```typescript
 export class MyPanel {
-    public static currentPanel: MyPanel | undefined;
-    private readonly _panel: vscode.WebviewPanel;
+  public static currentPanel: MyPanel | undefined;
+  private readonly _panel: vscode.WebviewPanel;
 
-    public static createOrShow(extensionUri: vscode.Uri) {
-        // Implementation
-    }
+  public static createOrShow(extensionUri: vscode.Uri) {
+    // Implementation
+  }
 
-    private _getHtmlForWebview(): string {
-        return `<!DOCTYPE html>
+  private _getHtmlForWebview(): string {
+    return `<!DOCTYPE html>
         <html>
             <!-- Your HTML -->
         </html>`;
-    }
+  }
 }
 ```
 
@@ -233,14 +233,14 @@ async def websocket_endpoint(
     client_id: str
 ):
     await websocket.accept()
-    
+
     try:
         while True:
             data = await websocket.receive_json()
-            
+
             # Handle message
             response = await handle_message(data)
-            
+
             await websocket.send_json(response)
     except WebSocketDisconnect:
         # Cleanup
@@ -253,13 +253,13 @@ async def websocket_endpoint(
 @app.post("/api/analyze")
 async def analyze_code(request: AnalyzeRequest):
     """Analyze code and return suggestions"""
-    
+
     # Get agent
     agent = get_agent(request.agent_type)
-    
+
     # Execute
     result = await agent.analyze(request.code)
-    
+
     return result
 ```
 
@@ -269,16 +269,16 @@ The backend can defer to OpenAI or Anthropic when Ollama is unavailable or when 
 
 - Install the optional SDKs in the backend virtual environment:
 
-    ```bash
-    pip install openai anthropic
-    ```
+  ```bash
+  pip install openai anthropic
+  ```
 
 - Set the relevant API keys in `backend/.env` (lines are present but empty by default):
 
-    ```env
-    OPENAI_API_KEY=sk-...
-    ANTHROPIC_API_KEY=...
-    ```
+  ```env
+  OPENAI_API_KEY=sk-...
+  ANTHROPIC_API_KEY=...
+  ```
 
 - When instantiating `LLMManager`, pass `allow_cloud=True` and the desired `LLMProvider` (`openai` or `anthropic`). Without this flag, any remote execution attempt raises `LLMError`.
 - The manager runs all prompts through `PrivacyManager` before dispatching them to the cloud. Inputs containing email addresses, phone numbers, secrets, or token-like substrings are blocked and logged. Sanitised prompts replace sensitive values with `[REDACTED]` markers.
@@ -290,46 +290,46 @@ With credentials in place, you can validate the integration manually:
 
 1. Run the targeted unit tests to ensure local mocking still succeeds:
 
-    ```bash
-    pytest backend/tests/unit/test_services_critical.py -k cloud -v
-    ```
+   ```bash
+   pytest backend/tests/unit/test_services_critical.py -k cloud -v
+   ```
 
 2. Exercise the real API with a short Python snippet (replace `provider` and `prompt` as needed):
 
-    ```python
-    import asyncio
-    import os
+   ```python
+   import asyncio
+   import os
 
-    from src.services.llm_manager import LLMManager, LLMProvider
-
-
-    async def main() -> None:
-        manager = LLMManager(
-            provider=LLMProvider.OPENAI,
-            model="gpt-4o-mini",
-            api_key=os.environ["OPENAI_API_KEY"],
-            allow_cloud=True,
-        )
-
-        print(
-            await manager.generate(
-                "Say hello from the integration test.",
-                temperature=0.2,
-                max_tokens=60,
-            )
-        )
+   from src.services.llm_manager import LLMManager, LLMProvider
 
 
-    asyncio.run(main())
-    ```
+   async def main() -> None:
+       manager = LLMManager(
+           provider=LLMProvider.OPENAI,
+           model="gpt-4o-mini",
+           api_key=os.environ["OPENAI_API_KEY"],
+           allow_cloud=True,
+       )
+
+       print(
+           await manager.generate(
+               "Say hello from the integration test.",
+               temperature=0.2,
+               max_tokens=60,
+           )
+       )
+
+
+   asyncio.run(main())
+   ```
 
 3. The `health_check` coroutine reaches out to the cloud provider client. Invoke it from a REPL or sanity-check it inside a monitoring task to confirm the SDK is correctly initialised.
 
 4. Example output from the live validation run (gpt-4o-mini, 2025-10-19):
 
-    ```text
-    The cloud fallback test has been successfully completed, confirming that all systems functioned as intended during the transition. We are now fully operational with the backup infrastructure in place.
-    ```
+   ```text
+   The cloud fallback test has been successfully completed, confirming that all systems functioned as intended during the transition. We are now fully operational with the backup infrastructure in place.
+   ```
 
 > **Note:** Anthropic parity is optional. If your deployment does not provision `ANTHROPIC_API_KEY`, the Claude provider will remain inactive and `LLMManager` will continue operating with Ollama/OpenAI only. To enable Anthropic later, install the `anthropic` package, export the key, and rerun the smoke snippet above using `LLMProvider.ANTHROPIC`.
 
@@ -350,23 +350,23 @@ class MyCustomAgent:
         self.name = "My Custom Agent"
 
     async def analyze_code(
-        self, 
-        task: Task, 
+        self,
+        task: Task,
         context: CodeContext
     ) -> AgentResponse:
         """
         Analyze code and return suggestions
-        
+
         Args:
             task: Task to execute
             context: Code context
-            
+
         Returns:
             AgentResponse with suggestions
         """
         # Your implementation
         suggestions = await self._generate_suggestions(context)
-        
+
         return AgentResponse(
             task_id=task.id,
             agent_name=self.name,
@@ -376,7 +376,7 @@ class MyCustomAgent:
         )
 
     async def _generate_suggestions(
-        self, 
+        self,
         context: CodeContext
     ) -> List[Suggestion]:
         # Implementation
@@ -417,8 +417,8 @@ class MyFrameworkAdapter(AgentAdapter):
         self.is_initialized = True
 
     async def execute_task(
-        self, 
-        task: Task, 
+        self,
+        task: Task,
         context: CodeContext
     ) -> AgentResponse:
         """Execute task using the framework"""
@@ -458,20 +458,17 @@ adapter_registry.register("my_framework", adapter)
 
 ```typescript
 // extension/src/test/suite/myProvider.test.ts
-import * as assert from 'assert';
-import * as vscode from 'vscode';
-import { MyProvider } from '../../providers/MyProvider';
+import * as assert from "assert";
+import * as vscode from "vscode";
+import { MyProvider } from "../../providers/MyProvider";
 
-suite('MyProvider Test Suite', () => {
-    test('Should provide suggestions', async () => {
-        const provider = new MyProvider(mockWsClient);
-        const result = await provider.provideSomething(
-            mockDocument,
-            mockPosition
-        );
-        
-        assert.ok(result.length > 0);
-    });
+suite("MyProvider Test Suite", () => {
+  test("Should provide suggestions", async () => {
+    const provider = new MyProvider(mockWsClient);
+    const result = await provider.provideSomething(mockDocument, mockPosition);
+
+    assert.ok(result.length > 0);
+  });
 });
 ```
 
@@ -485,9 +482,9 @@ from src.agents.my_custom_agent import MyCustomAgent
 @pytest.mark.asyncio
 async def test_custom_agent():
     agent = MyCustomAgent(mock_llm_manager)
-    
+
     result = await agent.analyze_code(mock_task, mock_context)
-    
+
     assert result.suggestions
     assert result.confidence > 0.5
 ```
@@ -551,12 +548,12 @@ import pdb; pdb.set_trace()
 
 ```typescript
 // Enable verbose logging
-wsClient.on('message', (data) => {
-    console.log('Received:', data);
+wsClient.on("message", (data) => {
+  console.log("Received:", data);
 });
 
-wsClient.on('error', (error) => {
-    console.error('WebSocket error:', error);
+wsClient.on("error", (error) => {
+  console.error("WebSocket error:", error);
 });
 ```
 
@@ -585,12 +582,12 @@ wsClient.on('error', (error) => {
 ```typescript
 // Extension
 try {
-    const result = await riskyOperation();
-    return result;
+  const result = await riskyOperation();
+  return result;
 } catch (error) {
-    vscode.window.showErrorMessage(`Operation failed: ${error}`);
-    console.error('Detailed error:', error);
-    return null;
+  vscode.window.showErrorMessage(`Operation failed: ${error}`);
+  console.error("Detailed error:", error);
+  return null;
 }
 ```
 

@@ -43,6 +43,14 @@ class Settings(BaseSettings):
     verifier_model: str = "mistral:7b-q4_K_M"
     summarizer_model: str = "phi3:mini-q4_K_M"
 
+    # Ollama timeouts (seconds)
+    reasoner_timeout_seconds: float = 30.0
+    verifier_timeout_seconds: float = 60.0
+
+    # Ollama retry policy
+    ollama_max_retries: int = 2
+    ollama_retry_backoff_seconds: float = 1.0
+
     # Performance Tuning
     omp_num_threads: int = 7
     flash_attention_enabled: bool = True

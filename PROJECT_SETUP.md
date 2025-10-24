@@ -1,7 +1,7 @@
 # AuraIA Project Setup Guide
 
-**Maintainer:** Platform Engineering  \
-**Initial Author:** Herman Swanepoel  \
+**Maintainer:** Platform Engineering \
+**Initial Author:** Herman Swanepoel \
 **Last Updated:** 2025-10-19
 
 ---
@@ -157,16 +157,16 @@ Mirror these states in `TASK.md` and `IMPLEMENTATION_PROGRESS.md` as you progres
 
 ## Troubleshooting
 
-**Virtual environment will not activate**  \
+**Virtual environment will not activate** \
 Run `Set-ExecutionPolicy RemoteSigned -Scope CurrentUser` once, then reopen PowerShell.
 
-**Port 8001 already in use**  \
+**Port 8001 already in use** \
 Use `Get-NetTCPConnection -LocalPort 8001 | Stop-Process -Id {$_.OwningProcess}` or change the port via `backend/.env`.
 
-**Ollama requests hang**  \
+**Ollama requests hang** \
 Ensure `ollama serve` is running and the referenced model is installed. See fallback guidance in `MONITORING_GUIDE.md`.
 
-**Secret scan failure**  \
+**Secret scan failure** \
 Rotate the leaked value, scrub commit history if necessary, and document the incident per `MONITORING_GUIDE.md`.
 
 ---

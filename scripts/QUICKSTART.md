@@ -43,6 +43,7 @@ notepad config.ps1
 ```
 
 Update these values:
+
 - `ServerIP`: Your server IP (e.g., `192.168.1.134`)
 - `Username`: Your SSH username (e.g., `root`)
 - `Password`: Your SSH password
@@ -62,6 +63,7 @@ Update these values:
 **That's it!** 🎉
 
 You should now see:
+
 - ✅ PuTTY window connected to your server in the project directory
 - ✅ WinSCP GUI with local files (left) and remote files (right)
 

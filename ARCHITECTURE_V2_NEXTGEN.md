@@ -21,15 +21,15 @@ Enhance **AuraIA** into a next-generation, self-optimizing, multi-agent IDE assi
 
 ## 🧩 Summary of Upgrades
 
-| Area | Enhancement | Description |
-|------|--------------|-------------|
-| **Multi-Agent System** | Dynamic Graph Routing | Replace static routing with a reasoning graph controlled by a meta-controller LLM |
-| **Reasoning Layer** | Dual-process reasoning | Split inference between fast intuitive Reasoner and slow analytical Verifier |
-| **Runtime Optimization** | Quantized MoE (Mixture of Experts) | Use small specialist models with shared base (Q4 quantized) |
-| **Memory System** | Episodic + Semantic + Procedural | Combine Redis, FAISS, and LoRA adapters for layered long-term memory |
-| **Predictive Caching** | Reinforcement Learning Pre-Warming | ML-driven model pre-loads based on user activity patterns |
-| **Hallucination Control** | Verifier Ensemble + Guardrails | AST + Neural verification + evidence-based decoding |
-| **Explainability** | Cognitive Trace Compression | Store and summarize agent reasoning for transparency |
+| Area                      | Enhancement                        | Description                                                                       |
+| ------------------------- | ---------------------------------- | --------------------------------------------------------------------------------- |
+| **Multi-Agent System**    | Dynamic Graph Routing              | Replace static routing with a reasoning graph controlled by a meta-controller LLM |
+| **Reasoning Layer**       | Dual-process reasoning             | Split inference between fast intuitive Reasoner and slow analytical Verifier      |
+| **Runtime Optimization**  | Quantized MoE (Mixture of Experts) | Use small specialist models with shared base (Q4 quantized)                       |
+| **Memory System**         | Episodic + Semantic + Procedural   | Combine Redis, FAISS, and LoRA adapters for layered long-term memory              |
+| **Predictive Caching**    | Reinforcement Learning Pre-Warming | ML-driven model pre-loads based on user activity patterns                         |
+| **Hallucination Control** | Verifier Ensemble + Guardrails     | AST + Neural verification + evidence-based decoding                               |
+| **Explainability**        | Cognitive Trace Compression        | Store and summarize agent reasoning for transparency                              |
 
 ---
 
@@ -95,10 +95,10 @@ meta_controller.route(G, task_type="refactor")
 
 ### 🧩 2. Reasoning Architecture (Dual-Process)
 
-| Process | Description | Model | Output |
-|----------|--------------|--------|---------|
-| **System 1** | Fast, heuristic reasoning for simple edits | LLaMA 3.2 3B (Q4) | Immediate suggestion |
-| **System 2** | Analytical verification for complex refactors | Mistral 7B (Q4) | Verified response |
+| Process      | Description                                   | Model             | Output               |
+| ------------ | --------------------------------------------- | ----------------- | -------------------- |
+| **System 1** | Fast, heuristic reasoning for simple edits    | LLaMA 3.2 3B (Q4) | Immediate suggestion |
+| **System 2** | Analytical verification for complex refactors | Mistral 7B (Q4)   | Verified response    |
 
 ```python
 def execute_reasoning(task):
@@ -112,11 +112,11 @@ def execute_reasoning(task):
 
 ### 🧩 3. Memory Layering
 
-| Type | Backend | Purpose |
-|-------|----------|----------|
-| **Episodic Memory** | Redis (LRU Cache) | Short-term conversation state |
-| **Semantic Memory** | Chroma / FAISS | Long-term embeddings for similar code patterns |
-| **Procedural Memory** | LoRA adapters | Learned behaviors and preferences |
+| Type                  | Backend           | Purpose                                        |
+| --------------------- | ----------------- | ---------------------------------------------- |
+| **Episodic Memory**   | Redis (LRU Cache) | Short-term conversation state                  |
+| **Semantic Memory**   | Chroma / FAISS    | Long-term embeddings for similar code patterns |
+| **Procedural Memory** | LoRA adapters     | Learned behaviors and preferences              |
 
 - Scheduled summarization: periodically merges related embeddings into compact summaries.
 - Drift detection: identifies embedding shifts and retrains adapters.
@@ -153,9 +153,13 @@ Every agent output includes structured reasoning metadata.
 ```json
 {
   "thought_chain": [
-    {"agent": "Planner", "action": "Decompose task", "confidence": 0.9},
-    {"agent": "Reasoner", "action": "Propose refactor", "confidence": 0.88},
-    {"agent": "Verifier", "action": "Validate syntax & logic", "confidence": 0.95}
+    { "agent": "Planner", "action": "Decompose task", "confidence": 0.9 },
+    { "agent": "Reasoner", "action": "Propose refactor", "confidence": 0.88 },
+    {
+      "agent": "Verifier",
+      "action": "Validate syntax & logic",
+      "confidence": 0.95
+    }
   ],
   "summary": "Validated Python function refactor with improved readability."
 }
@@ -167,12 +171,12 @@ The **Cognitive Trace Store** compresses these into summaries using a small summ
 
 ### 🛡️ 7. Hallucination Defense & Provenance
 
-| Layer | Mechanism | Description |
-|--------|------------|-------------|
-| **Retriever Guard** | Context validation | Rejects ungrounded responses |
-| **Verifier Ensemble** | AST + LLM | Ensures code is syntactically valid and logically sound |
-| **Guardrails / NeMo Filters** | Semantic safety layer | Prevents insecure or nonsensical outputs |
-| **Audit Logs** | Local SQLite | Immutable records for all inference traces |
+| Layer                         | Mechanism             | Description                                             |
+| ----------------------------- | --------------------- | ------------------------------------------------------- |
+| **Retriever Guard**           | Context validation    | Rejects ungrounded responses                            |
+| **Verifier Ensemble**         | AST + LLM             | Ensures code is syntactically valid and logically sound |
+| **Guardrails / NeMo Filters** | Semantic safety layer | Prevents insecure or nonsensical outputs                |
+| **Audit Logs**                | Local SQLite          | Immutable records for all inference traces              |
 
 ---
 
@@ -258,20 +262,20 @@ The **Cognitive Trace Store** compresses these into summaries using a small summ
 
 ## 🚀 Implementation Roadmap (2025 Q4 – 2026 Q1)
 
-| Phase | Focus | Deliverable |
-|--------|--------|-------------|
-| **1** | Neural Graph Routing | Meta-controller + reasoning graph prototype |
-| **2** | Reasoning Trace Compression | Cognitive Trace Store + summarizer |
-| **3** | Predictive RL Cache | Reinforcement pre-warming policy |
-| **4** | Continual Learning | TinyLoRA adapter loop |
-| **5** | Safety Ensemble | AST + Neural verifier integration |
+| Phase | Focus                       | Deliverable                                 |
+| ----- | --------------------------- | ------------------------------------------- |
+| **1** | Neural Graph Routing        | Meta-controller + reasoning graph prototype |
+| **2** | Reasoning Trace Compression | Cognitive Trace Store + summarizer          |
+| **3** | Predictive RL Cache         | Reinforcement pre-warming policy            |
+| **4** | Continual Learning          | TinyLoRA adapter loop                       |
+| **5** | Safety Ensemble             | AST + Neural verifier integration           |
 
 ---
 
 ## ✅ Expected Outcomes
 
 - 35–50% latency reduction in reasoning tasks.
-- >90% verification confidence on code generation.
+- > 90% verification confidence on code generation.
 - Full transparency with cognitive trace provenance.
 - Adaptive learning cycle without cloud dependence.
 

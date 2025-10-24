@@ -1,7 +1,7 @@
 # Requirements Document - AuraIA Next-Gen Architecture v2.0
 
-**Project Creator:** Herman Swanepoel  
-**Version:** 2.0  
+**Project Creator:** Herman Swanepoel
+**Version:** 2.0
 **Date:** 2025-10-13
 
 ---
@@ -136,6 +136,6 @@ This document outlines the requirements for upgrading AuraIA to a next-generatio
 
 ---
 
-**Project Creator:** Herman Swanepoel  
-**Document Version:** 2.0  
+**Project Creator:** Herman Swanepoel
+**Document Version:** 2.0
 **Last Updated:** 2025-10-13

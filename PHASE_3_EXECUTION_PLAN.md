@@ -13,10 +13,12 @@
 ### HIGH PRIORITY (Core Services)
 
 #### 1. LLM Manager (services/llm_manager.py)
+
 **Estimated Tests:** 30+  
 **Coverage Target:** 90%+
 
 **Test Categories:**
+
 - Initialization and configuration
 - Model loading and management
 - Response generation
@@ -26,6 +28,7 @@
 - Performance benchmarks
 
 **Key Test Scenarios:**
+
 ```python
 - test_llm_manager_initialization
 - test_generate_response_success
@@ -40,10 +43,12 @@
 ```
 
 #### 2. Connection Manager (services/connection_manager.py)
+
 **Estimated Tests:** 20+  
 **Coverage Target:** 90%+
 
 **Test Categories:**
+
 - Connection pool management
 - Connection lifecycle
 - Health checks
@@ -52,6 +57,7 @@
 - Resource cleanup
 
 **Key Test Scenarios:**
+
 ```python
 - test_connection_pool_initialization
 - test_get_connection_from_pool
@@ -64,10 +70,12 @@
 ```
 
 #### 3. Context Manager (services/context_manager.py)
+
 **Estimated Tests:** 25+  
 **Coverage Target:** 85%+
 
 **Test Categories:**
+
 - Context creation and management
 - Context enrichment
 - Git integration
@@ -76,6 +84,7 @@
 - Error handling
 
 **Key Test Scenarios:**
+
 ```python
 - test_create_code_context
 - test_enrich_context_with_git_info
@@ -90,10 +99,12 @@
 ### MEDIUM PRIORITY (Supporting Services)
 
 #### 4. Embeddings Service (services/embeddings_service.py)
+
 **Estimated Tests:** 20+  
 **Coverage Target:** 85%+
 
 **Test Categories:**
+
 - Embedding generation
 - Model management
 - Batch processing
@@ -101,10 +112,12 @@
 - Error handling
 
 #### 5. Memory Service (services/memory_service.py)
+
 **Estimated Tests:** 25+  
 **Coverage Target:** 85%+
 
 **Test Categories:**
+
 - Memory storage and retrieval
 - Vector operations
 - Semantic search
@@ -112,10 +125,12 @@
 - Error handling
 
 #### 6. Code Smell Detector (services/code_smell_detector.py)
+
 **Estimated Tests:** 20+  
 **Coverage Target:** 85%+
 
 **Test Categories:**
+
 - Smell detection
 - Pattern matching
 - Severity calculation
@@ -123,10 +138,12 @@
 - Error handling
 
 #### 7. Telemetry Service (services/telemetry_service.py)
+
 **Estimated Tests:** 15+  
 **Coverage Target:** 85%+
 
 **Test Categories:**
+
 - Metrics collection
 - Event tracking
 - Performance monitoring
@@ -134,10 +151,12 @@
 - Error handling
 
 #### 8. Self-Healing Manager (services/self_healing_manager.py)
+
 **Estimated Tests:** 20+  
 **Coverage Target:** 85%+
 
 **Test Categories:**
+
 - Error detection
 - Recovery strategies
 - Automatic remediation
@@ -145,10 +164,12 @@
 - Error handling
 
 #### 9. Semantic Search (services/semantic_search.py)
+
 **Estimated Tests:** 20+  
 **Coverage Target:** 85%+
 
 **Test Categories:**
+
 - Search query processing
 - Vector similarity
 - Result ranking
@@ -158,18 +179,22 @@
 ### LOW PRIORITY (Utility Services)
 
 #### 10. Predictive Cache Manager (services/predictive_cache_manager.py)
+
 **Estimated Tests:** 15+  
 **Coverage Target:** 80%+
 
 #### 11. Mode Manager (services/mode_manager.py)
+
 **Estimated Tests:** 10+  
 **Coverage Target:** 80%+
 
 #### 12. Cloud Providers (services/cloud_providers.py)
+
 **Estimated Tests:** 10+  
 **Coverage Target:** 80%+
 
 #### 13. Prompt Templates (services/prompt_templates.py)
+
 **Estimated Tests:** 10+  
 **Coverage Target:** 80%+
 
@@ -196,11 +221,11 @@ from src.services.[service_name] import [ServiceClass]
 
 class Test[ServiceClass]Initialization:
     """Test service initialization"""
-    
+
     def test_initialization_with_defaults(self):
         """Test initialization with default parameters"""
         pass
-    
+
     def test_initialization_with_custom_config(self):
         """Test initialization with custom configuration"""
         pass
@@ -209,11 +234,11 @@ class Test[ServiceClass]Initialization:
 @pytest.mark.asyncio
 class Test[ServiceClass]CoreFunctionality:
     """Test core service functionality"""
-    
+
     async def test_primary_operation_success(self):
         """Test successful primary operation"""
         pass
-    
+
     async def test_primary_operation_with_error(self):
         """Test primary operation error handling"""
         pass
@@ -222,11 +247,11 @@ class Test[ServiceClass]CoreFunctionality:
 @pytest.mark.asyncio
 class Test[ServiceClass]Integration:
     """Test service integration scenarios"""
-    
+
     async def test_integration_with_cache(self):
         """Test integration with caching layer"""
         pass
-    
+
     async def test_integration_with_other_services(self):
         """Test integration with dependent services"""
         pass
@@ -234,7 +259,7 @@ class Test[ServiceClass]Integration:
 
 class Test[ServiceClass]EdgeCases:
     """Test edge cases and error scenarios"""
-    
+
     def test_edge_case_1(self):
         """Test specific edge case"""
         pass
@@ -243,6 +268,7 @@ class Test[ServiceClass]EdgeCases:
 ### Common Test Patterns
 
 #### 1. Async Service Testing
+
 ```python
 @pytest.mark.asyncio
 async def test_async_operation(mock_dependency):
@@ -252,6 +278,7 @@ async def test_async_operation(mock_dependency):
 ```
 
 #### 2. Mock External Dependencies
+
 ```python
 @pytest.fixture
 def mock_llm_client():
@@ -261,21 +288,23 @@ def mock_llm_client():
 ```
 
 #### 3. Error Handling
+
 ```python
 async def test_handles_external_error(service, mock_dependency):
     mock_dependency.operation.side_effect = Exception("External error")
-    
+
     with pytest.raises(ServiceException):
         await service.operation()
 ```
 
 #### 4. Performance Testing
+
 ```python
 async def test_operation_performance(service):
     start = time.time()
     await service.operation()
     duration = time.time() - start
-    
+
     assert duration < 1.0  # Should complete in <1 second
 ```
 
@@ -304,6 +333,7 @@ async def test_operation_performance(service):
 ## 🎯 SUCCESS CRITERIA
 
 ### Per Service:
+
 - ✅ 85%+ code coverage
 - ✅ All tests passing
 - ✅ No breaking changes
@@ -312,6 +342,7 @@ async def test_operation_performance(service):
 - ✅ Integration tests included
 
 ### Overall Phase 3:
+
 - ✅ 200+ tests created
 - ✅ 13 services tested
 - ✅ 85%+ average coverage
@@ -374,6 +405,7 @@ async def test_operation_performance(service):
 ## 📝 NEXT STEPS
 
 **Immediate Actions:**
+
 1. Start with LLM Manager (highest priority)
 2. Create comprehensive test file
 3. Run tests and verify coverage
@@ -381,12 +413,14 @@ async def test_operation_performance(service):
 5. Continue through priority list
 
 **After Phase 3:**
+
 - Phase 4: Adapters Layer (100+ tests)
 - Phase 5: Agents Layer (80+ tests)
 - Phase 6: Orchestrator Layer (120+ tests)
 - Phase 7: Memory & Verifier (80+ tests)
 
 **Final Goal:**
+
 - 800+ total tests
 - 85%+ overall coverage
 - Zero breaking changes

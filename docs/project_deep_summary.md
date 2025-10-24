@@ -18,14 +18,14 @@
 
 ### Key Metrics
 
-| Metric | Target | Notes |
-| --- | --- | --- |
-| Test Coverage | ≥ 95% | Unit and integration suites (`COMPREHENSIVE_TEST_RESULTS.md` currently ~96%). |
-| WebSocket Latency | ≤ 50 ms | Sustained latency for orchestrated agent responses. |
-| REST Response Time | ≤ 100 ms | Mean response under load for FastAPI endpoints. |
-| Error Rate | < 0.1% | Aggregated backend error rate across endpoints. |
-| Local Completion Accuracy | ≥ 90% | Benchmarked against standardized prompt suites. |
-| Privacy Compliance | 100% local execution by default | Verified via system tests and configuration audits. |
+| Metric                    | Target                          | Notes                                                                         |
+| ------------------------- | ------------------------------- | ----------------------------------------------------------------------------- |
+| Test Coverage             | ≥ 95%                           | Unit and integration suites (`COMPREHENSIVE_TEST_RESULTS.md` currently ~96%). |
+| WebSocket Latency         | ≤ 50 ms                         | Sustained latency for orchestrated agent responses.                           |
+| REST Response Time        | ≤ 100 ms                        | Mean response under load for FastAPI endpoints.                               |
+| Error Rate                | < 0.1%                          | Aggregated backend error rate across endpoints.                               |
+| Local Completion Accuracy | ≥ 90%                           | Benchmarked against standardized prompt suites.                               |
+| Privacy Compliance        | 100% local execution by default | Verified via system tests and configuration audits.                           |
 
 ## Target Users & Use Cases
 
@@ -37,14 +37,14 @@
 
 ### Representative Use Cases
 
-| Use Case | Description |
-| --- | --- |
-| Code Refactoring | Autonomous restructuring of legacy or complex modules with reasoning traceability. |
-| Test Generation | On-demand creation of unit and integration tests with coverage insights. |
-| Documentation Automation | Generation of docstrings, READMEs, and architecture summaries. |
-| Security Scanning | Hybrid static and semantic checks for vulnerabilities and code smells. |
-| Cognitive Contexting | Retrieval of relevant knowledge via Redis, FAISS, or Chroma memory layers. |
-| Team Analytics | In-editor dashboards surfacing agent performance and adoption metrics. |
+| Use Case                 | Description                                                                        |
+| ------------------------ | ---------------------------------------------------------------------------------- |
+| Code Refactoring         | Autonomous restructuring of legacy or complex modules with reasoning traceability. |
+| Test Generation          | On-demand creation of unit and integration tests with coverage insights.           |
+| Documentation Automation | Generation of docstrings, READMEs, and architecture summaries.                     |
+| Security Scanning        | Hybrid static and semantic checks for vulnerabilities and code smells.             |
+| Cognitive Contexting     | Retrieval of relevant knowledge via Redis, FAISS, or Chroma memory layers.         |
+| Team Analytics           | In-editor dashboards surfacing agent performance and adoption metrics.             |
 
 ## Project Snapshot
 
@@ -86,11 +86,11 @@
 
 ### Roadmap Phases
 
-| Phase | Timeline | Focus |
-| --- | --- | --- |
-| Phase 1 | Q4 2025 | Align frontend payloads with `TaskSession` schema, expand backend test coverage, and finalize deterministic orchestrator integration. |
-| Phase 2 | Q1 2026 | Introduce neural graph orchestration, cognitive trace logging, and expanded verification ensembles. |
-| Phase 3 | Q2 2026 | Deliver predictive caching, TinyLoRA continual learning loops, reinforcement tuning, and extended safety layers. |
+| Phase   | Timeline | Focus                                                                                                                                 |
+| ------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| Phase 1 | Q4 2025  | Align frontend payloads with `TaskSession` schema, expand backend test coverage, and finalize deterministic orchestrator integration. |
+| Phase 2 | Q1 2026  | Introduce neural graph orchestration, cognitive trace logging, and expanded verification ensembles.                                   |
+| Phase 3 | Q2 2026  | Deliver predictive caching, TinyLoRA continual learning loops, reinforcement tuning, and extended safety layers.                      |
 
 ## Operational & Quality Posture
 

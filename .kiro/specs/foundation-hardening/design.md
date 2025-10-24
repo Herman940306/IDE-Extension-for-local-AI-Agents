@@ -1,10 +1,10 @@
 # Design Document - Foundation Hardening
 
-**Project Creator:** Herman Swanepoel  
-**Feature:** Foundation Hardening & Code Quality Improvements  
-**Sprint:** Week 4 - Beta Deployment Phase  
-**Priority:** HIGH  
-**Document Version:** 1.0  
+**Project Creator:** Herman Swanepoel
+**Feature:** Foundation Hardening & Code Quality Improvements
+**Sprint:** Week 4 - Beta Deployment Phase
+**Priority:** HIGH
+**Document Version:** 1.0
 **Last Updated:** 2025-10-13
 
 ---
@@ -99,7 +99,7 @@ logger = logging.getLogger(__name__)
 
 class AdapterUtils:
     """Shared utilities for agent adapters"""
-    
+
     @staticmethod
     async def exponential_backoff(
         func: Callable,
@@ -111,7 +111,7 @@ class AdapterUtils:
     ) -> Any:
         """
         Execute function with exponential backoff retry logic.
-        
+
         Args:
             func: Async function to execute
             max_retries: Maximum number of retry attempts
@@ -119,14 +119,14 @@ class AdapterUtils:
             max_delay: Maximum delay between retries
             exponential_base: Base for exponential calculation
             jitter: Add random jitter to prevent thundering herd
-            
+
         Returns:
             Result from successful function execution
-            
+
         Raises:
             Exception: Last exception if all retries exhausted
         """
-        
+
     @staticmethod
     def validate_response(
         response: Dict[str, Any],
@@ -134,18 +134,18 @@ class AdapterUtils:
     ) -> Dict[str, Any]:
         """
         Validate adapter response structure.
-        
+
         Args:
             response: Response dictionary from adapter
             required_fields: List of required field names
-            
+
         Returns:
             Validated response dictionary
-            
+
         Raises:
             ValidationException: If response is invalid
         """
-        
+
     @staticmethod
     async def health_check_with_timeout(
         check_func: Callable,
@@ -154,16 +154,16 @@ class AdapterUtils:
     ) -> bool:
         """
         Execute health check with timeout protection.
-        
+
         Args:
             check_func: Async health check function
             timeout: Timeout in seconds
             service_name: Name of service for logging
-            
+
         Returns:
             True if healthy, False otherwise
         """
-        
+
     @staticmethod
     def log_adapter_operation(
         adapter_name: str,
@@ -174,7 +174,7 @@ class AdapterUtils:
     ) -> None:
         """
         Log adapter operation with structured logging.
-        
+
         Args:
             adapter_name: Name of the adapter
             operation: Operation being performed
@@ -226,7 +226,7 @@ logger = logging.getLogger(__name__)
 
 class ResponseCache:
     """LLM response caching service using Redis"""
-    
+
     def __init__(
         self,
         redis_client: Redis,
@@ -235,7 +235,7 @@ class ResponseCache:
     ):
         """
         Initialize response cache.
-        
+
         Args:
             redis_client: Async Redis client
             default_ttl: Default TTL in seconds (1 hour)
@@ -245,7 +245,7 @@ class ResponseCache:
         self.default_ttl = default_ttl
         self.key_prefix = key_prefix
         self._stats = {"hits": 0, "misses": 0, "errors": 0}
-        
+
     async def get(
         self,
         prompt: str,
@@ -254,16 +254,16 @@ class ResponseCache:
     ) -> Optional[Dict[str, Any]]:
         """
         Retrieve cached response.
-        
+
         Args:
             prompt: LLM prompt
             model: Model name
             context_params: Additional context parameters
-            
+
         Returns:
             Cached response or None if not found
         """
-        
+
     async def set(
         self,
         prompt: str,
@@ -274,18 +274,18 @@ class ResponseCache:
     ) -> bool:
         """
         Cache LLM response.
-        
+
         Args:
             prompt: LLM prompt
             model: Model name
             response: Response to cache
             context_params: Additional context parameters
             ttl: TTL in seconds (uses default if None)
-            
+
         Returns:
             True if cached successfully, False otherwise
         """
-        
+
     def _generate_cache_key(
         self,
         prompt: str,
@@ -294,19 +294,19 @@ class ResponseCache:
     ) -> str:
         """
         Generate cache key from prompt and parameters.
-        
+
         Args:
             prompt: LLM prompt
             model: Model name
             context_params: Additional context parameters
-            
+
         Returns:
             SHA-256 hash as cache key
         """
-        
+
     async def get_stats(self) -> Dict[str, int]:
         """Get cache statistics"""
-        
+
     async def clear(self) -> bool:
         """Clear all cached responses"""
 ```
@@ -358,7 +358,7 @@ class CircuitState(Enum):
 
 class CircuitBreaker:
     """Circuit breaker for external service calls"""
-    
+
     def __init__(
         self,
         name: str,
@@ -368,7 +368,7 @@ class CircuitBreaker:
     ):
         """
         Initialize circuit breaker.
-        
+
         Args:
             name: Circuit breaker name (for logging)
             failure_threshold: Failures before opening circuit
@@ -379,12 +379,12 @@ class CircuitBreaker:
         self.failure_threshold = failure_threshold
         self.timeout = timedelta(seconds=timeout_seconds)
         self.success_threshold = success_threshold
-        
+
         self._state = CircuitState.CLOSED
         self._failure_count = 0
         self._success_count = 0
         self._last_failure_time: Optional[datetime] = None
-        
+
     async def call(
         self,
         func: Callable,
@@ -393,29 +393,29 @@ class CircuitBreaker:
     ) -> Any:
         """
         Execute function with circuit breaker protection.
-        
+
         Args:
             func: Async function to execute
             *args: Positional arguments for func
             **kwargs: Keyword arguments for func
-            
+
         Returns:
             Result from function execution
-            
+
         Raises:
             CircuitBreakerOpenException: If circuit is open
             Exception: Original exception from func
         """
-        
+
     def _should_attempt_reset(self) -> bool:
         """Check if circuit should transition to half-open"""
-        
+
     def _on_success(self) -> None:
         """Handle successful call"""
-        
+
     def _on_failure(self) -> None:
         """Handle failed call"""
-        
+
     def get_state(self) -> Dict[str, Any]:
         """Get current circuit breaker state"""
 ```
@@ -423,6 +423,7 @@ class CircuitBreaker:
 #### Implementation Strategy
 
 1. **State Machine:**
+
    ```
    CLOSED → (failures >= threshold) → OPEN
    OPEN → (timeout elapsed) → HALF_OPEN
@@ -458,7 +459,7 @@ import uuid
 
 class AuraIAException(Exception):
     """Base exception for all AuraIA errors"""
-    
+
     def __init__(
         self,
         message: str,
@@ -472,7 +473,7 @@ class AuraIAException(Exception):
         self.details = details or {}
         self.correlation_id = correlation_id or str(uuid.uuid4())
         self.timestamp = datetime.utcnow().isoformat()
-        
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert exception to dictionary for API responses"""
         return {
@@ -488,7 +489,7 @@ class AuraIAException(Exception):
 
 class AdapterException(AuraIAException):
     """Adapter-specific errors"""
-    
+
     def __init__(self, message: str, adapter_name: str, **kwargs):
         super().__init__(
             message=message,
@@ -500,7 +501,7 @@ class AdapterException(AuraIAException):
 
 class LLMException(AuraIAException):
     """LLM inference errors"""
-    
+
     def __init__(self, message: str, model: str, **kwargs):
         super().__init__(
             message=message,
@@ -512,7 +513,7 @@ class LLMException(AuraIAException):
 
 class ValidationException(AuraIAException):
     """Input validation errors"""
-    
+
     def __init__(self, message: str, field: str, **kwargs):
         super().__init__(
             message=message,
@@ -524,7 +525,7 @@ class ValidationException(AuraIAException):
 
 class CircuitBreakerOpenException(AuraIAException):
     """Circuit breaker is open"""
-    
+
     def __init__(self, service_name: str, **kwargs):
         super().__init__(
             message=f"Circuit breaker open for {service_name}",
@@ -536,7 +537,7 @@ class CircuitBreakerOpenException(AuraIAException):
 
 class RateLimitExceededException(AuraIAException):
     """Rate limit exceeded"""
-    
+
     def __init__(self, limit: int, window: int, **kwargs):
         super().__init__(
             message=f"Rate limit exceeded: {limit} requests per {window} seconds",
@@ -567,7 +568,7 @@ logger = logging.getLogger(__name__)
 
 class RateLimiter:
     """Redis-based rate limiter using sliding window"""
-    
+
     def __init__(
         self,
         redis_client: Redis,
@@ -576,7 +577,7 @@ class RateLimiter:
     ):
         """
         Initialize rate limiter.
-        
+
         Args:
             redis_client: Async Redis client
             default_limit: Default requests per window
@@ -585,7 +586,7 @@ class RateLimiter:
         self.redis = redis_client
         self.default_limit = default_limit
         self.default_window = default_window
-        
+
     async def check_rate_limit(
         self,
         key: str,
@@ -594,16 +595,16 @@ class RateLimiter:
     ) -> tuple[bool, int]:
         """
         Check if request is within rate limit.
-        
+
         Args:
             key: Rate limit key (e.g., client_id, ip_address)
             limit: Request limit (uses default if None)
             window: Time window in seconds (uses default if None)
-            
+
         Returns:
             Tuple of (allowed: bool, remaining: int)
         """
-        
+
     async def reset(self, key: str) -> bool:
         """Reset rate limit for key"""
 ```
@@ -640,11 +641,11 @@ import time
 
 class CorrelationIDMiddleware(BaseHTTPMiddleware):
     """Inject correlation ID into requests"""
-    
+
     async def dispatch(self, request: Request, call_next):
         correlation_id = request.headers.get("X-Correlation-ID", str(uuid.uuid4()))
         request.state.correlation_id = correlation_id
-        
+
         response = await call_next(request)
         response.headers["X-Correlation-ID"] = correlation_id
         return response
@@ -652,25 +653,25 @@ class CorrelationIDMiddleware(BaseHTTPMiddleware):
 
 class RateLimitMiddleware(BaseHTTPMiddleware):
     """Enforce rate limits on requests"""
-    
+
     def __init__(self, app, rate_limiter: RateLimiter):
         super().__init__(app)
         self.rate_limiter = rate_limiter
-        
+
     async def dispatch(self, request: Request, call_next):
         # Extract client identifier (IP or API key)
         client_id = request.client.host
-        
+
         # Check rate limit
         allowed, remaining = await self.rate_limiter.check_rate_limit(client_id)
-        
+
         if not allowed:
             return Response(
                 content="Rate limit exceeded",
                 status_code=429,
                 headers={"Retry-After": "60"}
             )
-        
+
         response = await call_next(request)
         response.headers["X-RateLimit-Remaining"] = str(remaining)
         return response
@@ -678,20 +679,20 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
 
 class RequestSizeMiddleware(BaseHTTPMiddleware):
     """Enforce request size limits"""
-    
+
     def __init__(self, app, max_size: int = 10 * 1024 * 1024):  # 10MB
         super().__init__(app)
         self.max_size = max_size
-        
+
     async def dispatch(self, request: Request, call_next):
         content_length = request.headers.get("content-length")
-        
+
         if content_length and int(content_length) > self.max_size:
             return Response(
                 content=f"Request too large. Max size: {self.max_size} bytes",
                 status_code=413
             )
-        
+
         return await call_next(request)
 ```
 
@@ -769,7 +770,7 @@ logger = logging.getLogger(__name__)
 
 def register_exception_handlers(app: FastAPI):
     """Register global exception handlers"""
-    
+
     @app.exception_handler(AuraIAException)
     async def aura_exception_handler(request: Request, exc: AuraIAException):
         logger.error(
@@ -784,7 +785,7 @@ def register_exception_handlers(app: FastAPI):
             status_code=500,
             content=exc.to_dict()
         )
-    
+
     @app.exception_handler(Exception)
     async def generic_exception_handler(request: Request, exc: Exception):
         correlation_id = getattr(request.state, "correlation_id", "unknown")
@@ -940,6 +941,7 @@ async def health_check():
 ## Migration Plan
 
 ### Phase 1: Infrastructure (Days 1-2)
+
 1. Create shared utilities module
 2. Implement response cache service
 3. Implement circuit breaker
@@ -947,6 +949,7 @@ async def health_check():
 5. Write unit tests
 
 ### Phase 2: Integration (Days 3-4)
+
 1. Refactor adapters to use shared utilities
 2. Integrate response cache into LLM manager
 3. Wrap adapter calls with circuit breakers
@@ -954,6 +957,7 @@ async def health_check():
 5. Write integration tests
 
 ### Phase 3: Documentation (Day 5)
+
 1. Generate OpenAPI documentation
 2. Write deployment runbook
 3. Update developer guide
@@ -973,6 +977,6 @@ async def health_check():
 
 ---
 
-**Project Creator:** Herman Swanepoel  
-**Document Version:** 1.0  
+**Project Creator:** Herman Swanepoel
+**Document Version:** 1.0
 **Last Updated:** 2025-10-13

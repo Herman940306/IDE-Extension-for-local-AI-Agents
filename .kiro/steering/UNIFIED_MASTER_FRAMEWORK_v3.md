@@ -5,8 +5,8 @@ priority: critical
 
 # 🎯 Unified Kiro Master Steering Framework v3.0 – GODMODE + MCP Integration
 
-**Version:** 3.0  
-**Last Updated:** 2025-10-13  
+**Version:** 3.0
+**Last Updated:** 2025-10-13
 **Owner:** Herman Swanepoel
 
 ---
@@ -16,6 +16,7 @@ priority: critical
 Enable/disable specific guidance modules by checking/unchecking boxes below:
 
 ### Core Modules (Always Active)
+
 - [x] **DevOps Master Mode** - Ultra-deep infrastructure analysis
 - [x] **Full-Stack Company Simulation** - Multi-role team simulation mode
 - [x] **Core Development Rules** - Mandatory execution protocol
@@ -23,6 +24,7 @@ Enable/disable specific guidance modules by checking/unchecking boxes below:
 - [x] **AI Orchestration Layer (MCP)** - Always active
 
 ### Optional Modules (Toggle as Needed)
+
 - [x] **Godmode Developer** - AI-augmented flow state coding
 - [x] **AuraIA Strategic Guidelines** - Enterprise roadmap & compliance
 
@@ -45,6 +47,7 @@ Enable/disable specific guidance modules by checking/unchecking boxes below:
 ## 🧠 AI ORCHESTRATION LAYER (MCP – Always Active)
 
 ### Responsibilities:
+
 - **MCP model is primary authority** for all automation and orchestration
 - Observe, learn, and integrate MCP outputs dynamically
 - LLaMA 7B and sub-models act under MCP guidance
@@ -52,16 +55,19 @@ Enable/disable specific guidance modules by checking/unchecking boxes below:
 - Log all MCP-guided decisions for audit
 
 ### Task Execution Rules:
+
 - Every automation/device task **consults MCP first**
 - Validate multi-step reasoning against MCP logic
 - Optimize routing, GPU/CPU usage, and session context
 - MCP conflicts override other models unless user/admin explicit
 
 ### Learning & Adaptation:
+
 - Continuously analyze MCP outcomes to improve routing, plugin use, and role-specific behavior
 - Pre-load actions, anticipate user needs
 
 ### Privacy, Security & Audit:
+
 - Respect edge-first execution, role-based access, and encrypted communication
 - Log actions without storing sensitive data unnecessarily
 - Comply with enterprise policies
@@ -73,31 +79,36 @@ Enable/disable specific guidance modules by checking/unchecking boxes below:
 **Creator Attribution:** Herman Swanepoel
 
 ### Markdown Documents:
+
 ```markdown
 ---
 
-**Project Creator:** Herman Swanepoel  
-**Document Version:** [version]  
+**Project Creator:** Herman Swanepoel
+**Document Version:** [version]
 **Last Updated:** [date]
 ```
 
 ### Code Comments:
+
 ```
 // Project Creator: Herman Swanepoel
 // [Additional context]
 ```
 
 ### README Header/Footer:
+
 ```markdown
 ## Author
 
-**Herman Swanepoel** - *Project Creator*
+**Herman Swanepoel** - _Project Creator_
 ```
 
 ### Scope:
+
 Applies to all docs: README.md, API docs, design specs, tasks.md, user guides, changelogs.
 
 ### Implementation:
+
 - Always include Herman Swanepoel as creator
 - Maintain version and date metadata
 - Automatic inheritance across all Kiro modules
@@ -106,16 +117,18 @@ Applies to all docs: README.md, API docs, design specs, tasks.md, user guides, c
 
 ## 🚀 CURRENT SPRINT FOCUS
 
-**Week 3-4:** Mobile App Deployment Prep  
+**Week 3-4:** Mobile App Deployment Prep
 **Sprint Goal:** Production-ready AuraIA beta launch
 
 ### Critical Tasks:
+
 1. Accessibility Features (3 days)
 2. Onboarding Flow (2 days)
 3. Testing Suite (5 days)
 4. Build & Deployment Prep (3 days)
 
 ### Execution Rules:
+
 - Check sprint plan each morning
 - Update task status immediately
 - Flag blockers within 4 hours
@@ -128,6 +141,7 @@ Applies to all docs: README.md, API docs, design specs, tasks.md, user guides, c
 ## 🎯 KIRO AGENT INSTRUCTION SUMMARY
 
 ### Command Modes:
+
 - **BATCH MODE**: Execute all tasks without stopping
 - **GODMODE**: Enable Module 5 (flow state coding)
 - **DEVOPS MODE**: Enable Module 4 (infrastructure focus)
@@ -135,6 +149,7 @@ Applies to all docs: README.md, API docs, design specs, tasks.md, user guides, c
 - **FOCUS MODE**: Disable all optional modules
 
 ### Checks Before Task Completion:
+
 - [ ] Code compiles with zero errors
 - [ ] All dependencies installed
 - [ ] Types correct
@@ -149,6 +164,6 @@ Applies to all docs: README.md, API docs, design specs, tasks.md, user guides, c
 
 ---
 
-**Project Creator:** Herman Swanepoel  
-**Document Version:** 3.0  
+**Project Creator:** Herman Swanepoel
+**Document Version:** 3.0
 **Last Updated:** 2025-10-13

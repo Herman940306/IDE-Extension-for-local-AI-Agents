@@ -1,7 +1,7 @@
 # Design Document - AuraIA Next-Gen Architecture v2.0
 
-**Project Creator:** Herman Swanepoel  
-**Version:** 2.0  
+**Project Creator:** Herman Swanepoel
+**Version:** 2.0
 **Date:** 2025-10-13
 
 ---
@@ -87,6 +87,7 @@ This document describes the technical design for AuraIA v2.0, a next-generation 
 **Purpose:** Orchestrate agent communication through dynamic graph routing.
 
 **Interface:**
+
 ```python
 class MetaController:
     def route(self, task_type: str, complexity: float) -> List[str]
@@ -95,6 +96,7 @@ class MetaController:
 ```
 
 **Implementation Details:**
+
 - Uses NetworkX for graph representation
 - Complexity estimation based on code length, AST depth, and task type
 - Reinforcement learning for graph optimization
@@ -103,18 +105,21 @@ class MetaController:
 ### 2. Dual-Process Reasoning
 
 **System 1 (Fast Reasoner):**
+
 - Model: LLaMA 3.2 3B (Q4_K_M)
 - Target latency: <200ms
 - Use cases: Simple completions, syntax fixes, quick refactors
 - Confidence threshold: 0.85
 
 **System 2 (Analytical Verifier):**
+
 - Model: Mistral 7B (Q4_K_M)
 - Target latency: <2000ms
 - Use cases: Complex refactors, architecture decisions, bug analysis
 - Confidence threshold: 0.90
 
 **Interface:**
+
 ```python
 class DualProcessReasoner:
     def execute(self, task: Task, context: CodeContext) -> AgentResponse
@@ -126,6 +131,7 @@ class DualProcessReasoner:
 **Purpose:** Capture and compress reasoning metadata for explainability.
 
 **Schema:**
+
 ```json
 {
   "trace_id": "uuid",
@@ -140,6 +146,7 @@ class DualProcessReasoner:
 ```
 
 **Interface:**
+
 ```python
 class CognitiveTraceStore:
     def record(self, agent: str, action: str, confidence: float, **kwargs) -> None
@@ -150,6 +157,7 @@ class CognitiveTraceStore:
 ### 4. Memory Systems
 
 **Episodic Memory (Redis):**
+
 ```python
 class EpisodicCache:
     def store(self, key: str, value: Any, ttl: int = 300) -> None
@@ -158,6 +166,7 @@ class EpisodicCache:
 ```
 
 **Semantic Memory (FAISS + Chroma):**
+
 ```python
 class SemanticStore:
     def add_embedding(self, embedding: np.ndarray, metadata: dict) -> None
@@ -166,6 +175,7 @@ class SemanticStore:
 ```
 
 **Procedural Memory (LoRA):**
+
 ```python
 class ProceduralMemory:
     def train_adapter(self, training_data: Dict) -> None
@@ -177,11 +187,13 @@ class ProceduralMemory:
 ### 5. Verifier Ensemble
 
 **Components:**
+
 - AST Checker: Python `ast` module, Tree-sitter for other languages
 - LLM Verifier: Mistral 7B with verification prompt
 - Guardrails: NeMo filters for safety
 
 **Interface:**
+
 ```python
 class VerifierEnsemble:
     def verify(self, code: str, language: str, context: str) -> Dict[str, Any]
@@ -189,6 +201,7 @@ class VerifierEnsemble:
 ```
 
 **Verification Pipeline:**
+
 1. AST syntax check (fast, deterministic)
 2. LLM semantic check (slower, probabilistic)
 3. Guardrails safety check (fast, rule-based)
@@ -199,12 +212,14 @@ class VerifierEnsemble:
 **Policy Model:** CatBoost classifier
 
 **Features:**
+
 - Hour of day (0-23)
 - Language hash (categorical)
 - File type hash (categorical)
 - Recent action sequence (n-gram)
 
 **Interface:**
+
 ```python
 class PredictivePolicy:
     def observe(self, event: str, **context) -> None
@@ -218,6 +233,7 @@ class PredictivePolicy:
 **Storage:** SQLite with AES-256 encryption
 
 **Schema:**
+
 ```sql
 CREATE TABLE provenance (
     id TEXT PRIMARY KEY,
@@ -237,6 +253,7 @@ CREATE TABLE provenance (
 ## Data Models
 
 ### Task Model
+
 ```python
 @dataclass
 class Task:
@@ -249,6 +266,7 @@ class Task:
 ```
 
 ### AgentResponse Model
+
 ```python
 @dataclass
 class AgentResponse:
@@ -262,6 +280,7 @@ class AgentResponse:
 ```
 
 ### CognitiveTrace Model
+
 ```python
 @dataclass
 class CognitiveTrace:
@@ -280,6 +299,7 @@ class CognitiveTrace:
 ## Error Handling
 
 ### Error Hierarchy
+
 ```python
 class AuraIAError(Exception):
     """Base exception"""
@@ -301,6 +321,7 @@ class ProvenanceError(AuraIAError):
 ```
 
 ### Error Recovery Strategies
+
 1. **Routing failure:** Fallback to default path
 2. **Inference failure:** Retry with different model
 3. **Verification failure:** Request user clarification
@@ -312,6 +333,7 @@ class ProvenanceError(AuraIAError):
 ## Testing Strategy
 
 ### Unit Tests
+
 - Meta-controller routing logic
 - Complexity estimation
 - Memory operations (Redis, FAISS, LoRA)
@@ -319,6 +341,7 @@ class ProvenanceError(AuraIAError):
 - Cognitive trace recording and summarization
 
 ### Integration Tests
+
 - End-to-end task execution
 - Multi-agent coordination
 - Memory persistence and retrieval
@@ -326,6 +349,7 @@ class ProvenanceError(AuraIAError):
 - Provenance logging
 
 ### Performance Tests
+
 - Latency benchmarks (System 1: <200ms, System 2: <2000ms)
 - Memory usage monitoring (<2GB total)
 - CPU usage monitoring (<60% average)
@@ -333,6 +357,7 @@ class ProvenanceError(AuraIAError):
 - Verification confidence (>90% target)
 
 ### Safety Tests
+
 - Hallucination detection
 - Syntax error prevention
 - Semantic correctness validation
@@ -343,6 +368,7 @@ class ProvenanceError(AuraIAError):
 ## Deployment Architecture
 
 ### Local Development
+
 ```bash
 # Terminal 1: Ollama
 ollama serve
@@ -358,20 +384,21 @@ code --extensionDevelopmentPath=./extension
 ```
 
 ### Production Deployment
+
 ```yaml
 # docker-compose.yml
-version: '3.8'
+version: "3.8"
 services:
   ollama:
     image: ollama/ollama:latest
     volumes:
       - ./models:/root/.ollama
-  
+
   redis:
     image: redis:alpine
     volumes:
       - ./data/redis:/data
-  
+
   backend:
     build: ./backend
     environment:
@@ -388,21 +415,25 @@ services:
 ## Performance Optimization
 
 ### Model Quantization
+
 - All models: GGUF format with Q4_K_M or Q5_K_M quantization
 - Memory savings: ~75% vs FP16
 - Latency impact: <10% vs FP16
 
 ### Flash-Attention 2
+
 - CPU-optimized attention mechanism
 - Latency reduction: ~30% for long contexts
 - Memory reduction: ~50% for attention layers
 
 ### Model Pooling
+
 - Keep System 1 (3B) always loaded
 - Load System 2 (7B) on-demand
 - Unload after 5 minutes of inactivity
 
 ### Predictive Pre-warming
+
 - Pre-load models based on RL policy predictions
 - Target: 60% cache hit rate
 - Expected latency reduction: 40% for predicted actions
@@ -412,18 +443,21 @@ services:
 ## Security Considerations
 
 ### Data Privacy
+
 - All inference local (no cloud calls)
 - Encrypted provenance logs (AES-256)
 - Optional telemetry (opt-in only)
 - No PII in logs
 
 ### Code Safety
+
 - AST validation before execution
 - Semantic verification via LLM
 - Guardrails for dangerous patterns
 - User confirmation for destructive changes
 
 ### Model Safety
+
 - Quantized models from trusted sources
 - Checksum verification on load
 - Sandboxed execution environment
@@ -434,6 +468,7 @@ services:
 ## Monitoring and Observability
 
 ### Metrics
+
 - Latency (p50, p95, p99)
 - Confidence scores
 - Cache hit rates
@@ -442,12 +477,14 @@ services:
 - Verification pass rates
 
 ### Logging
+
 - Cognitive traces (JSONL)
 - Provenance logs (SQLite)
 - Error logs (stderr)
 - Performance metrics (Prometheus format)
 
 ### Dashboards
+
 - Real-time latency monitoring
 - Agent effectiveness tracking
 - Memory usage visualization
@@ -455,6 +492,6 @@ services:
 
 ---
 
-**Project Creator:** Herman Swanepoel  
-**Document Version:** 2.0  
+**Project Creator:** Herman Swanepoel
+**Document Version:** 2.0
 **Last Updated:** 2025-10-13

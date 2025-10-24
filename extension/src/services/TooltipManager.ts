@@ -1,20 +1,20 @@
 /**
  * Tooltip Manager - Contextual help system
- * 
+ *
  * Displays contextual tooltips for first-time feature usage
- * 
+ *
  * Project Creator: Herman Swanepoel
  */
 
-import * as vscode from 'vscode';
+import * as vscode from "vscode";
 
 export interface TooltipDefinition {
   id: string;
   title: string;
   description: string;
   shortcut?: string;
-  position: 'top' | 'bottom' | 'left' | 'right';
-  trigger: 'hover' | 'focus' | 'manual';
+  position: "top" | "bottom" | "left" | "right";
+  trigger: "hover" | "focus" | "manual";
   dismissible: boolean;
 }
 
@@ -24,8 +24,8 @@ export interface TooltipState {
 }
 
 export class TooltipManager {
-  private static readonly STATE_KEY = 'enterpriseAI.tooltips.state';
-  
+  private static readonly STATE_KEY = "enterpriseAI.tooltips.state";
+
   private context: vscode.ExtensionContext;
   private tooltips: Map<string, TooltipDefinition> = new Map();
   private state: TooltipState;
@@ -40,7 +40,7 @@ export class TooltipManager {
    * Initialize the tooltip manager
    */
   public async initialize(): Promise<void> {
-    console.log('[TooltipManager] Initialized');
+    console.log("[TooltipManager] Initialized");
   }
 
   /**
@@ -70,21 +70,21 @@ export class TooltipManager {
     }
 
     // Show as information message with actions
-    const actions = ['Got it'];
+    const actions = ["Got it"];
     if (tooltip.dismissible) {
       actions.push("Don't show again");
     }
 
-    const message = tooltip.shortcut 
+    const message = tooltip.shortcut
       ? `${tooltip.description} (${tooltip.shortcut})`
       : tooltip.description;
 
     const result = await vscode.window.showInformationMessage(
       `💡 ${tooltip.title}: ${message}`,
-      ...actions
+      ...actions,
     );
 
-    if (result === 'Got it') {
+    if (result === "Got it") {
       this.markAsSeen(tooltipId);
     } else if (result === "Don't show again") {
       this.setEnabled(false);
@@ -128,18 +128,22 @@ export class TooltipManager {
   public setEnabled(enabled: boolean): void {
     this.state.enabled = enabled;
     this.saveState();
-    console.log(`[TooltipManager] Tooltips ${enabled ? 'enabled' : 'disabled'}`);
+    console.log(
+      `[TooltipManager] Tooltips ${enabled ? "enabled" : "disabled"}`,
+    );
   }
 
   /**
    * Load state from storage
    */
   private loadState(): TooltipState {
-    const stored = this.context.workspaceState.get<any>(TooltipManager.STATE_KEY);
-    
+    const stored = this.context.workspaceState.get<any>(
+      TooltipManager.STATE_KEY,
+    );
+
     return {
       seenTooltips: new Set(stored?.seenTooltips || []),
-      enabled: stored?.enabled !== false
+      enabled: stored?.enabled !== false,
     };
   }
 
@@ -149,7 +153,7 @@ export class TooltipManager {
   private saveState(): void {
     this.context.workspaceState.update(TooltipManager.STATE_KEY, {
       seenTooltips: Array.from(this.state.seenTooltips),
-      enabled: this.state.enabled
+      enabled: this.state.enabled,
     });
   }
 
@@ -157,7 +161,7 @@ export class TooltipManager {
    * Dispose of resources
    */
   public dispose(): void {
-    this.disposables.forEach(d => d.dispose());
+    this.disposables.forEach((d) => d.dispose());
     this.disposables = [];
   }
 }

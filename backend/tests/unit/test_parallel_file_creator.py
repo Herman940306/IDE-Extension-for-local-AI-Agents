@@ -3,11 +3,11 @@ Unit tests for Parallel File Creator
 Project Creator: Herman Swanepoel
 """
 
-import pytest
-from pathlib import Path
-import tempfile
 import shutil
+import tempfile
+from pathlib import Path
 
+import pytest
 from src.utils.parallel_file_creator import ParallelFileCreator, create_files_parallel
 
 

@@ -3,10 +3,11 @@ Backend Monitoring Script
 Project Creator: Herman Swanepoel
 """
 
-import requests
-import time
 import sys
+import time
 from datetime import datetime
+
+import requests
 
 
 def check_health():

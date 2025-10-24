@@ -1,12 +1,12 @@
 /**
  * Tour Panel - Interactive feature tour
- * 
+ *
  * Guides users through key features with step-by-step navigation
- * 
+ *
  * Project Creator: Herman Swanepoel
  */
 
-import * as vscode from 'vscode';
+import * as vscode from "vscode";
 
 export interface TourStep {
   id: string;
@@ -37,7 +37,7 @@ export class TourPanel {
   private constructor(
     panel: vscode.WebviewPanel,
     extensionUri: vscode.Uri,
-    steps: TourStep[]
+    steps: TourStep[],
   ) {
     this.panel = panel;
     this.steps = steps;
@@ -47,9 +47,9 @@ export class TourPanel {
 
     // Handle messages from webview
     this.panel.webview.onDidReceiveMessage(
-      message => this.handleMessage(message),
+      (message) => this.handleMessage(message),
       null,
-      this.disposables
+      this.disposables,
     );
 
     // Handle panel disposal
@@ -61,7 +61,7 @@ export class TourPanel {
    */
   public static createOrShow(
     extensionUri: vscode.Uri,
-    steps: TourStep[]
+    steps: TourStep[],
   ): TourPanel {
     const column = vscode.ViewColumn.One;
 
@@ -73,14 +73,14 @@ export class TourPanel {
 
     // Create new panel
     const panel = vscode.window.createWebviewPanel(
-      'enterpriseAI.tour',
-      'Feature Tour',
+      "enterpriseAI.tour",
+      "Feature Tour",
       column,
       {
         enableScripts: true,
         retainContextWhenHidden: true,
-        localResourceRoots: [vscode.Uri.joinPath(extensionUri, 'media')]
-      }
+        localResourceRoots: [vscode.Uri.joinPath(extensionUri, "media")],
+      },
     );
 
     TourPanel.currentPanel = new TourPanel(panel, extensionUri, steps);
@@ -91,7 +91,11 @@ export class TourPanel {
    * Show the tour panel at a specific step
    */
   public async show(stepIndex?: number): Promise<void> {
-    if (stepIndex !== undefined && stepIndex >= 0 && stepIndex < this.steps.length) {
+    if (
+      stepIndex !== undefined &&
+      stepIndex >= 0 &&
+      stepIndex < this.steps.length
+    ) {
       this.currentStepIndex = stepIndex;
       this.updateWebviewContent(this.panel.webview.options as any);
     }
@@ -180,13 +184,13 @@ export class TourPanel {
    */
   private handleMessage(message: any): void {
     switch (message.command) {
-      case 'next':
+      case "next":
         this.next();
         break;
-      case 'previous':
+      case "previous":
         this.previous();
         break;
-      case 'skip':
+      case "skip":
         this.skip();
         break;
     }
@@ -472,7 +476,7 @@ export class TourPanel {
         <button 
           class="secondary-button" 
           onclick="handleAction('previous')"
-          ${isFirstStep ? 'disabled' : ''}
+          ${isFirstStep ? "disabled" : ""}
           aria-label="Previous step"
         >
           ← Previous
@@ -480,9 +484,9 @@ export class TourPanel {
         <button 
           class="primary-button" 
           onclick="handleAction('next')"
-          aria-label="${isLastStep ? 'Complete tour' : 'Next step'}"
+          aria-label="${isLastStep ? "Complete tour" : "Next step"}"
         >
-          ${isLastStep ? 'Complete Tour' : 'Next →'}
+          ${isLastStep ? "Complete Tour" : "Next →"}
         </button>
       </div>
     </div>

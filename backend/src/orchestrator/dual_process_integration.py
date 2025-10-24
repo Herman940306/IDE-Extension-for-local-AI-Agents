@@ -53,11 +53,15 @@ class DualProcessSystem:
 
         # Initialize components
         self.reasoner = FastReasoner(
-            ollama_url=self.ollama_url, model=self.reasoner_model, timeout=2.0
+            ollama_url=self.ollama_url,
+            model=self.reasoner_model,
+            timeout=settings.reasoner_timeout_seconds,
         )
 
         self.verifier = AnalyticalVerifier(
-            ollama_url=self.ollama_url, model=self.verifier_model, timeout=5.0
+            ollama_url=self.ollama_url,
+            model=self.verifier_model,
+            timeout=settings.verifier_timeout_seconds,
         )
 
         self.task_router = TaskRouter()

@@ -18,7 +18,7 @@ Production-grade PowerShell script for automated PuTTY and WinSCP session manage
 ✅ **Error Handling** - Production-safe with comprehensive error recovery  
 ✅ **Idempotent** - Safe to run multiple times  
 ✅ **Secure** - Configuration file pattern for credential management  
-✅ **Logging** - Color-coded output with timestamps  
+✅ **Logging** - Color-coded output with timestamps
 
 ---
 
@@ -51,6 +51,7 @@ winget install -e --id WinSCP.WinSCP
 ```
 
 This will:
+
 - Check if PuTTY and WinSCP are installed
 - Add them to your PATH if needed
 - Display installation status
@@ -79,6 +80,7 @@ notepad config.ps1
 ```
 
 This will:
+
 1. ✓ Verify PuTTY and WinSCP are installed
 2. ✓ Test network connectivity to server
 3. ✓ Launch PuTTY session with auto-login
@@ -131,11 +133,11 @@ return @{
     ServerIP = "192.168.1.134"
     Username = "wolf"
     Password = "Has940306"
-    
+
     # Directory Paths
     RemoteProjectDir = "/volume2/docker/herman_docker_runner/deploy/runner"
     LocalProjectDir = "C:\Users\Wolf\Projects"
-    
+
     # Application Paths (auto-detected)
     PuTTYPath = "C:\Program Files\PuTTY\putty.exe"
     WinSCPPath = "C:\Users\Wolf\AppData\Local\Programs\WinSCP\WinSCP.exe"
@@ -144,15 +146,15 @@ return @{
 
 ### Customization Options
 
-| Parameter | Description | Example |
-|-----------|-------------|---------|
-| `ServerIP` | Target server IP or hostname | `192.168.1.134` |
-| `Username` | SSH username | `root` |
-| `Password` | SSH password | `your_password` |
-| `RemoteProjectDir` | Remote directory to navigate to | `/volume2/docker/project` |
-| `LocalProjectDir` | Local directory for WinSCP left pane | `C:\Projects` |
-| `PuTTYPath` | Full path to putty.exe | Auto-detected |
-| `WinSCPPath` | Full path to WinSCP.exe | Auto-detected |
+| Parameter          | Description                          | Example                   |
+| ------------------ | ------------------------------------ | ------------------------- |
+| `ServerIP`         | Target server IP or hostname         | `192.168.1.134`           |
+| `Username`         | SSH username                         | `root`                    |
+| `Password`         | SSH password                         | `your_password`           |
+| `RemoteProjectDir` | Remote directory to navigate to      | `/volume2/docker/project` |
+| `LocalProjectDir`  | Local directory for WinSCP left pane | `C:\Projects`             |
+| `PuTTYPath`        | Full path to putty.exe               | Auto-detected             |
+| `WinSCPPath`       | Full path to WinSCP.exe              | Auto-detected             |
 
 ---
 
@@ -161,11 +163,13 @@ return @{
 ### 1. Credential Management
 
 **❌ DON'T:**
+
 - Commit `config.ps1` with real credentials
 - Share config files with passwords
 - Use plain text passwords in production
 
 **✅ DO:**
+
 - Add `config.ps1` to `.gitignore`
 - Use SSH keys instead of passwords (recommended)
 - Consider Windows Credential Manager integration
@@ -200,6 +204,7 @@ ssh-copy-id root@192.168.1.134
 ### Issue: "PuTTY not found"
 
 **Solution:**
+
 ```powershell
 # Reinstall PuTTY
 winget install -e --id PuTTY.PuTTY
@@ -211,6 +216,7 @@ winget install -e --id PuTTY.PuTTY
 ### Issue: "Server is not reachable"
 
 **Solution:**
+
 1. Check network connectivity: `ping 192.168.1.134`
 2. Verify server is running
 3. Check firewall rules
@@ -219,6 +225,7 @@ winget install -e --id PuTTY.PuTTY
 ### Issue: "Access denied" or authentication failure
 
 **Solution:**
+
 1. Verify username and password in `config.ps1`
 2. Check SSH service is running on server
 3. Verify user has SSH access permissions
@@ -227,6 +234,7 @@ winget install -e --id PuTTY.PuTTY
 ### Issue: "WinSCP doesn't show correct directories"
 
 **Solution:**
+
 1. Verify `LocalProjectDir` exists
 2. Check `RemoteProjectDir` path is correct
 3. Ensure user has permissions to access directories
@@ -234,6 +242,7 @@ winget install -e --id PuTTY.PuTTY
 ### Issue: PowerShell execution policy error
 
 **Solution:**
+
 ```powershell
 # Set execution policy for current session
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
@@ -275,10 +284,7 @@ Add to VS Code tasks.json:
       "label": "Connect to Dev Server",
       "type": "shell",
       "command": "pwsh",
-      "args": [
-        "-File",
-        "${workspaceFolder}/scripts/devops-ssh-connect.ps1"
-      ],
+      "args": ["-File", "${workspaceFolder}/scripts/devops-ssh-connect.ps1"],
       "problemMatcher": []
     }
   ]
@@ -359,14 +365,14 @@ Add to VS Code tasks.json:
 
 ## Compatibility
 
-| Component | Version | Status |
-|-----------|---------|--------|
-| PowerShell | 7.5.3+ | ✅ Tested |
-| PuTTY | 0.83+ | ✅ Tested |
-| WinSCP | 6.5.3+ | ✅ Tested |
-| Windows 10 | 21H2+ | ✅ Supported |
-| Windows 11 | All | ✅ Supported |
-| Synology DSM | 7.2.2+ | ✅ Tested |
+| Component    | Version | Status       |
+| ------------ | ------- | ------------ |
+| PowerShell   | 7.5.3+  | ✅ Tested    |
+| PuTTY        | 0.83+   | ✅ Tested    |
+| WinSCP       | 6.5.3+  | ✅ Tested    |
+| Windows 10   | 21H2+   | ✅ Supported |
+| Windows 11   | All     | ✅ Supported |
+| Synology DSM | 7.2.2+  | ✅ Tested    |
 
 ---
 
@@ -391,6 +397,7 @@ MIT License - See LICENSE file for details
 ## Support
 
 For issues or questions:
+
 1. Check troubleshooting section
 2. Review error logs
 3. Verify configuration
@@ -401,6 +408,7 @@ For issues or questions:
 ## Changelog
 
 ### Version 1.0 (2025-10-13)
+
 - Initial release
 - PuTTY auto-login with directory navigation
 - WinSCP GUI dual-pane support

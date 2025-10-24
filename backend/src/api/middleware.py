@@ -10,10 +10,9 @@ import time
 import uuid
 
 from fastapi import Request
+from src.services.rate_limiter import RateLimiter
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import JSONResponse
-
-from src.services.rate_limiter import RateLimiter
 
 logger = logging.getLogger(__name__)
 

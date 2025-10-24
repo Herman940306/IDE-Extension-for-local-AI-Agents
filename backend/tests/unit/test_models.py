@@ -7,14 +7,14 @@ Target Coverage: 95%
 GODMODE: AUTONOMOUS EXECUTION
 """
 
-import pytest
 import time
+
+import pytest
 from pydantic import ValidationError
 from src.models.code_smell import CodeSmell
 from src.models.context import CodeContext, GitCommit
-from src.models.response import AgentResponse, Suggestion, ConfidenceLevel
-from src.models.task import Task, TaskType, Priority
-
+from src.models.response import AgentResponse, ConfidenceLevel, Suggestion
+from src.models.task import Priority, Task, TaskType
 
 # ============================================================================
 # CodeSmell Model Tests

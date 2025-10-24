@@ -1,7 +1,7 @@
 # Onboarding Flow - Implementation Documentation
 
-**Project Creator:** Herman Swanepoel  
-**Version:** 1.0  
+**Project Creator:** Herman Swanepoel
+**Version:** 1.0
 **Last Updated:** 2025-10-13
 
 ---
@@ -179,7 +179,7 @@ interface OnboardingState {
   completedSteps: OnboardingStep[];
   startTime?: number;
   completionTime?: number;
-  skillLevel: 'beginner' | 'intermediate' | 'advanced';
+  skillLevel: "beginner" | "intermediate" | "advanced";
   configuration: Partial<ExtensionConfiguration>;
 }
 ```
@@ -187,19 +187,19 @@ interface OnboardingState {
 ### OnboardingStep
 
 ```typescript
-type OnboardingStep = 
-  | 'welcome'
-  | 'tour-agents'
-  | 'tour-modes'
-  | 'tour-suggestions'
-  | 'tour-discussion'
-  | 'tour-analytics'
-  | 'setup-backend'
-  | 'setup-llm'
-  | 'setup-privacy'
-  | 'setup-accessibility'
-  | 'setup-shortcuts'
-  | 'complete';
+type OnboardingStep =
+  | "welcome"
+  | "tour-agents"
+  | "tour-modes"
+  | "tour-suggestions"
+  | "tour-discussion"
+  | "tour-analytics"
+  | "setup-backend"
+  | "setup-llm"
+  | "setup-privacy"
+  | "setup-accessibility"
+  | "setup-shortcuts"
+  | "complete";
 ```
 
 ### OnboardingAnalytics
@@ -212,7 +212,7 @@ interface OnboardingAnalytics {
   totalDuration?: number;
   isCompleted: boolean;
   isSkipped: boolean;
-  skillLevel: 'beginner' | 'intermediate' | 'advanced';
+  skillLevel: "beginner" | "intermediate" | "advanced";
   steps: StepAnalytics[];
   dropOffPoint?: OnboardingStep;
 }
@@ -237,6 +237,7 @@ All commands are registered in `extension/src/commands/onboardingCommands.ts`:
 ### Storage Location
 
 Onboarding state is persisted to VS Code workspace state:
+
 - Key: `enterpriseAI.onboarding.state`
 - Type: `StoredOnboardingState`
 - Scope: Workspace-specific
@@ -245,14 +246,14 @@ Onboarding state is persisted to VS Code workspace state:
 
 ```typescript
 interface StoredOnboardingState {
-  version: string;              // Schema version for migration
+  version: string; // Schema version for migration
   isComplete: boolean;
   isSkipped: boolean;
   currentStep: OnboardingStep;
   completedSteps: OnboardingStep[];
   startTime?: number;
   completionTime?: number;
-  skillLevel: 'beginner' | 'intermediate' | 'advanced';
+  skillLevel: "beginner" | "intermediate" | "advanced";
   seenTooltips: string[];
   tooltipsEnabled: boolean;
   configuration: Partial<ExtensionConfiguration>;
@@ -262,6 +263,7 @@ interface StoredOnboardingState {
 ### Migration Strategy
 
 State versioning allows for schema migrations:
+
 1. Check stored version against current version
 2. If mismatch, perform migration
 3. Currently: reset to default on version mismatch
@@ -294,6 +296,7 @@ Onboarding saves configuration to VS Code settings:
 ### Keyboard Navigation
 
 All panels support full keyboard navigation:
+
 - **Tab**: Navigate between elements
 - **Enter/Space**: Activate buttons
 - **Escape**: Dismiss panels
@@ -339,6 +342,7 @@ All panels support full keyboard navigation:
 ### Error Recovery
 
 All async operations wrapped in try-catch blocks:
+
 - Log errors with context
 - Show user-friendly messages
 - Graceful degradation
@@ -378,9 +382,10 @@ All async operations wrapped in try-catch blocks:
 ### Content Security Policy
 
 All webviews use strict CSP:
+
 ```
-default-src 'none'; 
-style-src 'unsafe-inline'; 
+default-src 'none';
+style-src 'unsafe-inline';
 script-src 'unsafe-inline';
 ```
 
@@ -423,6 +428,7 @@ script-src 'unsafe-inline';
 
 Unit tests and integration tests are marked as optional in tasks.md.
 For production deployment, implement:
+
 - State management tests
 - Validation logic tests
 - Flow transition tests
@@ -435,18 +441,22 @@ For production deployment, implement:
 ### Common Issues
 
 **Issue: Onboarding doesn't start**
+
 - Check: `onboardingManager.shouldShowOnboarding()`
 - Solution: Verify state is not marked complete/skipped
 
 **Issue: State not persisting**
+
 - Check: Workspace state storage
 - Solution: Verify extension context is valid
 
 **Issue: Webview not showing**
+
 - Check: Console for errors
 - Solution: Verify webview creation permissions
 
 **Issue: Validation errors not showing**
+
 - Check: Message passing between webview and extension
 - Solution: Verify postMessage handlers
 
@@ -455,6 +465,7 @@ For production deployment, implement:
 ## Future Enhancements
 
 ### Phase 2
+
 - Video tutorials in tour
 - Interactive playground
 - Personalized recommendations
@@ -462,6 +473,7 @@ For production deployment, implement:
 - Gamification (badges, achievements)
 
 ### Phase 3
+
 - Contextual help based on user actions
 - Advanced analytics (heatmaps, journey analysis)
 - Social proof (popular features, usage stats)
@@ -497,12 +509,13 @@ For production deployment, implement:
 ## Support
 
 For issues or questions:
+
 - GitHub Issues: [repository URL]
 - Documentation: [docs URL]
 - Discord: [community URL]
 
 ---
 
-**Project Creator:** Herman Swanepoel  
-**Document Version:** 1.0  
+**Project Creator:** Herman Swanepoel
+**Document Version:** 1.0
 **Last Updated:** 2025-10-13

@@ -1,8 +1,8 @@
 # 🎯 Unified Quality Gate Hook v4.0
 
-**Version:** 4.0  
-**Created:** 2025-10-13  
-**Creator:** Herman Swanepoel  
+**Version:** 4.0
+**Created:** 2025-10-13
+**Creator:** Herman Swanepoel
 **Integration:** UNIFIED_MASTER_FRAMEWORK_v3.md
 
 ---
@@ -10,6 +10,7 @@
 ## 🎛️ Hook Configuration
 
 **Trigger Events:**
+
 - On file save (auto)
 - Pre-commit (auto)
 - Manual execution (button)
@@ -23,9 +24,11 @@
 ## 🔥 CORE CHECKS (Always Run - Blocking)
 
 ### 1. Error Detection (CRITICAL)
+
 **Purpose:** Catch syntax, type, import, and linting errors before they break the build
 
 **Checks:**
+
 - Python: syntax errors, type hints, import resolution, PEP-8 compliance
 - TypeScript: compilation errors, type checking, import resolution
 - JavaScript: syntax errors, ESLint rules
@@ -33,6 +36,7 @@
 **Action on Failure:** BLOCK commit/save, display errors, require fix
 
 **Command Simulation:**
+
 ```bash
 # Python
 python -m py_compile {file}
@@ -49,9 +53,11 @@ eslint {file}
 ---
 
 ### 2. Sprint Alignment (CRITICAL)
+
 **Purpose:** Ensure changes align with current sprint tasks
 
 **Checks:**
+
 - Read current sprint from `UNIFIED_MASTER_FRAMEWORK_v3.md`
 - Validate file changes against active tasks in `tasks.md`
 - Check if modified files are part of current sprint scope
@@ -59,6 +65,7 @@ eslint {file}
 **Action on Failure:** WARN user, require confirmation to proceed
 
 **Validation Logic:**
+
 ```
 IF file in current_sprint_scope:
   ✅ PASS
@@ -71,14 +78,17 @@ ELSE:
 ## 🧩 OPTIONAL CHECKS (Module-Aware)
 
 ### 3. Auto Test (HIGH Priority)
+
 **Enabled When:** Godmode OR DevOps modules active
 
 **Checks:**
+
 - Run unit tests for modified files
 - Check test coverage (target: >80%)
 - Validate test pass rate (target: 100%)
 
 **Commands:**
+
 ```bash
 # Python
 pytest tests/test_{filename}.py -v --cov
@@ -92,9 +102,11 @@ npm test -- {filename}.test.ts
 ---
 
 ### 4. Accessibility Check (HIGH Priority)
+
 **Enabled When:** CurrentSprintFocus module active
 
 **Checks:**
+
 - WCAG 2.1 AA compliance
 - Semantic HTML structure
 - ARIA labels and roles
@@ -102,6 +114,7 @@ npm test -- {filename}.test.ts
 - Color contrast ratios
 
 **Tools:**
+
 - axe-core for React components
 - pa11y for static analysis
 
@@ -110,9 +123,11 @@ npm test -- {filename}.test.ts
 ---
 
 ### 5. Code Quality Review (MEDIUM Priority)
+
 **Enabled When:** Godmode OR AuraIA Strategic modules active
 
 **Checks:**
+
 - Code complexity (cyclomatic complexity < 10)
 - Code duplication detection
 - Function length (< 50 lines recommended)
@@ -120,6 +135,7 @@ npm test -- {filename}.test.ts
 - Documentation completeness
 
 **Tools:**
+
 - radon (Python complexity)
 - jscpd (duplication detection)
 
@@ -128,9 +144,11 @@ npm test -- {filename}.test.ts
 ---
 
 ### 6. Security Scan (MEDIUM Priority)
+
 **Enabled When:** DevOps module active
 
 **Checks:**
+
 - Dependency vulnerabilities (npm audit, safety)
 - Hardcoded secrets detection
 - SQL injection patterns
@@ -138,6 +156,7 @@ npm test -- {filename}.test.ts
 - Insecure API calls
 
 **Tools:**
+
 - bandit (Python security)
 - npm audit (Node.js)
 - trufflehog (secrets detection)
@@ -147,9 +166,11 @@ npm test -- {filename}.test.ts
 ---
 
 ### 7. Performance Check (LOW Priority)
+
 **Enabled When:** DevOps OR Godmode modules active
 
 **Checks:**
+
 - Bundle size analysis
 - Render performance (React components)
 - Database query optimization
@@ -161,11 +182,13 @@ npm test -- {filename}.test.ts
 ---
 
 ### 8. AI Linter (MEDIUM Priority)
+
 **Enabled When:** Godmode module active
 
 **Purpose:** AI-augmented code review using AURA-DEV OMNIDEV reasoning
 
 **Checks:**
+
 - Suggest React.memo for expensive components
 - Identify missing error boundaries
 - Recommend code modularization
@@ -182,24 +205,28 @@ npm test -- {filename}.test.ts
 When Godmode module is enabled, provide enhanced recommendations:
 
 ### Architecture Suggestions:
+
 - Component composition improvements
 - State management optimization
 - API design enhancements
 - Database schema refinements
 
 ### Performance Optimizations:
+
 - Memoization opportunities
 - Lazy loading candidates
 - Bundle splitting recommendations
 - Caching strategies
 
 ### Security Enhancements:
+
 - Input validation gaps
 - Authentication flow improvements
 - Authorization boundary checks
 - Data sanitization recommendations
 
 ### Maintainability:
+
 - Refactoring opportunities
 - Documentation gaps
 - Test coverage improvements
@@ -210,6 +237,7 @@ When Godmode module is enabled, provide enhanced recommendations:
 ## 📊 REPORTING FORMAT
 
 ### Execution Summary:
+
 ```
 🎯 Hook Execution Summary
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -240,6 +268,7 @@ LOW      ⬜ Performance Check: Disabled
 ```
 
 ### Severity Levels:
+
 - **CRITICAL (🔴):** BLOCKS commit, must fix
 - **HIGH (🟡):** WARNS, strongly recommended to fix
 - **MEDIUM (🔵):** INFO, suggested improvements
@@ -250,6 +279,7 @@ LOW      ⬜ Performance Check: Disabled
 ## 🔧 CONFIGURATION
 
 ### Module Detection:
+
 Reads checkbox state from `UNIFIED_MASTER_FRAMEWORK_v3.md`:
 
 ```markdown
@@ -260,6 +290,7 @@ Reads checkbox state from `UNIFIED_MASTER_FRAMEWORK_v3.md`:
 ```
 
 ### Execution Flow:
+
 1. Read module states from framework
 2. Run CRITICAL checks (blocking)
 3. Run enabled optional checks (async)
@@ -268,6 +299,7 @@ Reads checkbox state from `UNIFIED_MASTER_FRAMEWORK_v3.md`:
 6. Block/warn/inform based on severity
 
 ### Performance Optimization:
+
 - Parallel execution of independent checks
 - Cache results for unchanged files
 - Incremental analysis for large codebases
@@ -278,24 +310,28 @@ Reads checkbox state from `UNIFIED_MASTER_FRAMEWORK_v3.md`:
 ## 🎯 USAGE EXAMPLES
 
 ### Manual Trigger:
+
 ```
 User: "Run quality gate on current file"
 Hook: Executes all enabled checks, displays report
 ```
 
 ### Auto-Trigger on Save:
+
 ```
 User: Saves file
 Hook: Runs in background, shows notification if issues found
 ```
 
 ### Pre-Commit Hook:
+
 ```
 User: git commit -m "message"
 Hook: Blocks commit if CRITICAL issues found
 ```
 
 ### Batch Mode:
+
 ```
 User: "Run quality gate on all Task 5 files"
 Hook: Analyzes all 7 services, generates comprehensive report
@@ -306,22 +342,27 @@ Hook: Analyzes all 7 services, generates comprehensive report
 ## 🚀 INTEGRATION WITH KIRO WORKFLOW
 
 ### Git Integration:
+
 - Respects git-workflow rules (feature branch protection)
 - Validates commit messages format
 - Checks for uncommitted changes
 
 ### Sprint Integration:
+
 - Reads current sprint from framework
 - Validates task alignment
 - Updates task status on successful checks
 
 ### MCP Integration:
+
 - Logs all checks to MCP for learning
 - Uses MCP predictions for proactive suggestions
 - Feeds results back to improve orchestration
 
 ### AURA-DEV OMNIDEV Integration:
+
 **GODMODE Architecture Enforcement:**
+
 - **Zero Technical Debt:** Validates modular, maintainable, evolvable code structure
 - **Security by Design:** Enforces least privilege, encryption, compliance-first patterns
 - **Automation Over Manual Labor:** Ensures all workflows are automated end-to-end
@@ -330,6 +371,7 @@ Hook: Analyzes all 7 services, generates comprehensive report
 - **Global Scalability First:** Checks for multi-region, low latency, high fault tolerance design
 
 **Omnidev Intelligence Stack Validation:**
+
 - Architecture patterns: DDD, Clean Architecture, Hexagonal, CQRS, Event-Driven
 - Backend standards: Node.js, FastAPI, Spring, NestJS, Go, .NET Core, Rust, Java
 - Frontend standards: React, Next.js, Svelte, Vue, Angular
@@ -341,6 +383,7 @@ Hook: Analyzes all 7 services, generates comprehensive report
 
 **Omnidev Response Framework Integration:**
 When Godmode module is active, validates code against:
+
 1. System Overview completeness
 2. Architecture & Stack Selection appropriateness
 3. DevOps & Infrastructure Plan readiness
@@ -352,6 +395,7 @@ When Godmode module is active, validates code against:
 9. Action Plan feasibility
 
 **Operating Laws Enforcement:**
+
 - ✅ Validates correctness, performance, and compliance
 - ✅ Flags ambiguity requiring clarification
 - ✅ Presents trade-offs between approaches
@@ -364,16 +408,19 @@ When Godmode module is active, validates code against:
 ## 📝 MAINTENANCE
 
 ### Weekly:
+
 - Review false positives
 - Update rule thresholds
 - Sync with framework changes
 
 ### Per Sprint:
+
 - Adjust checks based on sprint focus
 - Update accessibility requirements
 - Refine AI linter patterns
 
 ### Monthly:
+
 - Performance optimization
 - Tool version updates
 - Rule effectiveness analysis
@@ -383,23 +430,26 @@ When Godmode module is active, validates code against:
 ## 🔒 COMPLIANCE & SECURITY
 
 ### Enterprise Standards:
+
 - Follows AURA-DEV OMNIDEV principles
 - Enforces zero technical debt policy
 - Maintains security-by-design approach
 
 ### Audit Trail:
+
 - Logs all check results
 - Tracks override decisions
 - Maintains compliance history
 
 ### Privacy:
+
 - No sensitive data in logs
 - Local execution only
 - Encrypted result storage
 
 ---
 
-**Project Creator:** Herman Swanepoel  
-**Document Version:** 4.0  
-**Last Updated:** 2025-10-13  
+**Project Creator:** Herman Swanepoel
+**Document Version:** 4.0
+**Last Updated:** 2025-10-13
 **Framework Integration:** UNIFIED_MASTER_FRAMEWORK_v3.md

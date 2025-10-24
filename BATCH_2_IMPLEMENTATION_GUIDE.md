@@ -10,8 +10,11 @@
 ## 🎯 BATCH 2 OVERVIEW
 
 ### Services to Test: 3
+
 ### Estimated Tests: 70
+
 ### Target Coverage: 85%+
+
 ### Estimated Time: 2-3 hours
 
 ---
@@ -24,6 +27,7 @@
 **Coverage Target:** 85%+
 
 ### Test Categories:
+
 1. **Initialization** (3 tests)
    - Default initialization
    - Custom configuration
@@ -62,6 +66,7 @@
    - Integration with file system
 
 ### Key Test Scenarios:
+
 ```python
 # Test file structure
 class TestContextManagerInitialization:
@@ -111,6 +116,7 @@ class TestContextManagerErrorHandling:
 **Coverage Target:** 85%+
 
 ### Test Categories:
+
 1. **Initialization** (3 tests)
    - Default model
    - Custom model
@@ -144,6 +150,7 @@ class TestContextManagerErrorHandling:
    - Single vs batch comparison
 
 ### Key Test Scenarios:
+
 ```python
 class TestEmbeddingsServiceInitialization:
     def test_initialization_with_default_model()
@@ -192,6 +199,7 @@ class TestEmbeddingsPerformance:
 **Coverage Target:** 85%+
 
 ### Test Categories:
+
 1. **Initialization** (3 tests)
    - Default initialization
    - Custom configuration
@@ -230,6 +238,7 @@ class TestEmbeddingsPerformance:
    - Handle vector DB errors
 
 ### Key Test Scenarios:
+
 ```python
 class TestMemoryServiceInitialization:
     def test_initialization_with_defaults()
@@ -279,6 +288,7 @@ class TestMemoryServiceErrorHandling:
 ## 🎯 IMPLEMENTATION STRATEGY
 
 ### Step 1: Read Source Files
+
 ```python
 # Read all three service files
 context_manager = read_file("backend/src/services/context_manager.py")
@@ -287,12 +297,14 @@ memory_service = read_file("backend/src/services/memory_service.py")
 ```
 
 ### Step 2: Create Test File
+
 ```python
 # Create comprehensive test file
 create_file("backend/tests/unit/test_services_batch2.py")
 ```
 
 ### Step 3: Implement Tests
+
 - Write initialization tests
 - Write core functionality tests
 - Write integration tests
@@ -300,11 +312,13 @@ create_file("backend/tests/unit/test_services_batch2.py")
 - Write performance tests
 
 ### Step 4: Run and Verify
+
 ```bash
 pytest tests/unit/test_services_batch2.py -v --cov
 ```
 
 ### Step 5: Validate Coverage
+
 - Ensure 85%+ coverage per service
 - Verify all tests passing
 - Check execution time
@@ -362,6 +376,7 @@ def sample_memory():
 ## 📊 SUCCESS CRITERIA
 
 ### Per Service:
+
 - ✅ 85%+ code coverage
 - ✅ All tests passing
 - ✅ No breaking changes
@@ -370,6 +385,7 @@ def sample_memory():
 - ✅ Error handling tested
 
 ### Overall Batch 2:
+
 - ✅ 70+ tests created
 - ✅ 3 services tested
 - ✅ 85%+ average coverage
@@ -395,12 +411,14 @@ open htmlcov/index.html
 ## 📝 NEXT STEPS AFTER BATCH 2
 
 ### Batch 3 - Medium Priority Services
+
 1. Code Smell Detector (20 tests)
 2. Telemetry Service (15 tests)
 3. Self-Healing Manager (20 tests)
 4. Semantic Search (20 tests)
 
 ### Batch 4 - Low Priority Services
+
 5. Predictive Cache Manager (15 tests)
 6. Mode Manager (10 tests)
 7. Cloud Providers (10 tests)

@@ -8,12 +8,11 @@ Date: 2025-10-14
 Intelligently clones project files, skipping files that already exist with content.
 """
 
-import os
-import sys
-import subprocess
-import shutil
-from pathlib import Path
 import hashlib
+import shutil
+import subprocess
+import sys
+from pathlib import Path
 
 
 class SmartCloner:
@@ -48,7 +47,9 @@ class SmartCloner:
         print(f"🔄 Cloning repository from {self.repo_url}...")
         try:
             subprocess.run(
-                ["git", "clone", self.repo_url, str(self.temp_dir)], check=True, capture_output=True
+                ["git", "clone", self.repo_url, str(self.temp_dir)],
+                check=True,
+                capture_output=True,
             )
             print("✅ Repository cloned to temporary directory")
             return True
@@ -98,7 +99,7 @@ class SmartCloner:
                 continue
 
             target_path = self.target_dir / item.name
-            result = self.smart_copy(item, target_path)
+            self.smart_copy(item, target_path)
 
     def cleanup(self):
         """Remove temporary directory"""
@@ -194,7 +195,9 @@ def main():
     if len(sys.argv) > 2:
         target_dir = sys.argv[2]
     else:
-        target_dir = input("Enter target directory (default: current directory): ").strip()
+        target_dir = input(
+            "Enter target directory (default: current directory): "
+        ).strip()
         if not target_dir:
             target_dir = "."
 

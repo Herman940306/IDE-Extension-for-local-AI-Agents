@@ -4,7 +4,7 @@ Project Creator: Herman Swanepoel
 """
 
 import pytest
-from src.adapters.adapter_utils import AdapterUtils, AdapterExceptions
+from src.adapters.adapter_utils import AdapterExceptions, AdapterUtils
 
 
 class TestAdapterUtils:

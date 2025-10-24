@@ -1,9 +1,9 @@
 # Onboarding Flow - Design Document
 
-**Project Creator:** Herman Swanepoel  
-**Sprint:** Beta Deployment Sprint (Week 3-4)  
-**Priority:** HIGH  
-**Document Version:** 1.0  
+**Project Creator:** Herman Swanepoel
+**Sprint:** Beta Deployment Sprint (Week 3-4)
+**Priority:** HIGH
+**Document Version:** 1.0
 **Last Updated:** 2025-10-13
 
 ---
@@ -115,24 +115,24 @@ interface IOnboardingManager {
   // Lifecycle
   initialize(): Promise<void>;
   dispose(): void;
-  
+
   // Flow Control
   startOnboarding(options?: OnboardingOptions): Promise<void>;
   resumeOnboarding(): Promise<void>;
   skipOnboarding(): Promise<void>;
   restartOnboarding(): Promise<void>;
-  
+
   // State Management
   getState(): OnboardingState;
   updateProgress(step: OnboardingStep): Promise<void>;
-  
+
   // Analytics
   trackEvent(event: OnboardingEvent): void;
   getAnalytics(): OnboardingAnalytics;
 }
 
 interface OnboardingOptions {
-  skillLevel?: 'beginner' | 'intermediate' | 'advanced';
+  skillLevel?: "beginner" | "intermediate" | "advanced";
   skipWelcome?: boolean;
   skipTour?: boolean;
   skipSetup?: boolean;
@@ -145,23 +145,23 @@ interface OnboardingState {
   completedSteps: OnboardingStep[];
   startTime?: number;
   completionTime?: number;
-  skillLevel: 'beginner' | 'intermediate' | 'advanced';
+  skillLevel: "beginner" | "intermediate" | "advanced";
   configuration: Partial<ExtensionConfiguration>;
 }
 
-type OnboardingStep = 
-  | 'welcome'
-  | 'tour-agents'
-  | 'tour-modes'
-  | 'tour-suggestions'
-  | 'tour-discussion'
-  | 'tour-analytics'
-  | 'setup-backend'
-  | 'setup-llm'
-  | 'setup-privacy'
-  | 'setup-accessibility'
-  | 'setup-shortcuts'
-  | 'complete';
+type OnboardingStep =
+  | "welcome"
+  | "tour-agents"
+  | "tour-modes"
+  | "tour-suggestions"
+  | "tour-discussion"
+  | "tour-analytics"
+  | "setup-backend"
+  | "setup-llm"
+  | "setup-privacy"
+  | "setup-accessibility"
+  | "setup-shortcuts"
+  | "complete";
 ```
 
 ### 2. WelcomePanel
@@ -221,7 +221,7 @@ interface TourStep {
 }
 
 interface TourContent {
-  type: 'text' | 'image' | 'video' | 'interactive';
+  type: "text" | "image" | "video" | "interactive";
   data: string | TourInteractive;
 }
 
@@ -255,7 +255,7 @@ interface SetupStep {
 
 interface SetupField {
   id: string;
-  type: 'text' | 'select' | 'checkbox' | 'radio' | 'number';
+  type: "text" | "select" | "checkbox" | "radio" | "number";
   label: string;
   placeholder?: string;
   defaultValue?: any;
@@ -266,7 +266,7 @@ interface SetupField {
 }
 
 interface ValidationRule {
-  type: 'required' | 'url' | 'port' | 'custom';
+  type: "required" | "url" | "port" | "custom";
   message: string;
   validator?: (value: any) => boolean | Promise<boolean>;
 }
@@ -302,8 +302,8 @@ interface TooltipDefinition {
   title: string;
   description: string;
   shortcut?: string;
-  position: 'top' | 'bottom' | 'left' | 'right';
-  trigger: 'hover' | 'focus' | 'manual';
+  position: "top" | "bottom" | "left" | "right";
+  trigger: "hover" | "focus" | "manual";
   dismissible: boolean;
 }
 
@@ -355,7 +355,7 @@ interface StoredOnboardingState {
   completedSteps: OnboardingStep[];
   startTime?: number;
   completionTime?: number;
-  skillLevel: 'beginner' | 'intermediate' | 'advanced';
+  skillLevel: "beginner" | "intermediate" | "advanced";
   seenTooltips: string[];
   tooltipsEnabled: boolean;
   configuration: Partial<ExtensionConfiguration>;
@@ -376,7 +376,7 @@ interface OnboardingAnalytics {
   totalDuration?: number;
   isCompleted: boolean;
   isSkipped: boolean;
-  skillLevel: 'beginner' | 'intermediate' | 'advanced';
+  skillLevel: "beginner" | "intermediate" | "advanced";
   steps: StepAnalytics[];
   dropOffPoint?: OnboardingStep;
 }
@@ -391,7 +391,8 @@ interface StepAnalytics {
 }
 ```
 
-**Storage:** 
+**Storage:**
+
 - Local: Workspace State (always)
 - Remote: Telemetry Service (if enabled)
 
@@ -402,6 +403,7 @@ interface StepAnalytics {
 ### Webview Architecture
 
 All onboarding UI components use VS Code Webview API with:
+
 - **React** for component rendering
 - **VS Code Webview UI Toolkit** for native-looking components
 - **CSS Variables** for theming (respects VS Code theme)
@@ -410,6 +412,7 @@ All onboarding UI components use VS Code Webview API with:
 ### Accessibility Features
 
 #### Keyboard Navigation
+
 - **Tab**: Navigate between interactive elements
 - **Enter/Space**: Activate buttons and controls
 - **Escape**: Dismiss panels and tooltips
@@ -417,12 +420,14 @@ All onboarding UI components use VS Code Webview API with:
 - **Home/End**: Jump to first/last step
 
 #### Screen Reader Support
+
 - **ARIA Labels**: All interactive elements labeled
 - **ARIA Live Regions**: Dynamic content announcements
 - **ARIA Roles**: Proper semantic roles (dialog, navigation, etc.)
 - **Focus Management**: Logical focus order, focus trapping in modals
 
 #### Visual Accessibility
+
 - **High Contrast Mode**: Respects VS Code high contrast themes
 - **Color Contrast**: Minimum 4.5:1 ratio for text
 - **Focus Indicators**: Visible 2px outline on focused elements
@@ -447,42 +452,42 @@ All onboarding UI components use VS Code Webview API with:
 ```mermaid
 stateDiagram-v2
     [*] --> CheckState: Extension Activated
-    
+
     CheckState --> Welcome: First Time
     CheckState --> Resume: In Progress
     CheckState --> [*]: Completed/Skipped
-    
+
     Welcome --> Tour: Get Started
     Welcome --> [*]: Skip Tour
-    
+
     Tour --> TourStep1: Start
     TourStep1 --> TourStep2: Next
     TourStep2 --> TourStep3: Next
     TourStep3 --> TourStep4: Next
     TourStep4 --> TourStep5: Next
     TourStep5 --> Setup: Complete Tour
-    
+
     TourStep1 --> [*]: Skip
     TourStep2 --> [*]: Skip
     TourStep3 --> [*]: Skip
     TourStep4 --> [*]: Skip
     TourStep5 --> [*]: Skip
-    
+
     Setup --> SetupBackend: Start
     SetupBackend --> SetupLLM: Next
     SetupLLM --> SetupPrivacy: Next
     SetupPrivacy --> SetupAccessibility: Next
     SetupAccessibility --> SetupShortcuts: Next
     SetupShortcuts --> TestConnection: Next
-    
+
     TestConnection --> Complete: Success
     TestConnection --> Troubleshoot: Failure
     Troubleshoot --> TestConnection: Retry
     Troubleshoot --> Complete: Skip
-    
+
     Complete --> QuickStartGuide: Show Guide
     Complete --> [*]: Close
-    
+
     Resume --> Welcome: From Welcome
     Resume --> Tour: From Tour
     Resume --> Setup: From Setup
@@ -544,9 +549,9 @@ interface ErrorContext {
 }
 
 interface ErrorResolution {
-  action: 'retry' | 'fallback' | 'skip' | 'abort';
+  action: "retry" | "fallback" | "skip" | "abort";
   message?: string;
-  logLevel: 'info' | 'warn' | 'error';
+  logLevel: "info" | "warn" | "error";
 }
 ```
 
@@ -566,12 +571,14 @@ interface ErrorResolution {
 **Framework**: Jest + VS Code Extension Test Runner
 
 **Coverage Targets**:
+
 - OnboardingManager: 90%
 - State Management: 95%
 - Validation Logic: 100%
 - Analytics: 85%
 
 **Test Cases**:
+
 - State transitions
 - Progress persistence
 - Configuration validation
@@ -581,6 +588,7 @@ interface ErrorResolution {
 ### Integration Tests
 
 **Scenarios**:
+
 1. Complete onboarding flow (happy path)
 2. Skip onboarding
 3. Resume interrupted onboarding
@@ -591,11 +599,13 @@ interface ErrorResolution {
 ### Accessibility Tests
 
 **Tools**:
+
 - axe-core (automated accessibility testing)
 - Manual screen reader testing (NVDA, JAWS, VoiceOver)
 - Keyboard navigation testing
 
 **Checklist**:
+
 - [ ] All interactive elements keyboard accessible
 - [ ] Proper ARIA labels and roles
 - [ ] Focus management correct
@@ -606,6 +616,7 @@ interface ErrorResolution {
 ### Performance Tests
 
 **Metrics**:
+
 - Initialization time < 100ms
 - Webview render time < 200ms
 - Step transition time < 50ms
@@ -621,18 +632,18 @@ interface ErrorResolution {
 ```typescript
 // OnboardingManager registers with AccessibilityManager
 accessibilityManager.registerComponent({
-  id: 'onboarding',
+  id: "onboarding",
   keyboardShortcuts: [
-    { key: 'Escape', action: 'dismiss' },
-    { key: 'Enter', action: 'confirm' },
-    { key: 'ArrowRight', action: 'next' },
-    { key: 'ArrowLeft', action: 'previous' }
+    { key: "Escape", action: "dismiss" },
+    { key: "Enter", action: "confirm" },
+    { key: "ArrowRight", action: "next" },
+    { key: "ArrowLeft", action: "previous" },
   ],
   ariaLabels: {
-    welcome: 'Welcome to Enterprise AI Agents',
-    tour: 'Feature Tour',
-    setup: 'Setup Wizard'
-  }
+    welcome: "Welcome to Enterprise AI Agents",
+    tour: "Feature Tour",
+    setup: "Setup Wizard",
+  },
 });
 ```
 
@@ -642,10 +653,10 @@ accessibilityManager.registerComponent({
 // Register keyboard shortcuts
 keyboardNavigationManager.registerShortcuts([
   {
-    key: 'ctrl+shift+o',
-    command: 'enterpriseAI.restartOnboarding',
-    description: 'Restart onboarding flow'
-  }
+    key: "ctrl+shift+o",
+    command: "enterpriseAI.restartOnboarding",
+    description: "Restart onboarding flow",
+  },
 ]);
 ```
 
@@ -654,10 +665,10 @@ keyboardNavigationManager.registerShortcuts([
 ```typescript
 // Save configuration from setup wizard
 await configurationManager.update({
-  'enterpriseAI.backend.url': setupData.backendUrl,
-  'enterpriseAI.llm.provider': setupData.llmProvider,
-  'enterpriseAI.privacy.telemetry': setupData.telemetryEnabled,
-  'enterpriseAI.accessibility.screenReader': setupData.screenReaderEnabled
+  "enterpriseAI.backend.url": setupData.backendUrl,
+  "enterpriseAI.llm.provider": setupData.llmProvider,
+  "enterpriseAI.privacy.telemetry": setupData.telemetryEnabled,
+  "enterpriseAI.accessibility.screenReader": setupData.screenReaderEnabled,
 });
 ```
 
@@ -665,15 +676,15 @@ await configurationManager.update({
 
 ```typescript
 // Track onboarding events
-analyticsService.track('onboarding.started', {
+analyticsService.track("onboarding.started", {
   skillLevel: state.skillLevel,
-  timestamp: Date.now()
+  timestamp: Date.now(),
 });
 
-analyticsService.track('onboarding.completed', {
+analyticsService.track("onboarding.completed", {
   duration: state.completionTime - state.startTime,
   stepsCompleted: state.completedSteps.length,
-  timestamp: Date.now()
+  timestamp: Date.now(),
 });
 ```
 
@@ -809,20 +820,20 @@ interface OnboardingFeatureFlags {
 
 ### Technical Risks
 
-| Risk | Impact | Probability | Mitigation |
-|------|--------|-------------|------------|
-| Webview performance issues | High | Medium | Lazy loading, code splitting, performance monitoring |
-| State corruption | High | Low | Schema versioning, validation, backup state |
-| Accessibility violations | High | Medium | Automated testing, manual testing, WCAG compliance |
-| Backend connection failures | Medium | High | Offline mode, clear error messages, troubleshooting guide |
+| Risk                        | Impact | Probability | Mitigation                                                |
+| --------------------------- | ------ | ----------- | --------------------------------------------------------- |
+| Webview performance issues  | High   | Medium      | Lazy loading, code splitting, performance monitoring      |
+| State corruption            | High   | Low         | Schema versioning, validation, backup state               |
+| Accessibility violations    | High   | Medium      | Automated testing, manual testing, WCAG compliance        |
+| Backend connection failures | Medium | High        | Offline mode, clear error messages, troubleshooting guide |
 
 ### User Experience Risks
 
-| Risk | Impact | Probability | Mitigation |
-|------|--------|-------------|------------|
-| Users skip onboarding | Medium | High | Engaging content, quick completion time, replay option |
-| Onboarding too long | High | Medium | 5-minute target, skip options, progressive disclosure |
-| Confusing UI | High | Low | User testing, clear language, visual hierarchy |
+| Risk                  | Impact | Probability | Mitigation                                             |
+| --------------------- | ------ | ----------- | ------------------------------------------------------ |
+| Users skip onboarding | Medium | High        | Engaging content, quick completion time, replay option |
+| Onboarding too long   | High   | Medium      | 5-minute target, skip options, progressive disclosure  |
+| Confusing UI          | High   | Low         | User testing, clear language, visual hierarchy         |
 
 ---
 
@@ -863,7 +874,7 @@ interface OnboardingFeatureFlags {
 
 ---
 
-**Project Creator:** Herman Swanepoel  
-**Document Version:** 1.0  
-**Last Updated:** 2025-10-13  
+**Project Creator:** Herman Swanepoel
+**Document Version:** 1.0
+**Last Updated:** 2025-10-13
 **Status:** Ready for Implementation

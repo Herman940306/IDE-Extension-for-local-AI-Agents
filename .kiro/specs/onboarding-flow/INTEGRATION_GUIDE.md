@@ -1,7 +1,7 @@
 # Onboarding Flow - Integration Guide
 
-**Project Creator:** Herman Swanepoel  
-**Version:** 1.0  
+**Project Creator:** Herman Swanepoel
+**Version:** 1.0
 **Last Updated:** 2025-10-13
 
 ---
@@ -92,29 +92,29 @@ Add commands to your `package.json`:
 Integrate onboarding into your extension activation:
 
 ```typescript
-import * as vscode from 'vscode';
-import { OnboardingManager } from './services/OnboardingManager';
-import { registerOnboardingCommands } from './commands/onboardingCommands';
+import * as vscode from "vscode";
+import { OnboardingManager } from "./services/OnboardingManager";
+import { registerOnboardingCommands } from "./commands/onboardingCommands";
 
 let onboardingManager: OnboardingManager;
 
 export async function activate(context: vscode.ExtensionContext) {
-  console.log('Enterprise AI Agents extension activating...');
+  console.log("Enterprise AI Agents extension activating...");
 
   try {
     // Initialize onboarding manager
     onboardingManager = new OnboardingManager(context);
     await onboardingManager.initialize();
-    
+
     // Register onboarding commands
     registerOnboardingCommands(context, onboardingManager);
-    
+
     // Handle activation (show onboarding for first-time users)
     await onboardingManager.handleActivation();
-    
-    console.log('Enterprise AI Agents extension activated successfully');
+
+    console.log("Enterprise AI Agents extension activated successfully");
   } catch (error) {
-    console.error('Failed to activate extension:', error);
+    console.error("Failed to activate extension:", error);
     vscode.window.showErrorMessage(`Extension activation failed: ${error}`);
   }
 }
@@ -147,12 +147,12 @@ Adapt tour content based on skill level:
 // In your extension code
 const skillLevel = onboardingManager.getState().skillLevel;
 
-if (skillLevel === 'beginner') {
+if (skillLevel === "beginner") {
   // Show detailed tooltips
-  await onboardingManager.showTooltip('detailed-help');
-} else if (skillLevel === 'advanced') {
+  await onboardingManager.showTooltip("detailed-help");
+} else if (skillLevel === "advanced") {
   // Skip basic tooltips
-  console.log('Advanced user - minimal guidance');
+  console.log("Advanced user - minimal guidance");
 }
 ```
 
@@ -165,9 +165,9 @@ Send onboarding analytics to your backend:
 const analytics = onboardingManager.exportAnalytics();
 
 // Send to your analytics service
-await fetch('https://your-backend/analytics', {
-  method: 'POST',
-  body: JSON.stringify(analytics)
+await fetch("https://your-backend/analytics", {
+  method: "POST",
+  body: JSON.stringify(analytics),
 });
 ```
 
@@ -180,7 +180,7 @@ Register custom tooltips for your features:
 onboardingManager.registerTooltips();
 
 // Show tooltip when user first uses a feature
-await onboardingManager.showTooltip('your-feature-id');
+await onboardingManager.showTooltip("your-feature-id");
 ```
 
 ### Backend Connection Testing
@@ -195,10 +195,10 @@ private async handleConnectionTest(data: any): Promise<void> {
   try {
     const { backendUrl, backendPort } = data;
     const client = new WebSocketClient(backendUrl, backendPort);
-    
+
     await client.connect();
     await client.ping();
-    
+
     vscode.window.showInformationMessage('✓ Connection successful!');
   } catch (error) {
     vscode.window.showErrorMessage(
@@ -215,10 +215,12 @@ private async handleConnectionTest(data: any): Promise<void> {
 ### Manual Testing Checklist
 
 1. **First-Time User Flow**
+
    ```bash
    # Clear workspace state to simulate first-time user
    # In VS Code: Developer: Clear Workspace State
    ```
+
    - [ ] Welcome screen appears on activation
    - [ ] Skill level selection works
    - [ ] "Get Started" proceeds to tour
@@ -276,6 +278,7 @@ private async handleConnectionTest(data: any): Promise<void> {
 **Symptoms:** Extension activates but no welcome screen
 
 **Solutions:**
+
 1. Check console for errors
 2. Verify OnboardingManager initialized
 3. Check workspace state: `context.workspaceState.get('enterpriseAI.onboarding.state')`
@@ -286,6 +289,7 @@ private async handleConnectionTest(data: any): Promise<void> {
 **Symptoms:** Blank panel or error
 
 **Solutions:**
+
 1. Check Content Security Policy in webview HTML
 2. Verify `enableScripts: true` in webview options
 3. Check browser console in webview (Developer: Open Webview Developer Tools)
@@ -296,6 +300,7 @@ private async handleConnectionTest(data: any): Promise<void> {
 **Symptoms:** Onboarding restarts every time
 
 **Solutions:**
+
 1. Check workspace state storage permissions
 2. Verify `saveState()` is being called
 3. Check for errors in console during save
@@ -306,6 +311,7 @@ private async handleConnectionTest(data: any): Promise<void> {
 **Symptoms:** Commands not in command palette
 
 **Solutions:**
+
 1. Verify `package.json` has command definitions
 2. Check `registerOnboardingCommands()` is called
 3. Reload window after changes
@@ -318,6 +324,7 @@ private async handleConnectionTest(data: any): Promise<void> {
 ### Lazy Loading
 
 Webviews are created on-demand:
+
 - Welcome panel: Created on first activation
 - Tour panel: Created when user clicks "Get Started"
 - Setup wizard: Created after tour completion
@@ -326,6 +333,7 @@ Webviews are created on-demand:
 ### Memory Management
 
 All panels properly dispose resources:
+
 ```typescript
 // Automatic cleanup on panel close
 panel.onDidDispose(() => this.dispose());
@@ -339,6 +347,7 @@ if (this.welcomePanel) {
 ### State Persistence
 
 State saves asynchronously to avoid blocking:
+
 ```typescript
 // Non-blocking save
 await this.saveState(); // Runs in background
@@ -351,14 +360,18 @@ await this.saveState(); // Runs in background
 ### Content Security Policy
 
 All webviews use strict CSP:
+
 ```html
-<meta http-equiv="Content-Security-Policy" 
-      content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline';">
+<meta
+  http-equiv="Content-Security-Policy"
+  content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline';"
+/>
 ```
 
 ### Input Validation
 
 All user inputs are validated:
+
 - URLs: Must be valid HTTP/HTTPS
 - Ports: Must be 1-65535
 - Required fields: Cannot be empty
@@ -394,18 +407,21 @@ Before deploying to production:
 ### Key Metrics to Track
 
 1. **Completion Rate**
+
    ```typescript
    const rate = onboardingManager.getCompletionRate();
    // Target: > 90%
    ```
 
 2. **Time to Complete**
+
    ```typescript
    const timeMs = onboardingManager.getTimeSpent();
    // Target: < 5 minutes (300,000ms)
    ```
 
 3. **Drop-off Points**
+
    ```typescript
    const analytics = onboardingManager.exportAnalytics();
    const dropOff = analytics.dropOffPoint;
@@ -421,6 +437,7 @@ Before deploying to production:
 ### Analytics Events
 
 The system tracks these events:
+
 - `onboarding.started` - User begins onboarding
 - `onboarding.completed` - User completes onboarding
 - `onboarding.skipped` - User skips onboarding
@@ -460,30 +477,32 @@ The system is designed for easy extension:
 ```typescript
 // Add new tour step
 const newStep: TourStep = {
-  id: 'tour-new-feature',
-  title: 'New Feature',
-  description: 'Description',
-  icon: '🎉',
-  content: 'HTML content'
+  id: "tour-new-feature",
+  title: "New Feature",
+  description: "Description",
+  icon: "🎉",
+  content: "HTML content",
 };
 
 // Add new setup step
 const newSetupStep: SetupStep = {
-  id: 'setup-new',
-  title: 'New Configuration',
-  description: 'Configure new feature',
-  fields: [/* fields */]
+  id: "setup-new",
+  title: "New Configuration",
+  description: "Configure new feature",
+  fields: [
+    /* fields */
+  ],
 };
 
 // Add new tooltip
 tooltipManager.register({
-  id: 'new-feature-tip',
-  title: 'New Feature',
-  description: 'How to use it',
-  shortcut: 'Ctrl+Shift+N',
-  position: 'bottom',
-  trigger: 'hover',
-  dismissible: true
+  id: "new-feature-tip",
+  title: "New Feature",
+  description: "How to use it",
+  shortcut: "Ctrl+Shift+N",
+  position: "bottom",
+  trigger: "hover",
+  dismissible: true,
 });
 ```
 
@@ -492,17 +511,20 @@ tooltipManager.register({
 ## Support & Resources
 
 ### Documentation
+
 - [Implementation Guide](./IMPLEMENTATION.md)
 - [Requirements](./requirements.md)
 - [Design Document](./design.md)
 - [Task List](./tasks.md)
 
 ### Getting Help
+
 - GitHub Issues: [repository URL]
 - Discord Community: [discord URL]
 - Email Support: [email]
 
 ### Contributing
+
 - Fork the repository
 - Create feature branch
 - Submit pull request
@@ -516,8 +538,8 @@ tooltipManager.register({
 
 ---
 
-**Project Creator:** Herman Swanepoel  
-**Document Version:** 1.0  
+**Project Creator:** Herman Swanepoel
+**Document Version:** 1.0
 **Last Updated:** 2025-10-13
 
 **Status:** ✅ Production Ready

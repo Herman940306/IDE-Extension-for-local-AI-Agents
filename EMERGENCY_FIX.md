@@ -9,6 +9,7 @@ System overload during frontend-backend integration testing.
 ## IMMEDIATE RECOVERY STEPS
 
 ### 1. Start Backend (Terminal 1)
+
 ```bash
 cd backend
 .venv\Scripts\activate
@@ -18,6 +19,7 @@ python run.py
 **Wait for:** "Application startup complete"
 
 ### 2. Start Frontend (Terminal 2)
+
 ```bash
 cd frontend
 npm run dev
@@ -26,6 +28,7 @@ npm run dev
 **Wait for:** "Local: http://localhost:3000"
 
 ### 3. Test Connection
+
 ```bash
 curl http://127.0.0.1:8001/health
 ```
@@ -33,6 +36,7 @@ curl http://127.0.0.1:8001/health
 ## If Still Broken
 
 ### Nuclear Option - Fresh Start
+
 ```bash
 # Stop everything
 taskkill /F /IM python.exe
@@ -57,6 +61,7 @@ npm run dev
 ## Quick Test
 
 **Backend:**
+
 ```bash
 curl http://127.0.0.1:8001/
 ```
@@ -65,6 +70,7 @@ curl http://127.0.0.1:8001/
 Open http://localhost:3000
 
 **WebSocket:**
+
 ```bash
 wscat -c ws://127.0.0.1:8001/ws/test
 ```

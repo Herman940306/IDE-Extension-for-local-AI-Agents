@@ -34,6 +34,7 @@ yo code
 ```
 
 **Select:**
+
 - New Extension (TypeScript)
 - Name: aura-ai-assistant
 - Identifier: aura-ai
@@ -79,102 +80,104 @@ aura-ai-assistant/
 
 ```typescript
 // src/services/backendService.ts
-import * as WebSocket from 'ws';
-import * as vscode from 'vscode';
+import * as WebSocket from "ws";
+import * as vscode from "vscode";
 
 export class BackendService {
-    private ws: WebSocket | null = null;
-    private readonly baseUrl = 'ws://127.0.0.1:8001/ws';
-    private clientId: string;
-    private reconnectAttempts = 0;
-    private maxReconnectAttempts = 5;
+  private ws: WebSocket | null = null;
+  private readonly baseUrl = "ws://127.0.0.1:8001/ws";
+  private clientId: string;
+  private reconnectAttempts = 0;
+  private maxReconnectAttempts = 5;
 
-    constructor() {
-        this.clientId = `vscode-${Date.now()}`;
+  constructor() {
+    this.clientId = `vscode-${Date.now()}`;
+  }
+
+  connect(): Promise<void> {
+    return new Promise((resolve, reject) => {
+      this.ws = new WebSocket(`${this.baseUrl}/${this.clientId}`);
+
+      this.ws.on("open", () => {
+        console.log("Connected to backend");
+        this.reconnectAttempts = 0;
+        vscode.window.showInformationMessage("✅ Connected to AI Backend");
+        resolve();
+      });
+
+      this.ws.on("message", (data) => {
+        const message = JSON.parse(data.toString());
+        this.handleMessage(message);
+      });
+
+      this.ws.on("error", (error) => {
+        console.error("WebSocket error:", error);
+        vscode.window.showErrorMessage(`Backend error: ${error.message}`);
+        reject(error);
+      });
+
+      this.ws.on("close", () => {
+        console.log("Disconnected from backend");
+        this.attemptReconnect();
+      });
+    });
+  }
+
+  private attemptReconnect() {
+    if (this.reconnectAttempts < this.maxReconnectAttempts) {
+      this.reconnectAttempts++;
+      setTimeout(() => {
+        console.log(`Reconnect attempt ${this.reconnectAttempts}`);
+        this.connect();
+      }, 5000);
+    } else {
+      vscode.window.showWarningMessage("❌ Backend disconnected");
     }
+  }
 
-    connect(): Promise<void> {
-        return new Promise((resolve, reject) => {
-            this.ws = new WebSocket(`${this.baseUrl}/${this.clientId}`);
-
-            this.ws.on('open', () => {
-                console.log('Connected to backend');
-                this.reconnectAttempts = 0;
-                vscode.window.showInformationMessage('✅ Connected to AI Backend');
-                resolve();
-            });
-
-            this.ws.on('message', (data) => {
-                const message = JSON.parse(data.toString());
-                this.handleMessage(message);
-            });
-
-            this.ws.on('error', (error) => {
-                console.error('WebSocket error:', error);
-                vscode.window.showErrorMessage(`Backend error: ${error.message}`);
-                reject(error);
-            });
-
-            this.ws.on('close', () => {
-                console.log('Disconnected from backend');
-                this.attemptReconnect();
-            });
-        });
+  sendTask(task: any): void {
+    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+      this.ws.send(
+        JSON.stringify({
+          type: "task_request",
+          payload: task,
+        }),
+      );
+    } else {
+      vscode.window.showErrorMessage("Not connected to backend");
     }
+  }
 
-    private attemptReconnect() {
-        if (this.reconnectAttempts < this.maxReconnectAttempts) {
-            this.reconnectAttempts++;
-            setTimeout(() => {
-                console.log(`Reconnect attempt ${this.reconnectAttempts}`);
-                this.connect();
-            }, 5000);
-        } else {
-            vscode.window.showWarningMessage('❌ Backend disconnected');
-        }
+  private handleMessage(message: any) {
+    switch (message.type) {
+      case "connection_established":
+        console.log("Connection established:", message.payload);
+        break;
+      case "pong":
+        console.log("Pong received");
+        break;
+      case "task_acknowledged":
+        vscode.window.showInformationMessage("Task received by backend");
+        break;
+      case "agent_response":
+        this.handleAgentResponse(message.payload);
+        break;
+      case "error":
+        vscode.window.showErrorMessage(message.payload.message);
+        break;
     }
+  }
 
-    sendTask(task: any): void {
-        if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-            this.ws.send(JSON.stringify({
-                type: 'task_request',
-                payload: task
-            }));
-        } else {
-            vscode.window.showErrorMessage('Not connected to backend');
-        }
-    }
+  private handleAgentResponse(payload: any) {
+    // Handle AI agent response
+    console.log("Agent response:", payload);
+  }
 
-    private handleMessage(message: any) {
-        switch (message.type) {
-            case 'connection_established':
-                console.log('Connection established:', message.payload);
-                break;
-            case 'pong':
-                console.log('Pong received');
-                break;
-            case 'task_acknowledged':
-                vscode.window.showInformationMessage('Task received by backend');
-                break;
-            case 'agent_response':
-                this.handleAgentResponse(message.payload);
-                break;
-            case 'error':
-                vscode.window.showErrorMessage(message.payload.message);
-                break;
-        }
+  disconnect() {
+    if (this.ws) {
+      this.ws.close();
     }
-
-    private handleAgentResponse(payload: any) {
-        // Handle AI agent response
-        console.log('Agent response:', payload);
-    }
-
-    disconnect() {
-        if (this.ws) {
-            this.ws.close();
-        }
-    }
+  }
 }
 ```
 
@@ -184,66 +187,66 @@ export class BackendService {
 
 ```typescript
 // src/extension.ts
-import * as vscode from 'vscode';
-import { BackendService } from './services/backendService';
+import * as vscode from "vscode";
+import { BackendService } from "./services/backendService";
 
 let backendService: BackendService;
 
 export async function activate(context: vscode.ExtensionContext) {
-    console.log('Aura AI Assistant activated');
+  console.log("Aura AI Assistant activated");
 
-    // Initialize backend service
-    backendService = new BackendService();
-    
-    try {
-        await backendService.connect();
-    } catch (error) {
-        vscode.window.showErrorMessage('Failed to connect to backend');
-    }
+  // Initialize backend service
+  backendService = new BackendService();
 
-    // Register commands
-    context.subscriptions.push(
-        vscode.commands.registerCommand('aura.generateCode', async () => {
-            const editor = vscode.window.activeTextEditor;
-            if (!editor) {
-                vscode.window.showWarningMessage('No active editor');
-                return;
-            }
+  try {
+    await backendService.connect();
+  } catch (error) {
+    vscode.window.showErrorMessage("Failed to connect to backend");
+  }
 
-            const description = await vscode.window.showInputBox({
-                prompt: 'Describe the code you want to generate',
-                placeHolder: 'e.g., Create a function to sort an array'
-            });
+  // Register commands
+  context.subscriptions.push(
+    vscode.commands.registerCommand("aura.generateCode", async () => {
+      const editor = vscode.window.activeTextEditor;
+      if (!editor) {
+        vscode.window.showWarningMessage("No active editor");
+        return;
+      }
 
-            if (description) {
-                backendService.sendTask({
-                    id: `task-${Date.now()}`,
-                    type: 'code_generation',
-                    context: {
-                        language: editor.document.languageId,
-                        file_path: editor.document.fileName,
-                        description: description
-                    }
-                });
-            }
-        })
-    );
+      const description = await vscode.window.showInputBox({
+        prompt: "Describe the code you want to generate",
+        placeHolder: "e.g., Create a function to sort an array",
+      });
 
-    // Status bar
-    const statusBarItem = vscode.window.createStatusBarItem(
-        vscode.StatusBarAlignment.Right,
-        100
-    );
-    statusBarItem.text = '$(zap) Aura AI';
-    statusBarItem.tooltip = 'Aura AI Assistant';
-    statusBarItem.show();
-    context.subscriptions.push(statusBarItem);
+      if (description) {
+        backendService.sendTask({
+          id: `task-${Date.now()}`,
+          type: "code_generation",
+          context: {
+            language: editor.document.languageId,
+            file_path: editor.document.fileName,
+            description: description,
+          },
+        });
+      }
+    }),
+  );
+
+  // Status bar
+  const statusBarItem = vscode.window.createStatusBarItem(
+    vscode.StatusBarAlignment.Right,
+    100,
+  );
+  statusBarItem.text = "$(zap) Aura AI";
+  statusBarItem.tooltip = "Aura AI Assistant";
+  statusBarItem.show();
+  context.subscriptions.push(statusBarItem);
 }
 
 export function deactivate() {
-    if (backendService) {
-        backendService.disconnect();
-    }
+  if (backendService) {
+    backendService.disconnect();
+  }
 }
 ```
 
@@ -261,14 +264,8 @@ export function deactivate() {
   "engines": {
     "vscode": "^1.80.0"
   },
-  "categories": [
-    "Programming Languages",
-    "Machine Learning",
-    "Other"
-  ],
-  "activationEvents": [
-    "onStartupFinished"
-  ],
+  "categories": ["Programming Languages", "Machine Learning", "Other"],
+  "activationEvents": ["onStartupFinished"],
   "main": "./out/extension.js",
   "contributes": {
     "commands": [
@@ -356,18 +353,18 @@ npm run watch
 
 ```typescript
 // src/test/extension.test.ts
-import * as assert from 'assert';
-import * as vscode from 'vscode';
+import * as assert from "assert";
+import * as vscode from "vscode";
 
-suite('Extension Test Suite', () => {
-    test('Extension should be present', () => {
-        assert.ok(vscode.extensions.getExtension('aura-ai'));
-    });
+suite("Extension Test Suite", () => {
+  test("Extension should be present", () => {
+    assert.ok(vscode.extensions.getExtension("aura-ai"));
+  });
 
-    test('Commands should be registered', async () => {
-        const commands = await vscode.commands.getCommands();
-        assert.ok(commands.includes('aura.generateCode'));
-    });
+  test("Commands should be registered", async () => {
+    const commands = await vscode.commands.getCommands();
+    assert.ok(commands.includes("aura.generateCode"));
+  });
 });
 ```
 

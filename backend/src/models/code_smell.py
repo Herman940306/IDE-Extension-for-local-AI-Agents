@@ -4,7 +4,6 @@ Project Creator: Herman Swanepoel
 """
 
 from pydantic import BaseModel, Field
-
 from src.models.task import Priority
 
 

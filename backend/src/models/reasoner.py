@@ -10,6 +10,8 @@ from typing import Any, Dict, List, Optional
 import httpx
 from pydantic import BaseModel
 
+from ..config.settings import get_settings
+
 logger = logging.getLogger(__name__)
 
 
@@ -46,7 +48,7 @@ class FastReasoner:
         self,
         ollama_url: str = "http://localhost:11434",
         model: str = "llama3.2:3b",
-        timeout: float = 2.0,
+        timeout: float = 30.0,
     ):
         """
         Initialize fast reasoner.
@@ -59,7 +61,17 @@ class FastReasoner:
         self.ollama_url = ollama_url
         self.model = model
         self.timeout = timeout
-        self.client = httpx.AsyncClient(timeout=timeout)
+        # Use granular timeouts: allow long read/write during model warm-up
+        try:
+            http_timeout = httpx.Timeout(
+                connect=10.0,
+                read=timeout,
+                write=timeout,
+                pool=10.0,
+            )
+        except Exception:
+            http_timeout = timeout  # Fallback to simple float
+        self.client = httpx.AsyncClient(timeout=http_timeout)
 
         # Performance tracking
         self.total_requests = 0
@@ -98,7 +110,10 @@ class FastReasoner:
             self.total_requests += 1
             self.total_latency += latency_ms
 
-            logger.info(f"Fast reasoning complete: {latency_ms:.0f}ms, conf={confidence:.2f}")
+            logger.info(
+                f"Fast reasoning complete: {latency_ms:.0f}ms, "
+                f"conf={confidence:.2f}"
+            )
 
             return ReasoningResponse(
                 suggestions=suggestions,
@@ -141,39 +156,79 @@ Focus on this specific code:
 ```
 """
 
-        prompt += """
-Provide a concise, actionable suggestion. Be specific and include code examples if applicable.  # noqa: E501
-
-Suggestion:"""
+        prompt += (
+            "\n"
+            "Provide a concise, actionable suggestion. "
+            "Be specific and include code examples if applicable.\n\n"
+            "Suggestion:"
+        )
 
         return prompt
 
     async def _call_ollama(self, prompt: str) -> Dict[str, Any]:
         """Call Ollama API"""
-        try:
-            response = await self.client.post(
-                f"{self.ollama_url}/api/generate",
-                json={
-                    "model": self.model,
-                    "prompt": prompt,
-                    "stream": False,
-                    "options": {"temperature": 0.7, "top_p": 0.9, "num_predict": 500},
-                },
-            )
-            response.raise_for_status()
+        settings = get_settings()
+        max_retries = max(0, int(settings.ollama_max_retries))
+        backoff = max(0.0, float(settings.ollama_retry_backoff_seconds))
 
-            result = response.json()
-            return {
-                "text": result.get("response", ""),
-                "reasoning": "Fast heuristic reasoning",
-            }
+        attempt = 0
+        last_exc: Optional[Exception] = None
+        while attempt <= max_retries:
+            try:
+                response = await self.client.post(
+                    f"{self.ollama_url}/api/generate",
+                    json={
+                        "model": self.model,
+                        "prompt": prompt,
+                        "stream": False,
+                        "options": {
+                            "temperature": 0.7,
+                            "top_p": 0.9,
+                            "num_predict": 500,
+                        },
+                    },
+                )
+                response.raise_for_status()
 
-        except httpx.TimeoutException:
-            logger.warning("Ollama request timed out")
-            raise
-        except Exception as e:
-            logger.error(f"Ollama API call failed: {e}")
-            raise
+                result = response.json()
+                return {
+                    "text": result.get("response", ""),
+                    "reasoning": "Fast heuristic reasoning",
+                }
+
+            except httpx.TimeoutException as e:
+                last_exc = e
+                if attempt == max_retries:
+                    logger.warning("Ollama request timed out (final)")
+                    break
+                delay = backoff * (2**attempt)
+                logger.warning(
+                    f"Ollama request timed out (attempt {attempt+1}/{max_retries+1}), "
+                    f"retrying in {delay:.1f}s"
+                )
+                time.sleep(delay)
+                attempt += 1
+            except httpx.HTTPStatusError as e:
+                # Retry on 5xx only
+                last_exc = e
+                status = e.response.status_code if e.response is not None else None
+                if status and 500 <= status < 600 and attempt < max_retries:
+                    delay = backoff * (2**attempt)
+                    logger.warning(
+                        f"Ollama 5xx ({status}) on attempt "
+                        f"{attempt+1}/{max_retries+1}, retrying in {delay:.1f}s"
+                    )
+                    time.sleep(delay)
+                    attempt += 1
+                    continue
+                logger.error(f"Ollama API HTTP error: {e}")
+                raise
+            except Exception as e:
+                logger.error(f"Ollama API call failed: {e}")
+                raise
+
+        assert last_exc is not None
+        raise last_exc
 
     def _parse_suggestions(self, response: Dict[str, Any]) -> List[str]:
         """Parse suggestions from model response"""
@@ -193,7 +248,9 @@ Suggestion:"""
 
         return []
 
-    def _calculate_confidence(self, response: Dict[str, Any], request: ReasoningRequest) -> float:
+    def _calculate_confidence(
+        self, response: Dict[str, Any], request: ReasoningRequest
+    ) -> float:
         """Calculate confidence score"""
         # Base confidence for System 1
         confidence = 0.75
@@ -216,7 +273,9 @@ Suggestion:"""
 
     def get_stats(self) -> Dict[str, Any]:
         """Get performance statistics"""
-        avg_latency = self.total_latency / self.total_requests if self.total_requests > 0 else 0
+        avg_latency = (
+            self.total_latency / self.total_requests if self.total_requests > 0 else 0
+        )
 
         return {
             "model": self.model,
@@ -230,4 +289,5 @@ Suggestion:"""
 
     async def close(self):
         """Close HTTP client"""
+        await self.client.aclose()
         await self.client.aclose()

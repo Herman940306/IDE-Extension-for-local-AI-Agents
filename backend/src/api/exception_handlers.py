@@ -8,7 +8,6 @@ from datetime import datetime
 
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
-
 from src.core.logging import get_logger
 from src.utils.exceptions import AuraIAException, RateLimitExceededException
 

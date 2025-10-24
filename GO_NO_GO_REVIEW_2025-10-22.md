@@ -1,8 +1,8 @@
 # AuraIA Go/No-Go Review — 2025-10-22
 
-**Moderator:** Platform Engineering Lead  \
-**Decision Date:** 2025-10-22  \
-**Meeting Window:** 09:00–09:45 UTC (Teams)  \
+**Moderator:** Platform Engineering Lead \
+**Decision Date:** 2025-10-22 \
+**Meeting Window:** 09:00–09:45 UTC (Teams) \
 **Participants:** Platform Engineering, SecOps, QA, SRE, Product Owner
 
 ---
@@ -29,8 +29,8 @@
 
 ## Decision & Rationale
 
-**Decision:** GO for production deployment targeting 2025-10-24 02:00 UTC.  \
-**Confidence:** High — all Phase 5 exit criteria met, rollback tested, monitoring responsive.  \
+**Decision:** GO for production deployment targeting 2025-10-24 02:00 UTC. \
+**Confidence:** High — all Phase 5 exit criteria met, rollback tested, monitoring responsive. \
 **Rationale Highlights:**
 
 - Dry-run executed start-to-finish with no blocking defects; rollback completed within 3m12s.
@@ -42,23 +42,23 @@
 
 ## Conditions & Action Items
 
-| Item | Owner | Due | Status |
-|------|-------|-----|--------|
-| Register change request with CAB referencing dry-run evidence | Platform Engineering | 2025-10-23 | Pending |
-| Produce customer-facing deployment notice draft | Product Owner | 2025-10-23 | Pending |
-| Pre-scale production Redis & Azure Files capacity | SRE | 2025-10-23 | Pending |
-| Confirm on-call handoff for deployment window | SecOps Lead | 2025-10-23 | Pending |
-| Capture post-deployment validation script updates in `scripts/smoke_tests.py` | QA | 2025-10-23 | Pending |
+| Item                                                                          | Owner                | Due        | Status  |
+| ----------------------------------------------------------------------------- | -------------------- | ---------- | ------- |
+| Register change request with CAB referencing dry-run evidence                 | Platform Engineering | 2025-10-23 | Pending |
+| Produce customer-facing deployment notice draft                               | Product Owner        | 2025-10-23 | Pending |
+| Pre-scale production Redis & Azure Files capacity                             | SRE                  | 2025-10-23 | Pending |
+| Confirm on-call handoff for deployment window                                 | SecOps Lead          | 2025-10-23 | Pending |
+| Capture post-deployment validation script updates in `scripts/smoke_tests.py` | QA                   | 2025-10-23 | Pending |
 
 ---
 
 ## Risk Review
 
-| Risk | Assessment | Mitigation |
-|------|------------|------------|
-| Load profile differs in production | Medium | Schedule follow-up load test (Phase 6 backlog item `LOAD-01`). |
-| Redis throughput spike during cutover | Medium | Pre-scale Redis, monitor `redis:latency` alert, keep rollback ready. |
-| On-call coverage gaps | Low | Require signed roster from SecOps before deployment. |
+| Risk                                  | Assessment | Mitigation                                                           |
+| ------------------------------------- | ---------- | -------------------------------------------------------------------- |
+| Load profile differs in production    | Medium     | Schedule follow-up load test (Phase 6 backlog item `LOAD-01`).       |
+| Redis throughput spike during cutover | Medium     | Pre-scale Redis, monitor `redis:latency` alert, keep rollback ready. |
+| On-call coverage gaps                 | Low        | Require signed roster from SecOps before deployment.                 |
 
 ---
 

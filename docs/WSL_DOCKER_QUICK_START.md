@@ -26,6 +26,7 @@ If your system is ready and you know virtualization is enabled:
 ### Symptoms: Black screen after enabling Virtual Machine Platform
 
 **Immediate Fix:**
+
 ```powershell
 # Boot to Safe Mode (Shift + Restart)
 # Then run:
@@ -33,6 +34,7 @@ If your system is ready and you know virtualization is enabled:
 ```
 
 **Next Steps:**
+
 1. Enable virtualization in BIOS (see guide below)
 2. Update Windows and drivers
 3. Try installation again
@@ -42,21 +44,25 @@ If your system is ready and you know virtualization is enabled:
 ## 🔧 BIOS Quick Reference
 
 ### Access BIOS
+
 **During boot, repeatedly press:** F2, F10, F12, Del, or Esc
 
 ### Enable These Settings
+
 - **Intel:** Virtualization Technology (VT-x) + VT-d
 - **AMD:** SVM Mode + IOMMU
 
 ### Common Paths
-| Brand | Path |
-|-------|------|
-| Dell | Advanced > Virtualization |
-| HP | Advanced > System Options > Virtualization Technology |
-| Lenovo | Configuration > Intel Virtual Technology |
-| ASUS | Advanced > CPU Configuration > Intel Virtualization Technology |
+
+| Brand  | Path                                                           |
+| ------ | -------------------------------------------------------------- |
+| Dell   | Advanced > Virtualization                                      |
+| HP     | Advanced > System Options > Virtualization Technology          |
+| Lenovo | Configuration > Intel Virtual Technology                       |
+| ASUS   | Advanced > CPU Configuration > Intel Virtualization Technology |
 
 ### Save & Exit
+
 Press **F10** → Yes → System will restart
 
 ---
@@ -64,6 +70,7 @@ Press **F10** → Yes → System will restart
 ## 📋 Pre-Flight Checklist
 
 Before running installation:
+
 - [ ] Windows 10 Build 19041+ or Windows 11
 - [ ] All Windows Updates installed
 - [ ] Virtualization enabled in BIOS
@@ -76,6 +83,7 @@ Before running installation:
 ## 🎯 Available Scripts
 
 ### Diagnostics
+
 ```powershell
 # Full system check (run this first!)
 .\scripts\WSL-Docker-SafeMode-Recovery.ps1 -Mode FullDiagnostics
@@ -85,6 +93,7 @@ Before running installation:
 ```
 
 ### Installation
+
 ```powershell
 # Complete setup (recommended)
 .\scripts\WSL-Docker-Setup-Enterprise.ps1 -Mode FullSetup
@@ -97,6 +106,7 @@ Before running installation:
 ```
 
 ### Recovery
+
 ```powershell
 # Disable features (if system crashed)
 .\scripts\WSL-Docker-SafeMode-Recovery.ps1 -Mode DisableAndRecover
@@ -109,6 +119,7 @@ Before running installation:
 ```
 
 ### Validation
+
 ```powershell
 # Verify installation
 .\scripts\WSL-Docker-Setup-Enterprise.ps1 -Mode Validate -DistroName Ubuntu-24.04
@@ -119,6 +130,7 @@ Before running installation:
 ## 🐛 Common Issues & Quick Fixes
 
 ### Issue: "16-bit application error"
+
 ```powershell
 Remove-Item "$env:TEMP\wsl*" -Recurse -Force
 $msi = "$env:TEMP\wsl.msi"
@@ -127,6 +139,7 @@ msiexec /i $msi /passive /norestart
 ```
 
 ### Issue: WSL command not found
+
 ```powershell
 # Reinstall WSL package
 Invoke-WebRequest -Uri "https://aka.ms/wsl-x64" -OutFile "$env:TEMP\wsl.msi"
@@ -134,6 +147,7 @@ msiexec /i "$env:TEMP\wsl.msi" /passive
 ```
 
 ### Issue: Docker won't start in Ubuntu
+
 ```bash
 # Inside WSL
 sudo systemctl start docker
@@ -167,13 +181,16 @@ wsl -d Ubuntu-24.04 -- docker run hello-world
 ## 📞 Need Help?
 
 ### Detailed Troubleshooting
+
 See: `docs\WSL_DOCKER_TROUBLESHOOTING_GUIDE.md`
 
 ### Logs Location
+
 - Full setup: `%TEMP%\wsl-docker-setup.log`
 - Safe mode: `%TEMP%\wsl-safemode-recovery.log`
 
 ### Online Resources
+
 - [WSL Docs](https://docs.microsoft.com/en-us/windows/wsl/)
 - [Docker WSL Guide](https://docs.docker.com/desktop/wsl/)
 - [Microsoft Q&A](https://learn.microsoft.com/en-us/answers/)
@@ -183,6 +200,7 @@ See: `docs\WSL_DOCKER_TROUBLESHOOTING_GUIDE.md`
 ## 🎯 Typical Workflow
 
 ### First Time Setup
+
 ```powershell
 # 1. Run diagnostics
 .\scripts\WSL-Docker-SafeMode-Recovery.ps1 -Mode FullDiagnostics
@@ -200,6 +218,7 @@ See: `docs\WSL_DOCKER_TROUBLESHOOTING_GUIDE.md`
 ```
 
 ### If System Crashes
+
 ```powershell
 # 1. Boot to Safe Mode (Shift + Restart)
 
@@ -219,6 +238,7 @@ See: `docs\WSL_DOCKER_TROUBLESHOOTING_GUIDE.md`
 ## 🏆 Enterprise Features
 
 These scripts include:
+
 - ✅ Pre-flight system validation
 - ✅ Automatic cleanup and recovery
 - ✅ Detailed logging with timestamps

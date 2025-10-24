@@ -3,7 +3,7 @@ Unit tests for Meta-Controller
 Project Creator: Herman Swanepoel
 """
 
-from src.orchestrator.meta_controller import MetaController, AgentNode
+from src.orchestrator.meta_controller import AgentNode, MetaController
 
 
 class TestMetaController:

@@ -1,10 +1,10 @@
 # Implementation Plan - Foundation Hardening
 
-**Project Creator:** Herman Swanepoel  
-**Feature:** Foundation Hardening & Code Quality Improvements  
-**Sprint:** Week 4 - Beta Deployment Phase  
-**Priority:** HIGH  
-**Document Version:** 1.0  
+**Project Creator:** Herman Swanepoel
+**Feature:** Foundation Hardening & Code Quality Improvements
+**Sprint:** Week 4 - Beta Deployment Phase
+**Priority:** HIGH
+**Document Version:** 1.0
 **Last Updated:** 2025-10-13
 
 ---
@@ -12,14 +12,10 @@
 ## Task List
 
 - [x] 1. Create exception hierarchy and error handling infrastructure
-
-
   - Create standardized exception classes with context tracking
   - Implement global exception handlers for FastAPI
   - Add correlation ID support for request tracing
   - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.5, 4.6, 4.7_
-
-
 
 - [ ] 1.1 Create base exception classes
   - Implement `AuraIAException` base class with error codes and correlation IDs
@@ -36,13 +32,12 @@
   - Add correlation ID to all error responses
   - _Requirements: 4.3, 4.4, 4.6_
 
-- [ ]* 1.3 Write unit tests for exception handling
+- [ ]\* 1.3 Write unit tests for exception handling
   - Test exception creation and serialization
   - Test global exception handlers
   - Test correlation ID propagation
   - Verify error message sanitization
   - _Requirements: 4.7_
-
 
 ---
 
@@ -50,14 +45,11 @@
   - Create centralized utility functions for common adapter operations
   - Implement exponential backoff with jitter
 
-
   - Add response validation utilities
   - Create health check wrapper with timeout
   - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5, 1.6_
 
 - [x] 2.1 Create adapter_utils.py module
-
-
   - Implement `exponential_backoff()` with configurable retry logic
   - Add jitter calculation to prevent thundering herd
   - Implement `validate_response()` for response structure validation
@@ -72,9 +64,8 @@
   - Remove duplicate code from all adapters
   - _Requirements: 1.1, 1.4_
 
-- [ ]* 2.3 Write unit tests for adapter utilities
+- [ ]\* 2.3 Write unit tests for adapter utilities
   - Test exponential backoff with success and failure scenarios
-
 
   - Test backoff with max retries exhausted
 
@@ -85,16 +76,12 @@
 
 ---
 
-
 - [ ] 3. Implement response cache service
   - Create Redis-based caching layer for LLM responses
   - Implement cache key generation with hashing
   - Add cache hit/miss tracking
   - Implement graceful degradation when Redis unavailable
   - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7_
-
-
-
 
 - [ ] 3.1 Create ResponseCache class
   - Implement `__init__()` with Redis client and configuration
@@ -120,7 +107,7 @@
   - Track cache errors in statistics
   - _Requirements: 2.7_
 
-- [ ]* 3.4 Write unit tests for response cache
+- [ ]\* 3.4 Write unit tests for response cache
   - Test cache hit scenario
 
   - Test cache miss scenario
@@ -129,8 +116,6 @@
   - Test Redis unavailability handling
   - Test cache statistics tracking
   - _Requirements: 2.5, 2.7_
-
-
 
 ---
 
@@ -165,8 +150,7 @@
   - Create dashboard for circuit breaker visualization
   - _Requirements: 3.6_
 
-
-- [ ]* 4.4 Write unit tests for circuit breaker
+- [ ]\* 4.4 Write unit tests for circuit breaker
   - Test CLOSED → OPEN transition
   - Test OPEN → HALF_OPEN transition after timeout
   - Test HALF_OPEN → CLOSED on success
@@ -187,7 +171,6 @@
   - _Requirements: 6.1, 6.2, 6.3, 6.4, 6.5, 6.6, 6.7_
 
 - [x] 5.1 Create RateLimiter class
-
   - Implement sliding window algorithm using Redis sorted sets
   - Create `check_rate_limit()` method
   - Add `reset()` method for manual resets
@@ -210,7 +193,7 @@
   - Add configuration via environment variables
   - _Requirements: 6.3, 6.7_
 
-- [ ]* 5.4 Write unit tests for rate limiter
+- [ ]\* 5.4 Write unit tests for rate limiter
   - Test rate limit allowed scenario
   - Test rate limit exceeded scenario
   - Test sliding window behavior
@@ -219,12 +202,10 @@
   - Test rate limit reset
   - _Requirements: 6.5_
 
-
 ---
 
 - [ ] 6. Implement request size validation
   - Create middleware to enforce request size limits
-
 
   - Add validation for WebSocket messages
   - Implement file size validation
@@ -244,26 +225,20 @@
   - Log rejected messages for monitoring
   - _Requirements: 7.4_
 
-
-
-
 - [ ] 6.3 Implement file content validation
   - Validate file size in code context
   - Enforce 1MB limit per file
   - Return validation error for oversized files
   - _Requirements: 7.3_
 
-- [ ]* 6.4 Write unit tests for size validation
+- [ ]\* 6.4 Write unit tests for size validation
   - Test request size within limit
 
   - Test request size exceeding limit
   - Test WebSocket message size validation
 
-
   - Test file content size validation
   - _Requirements: 7.5, 7.7_
-
-
 
 ---
 
@@ -271,19 +246,16 @@
   - Create correlation ID middleware
   - Integrate rate limiting middleware
 
-
   - Integrate request size middleware
   - Configure middleware pipeline
   - _Requirements: 4.4, 6.1, 6.2, 7.1, 7.2_
 
 - [x] 7.1 Create CorrelationIDMiddleware
-
   - Extract or generate correlation ID from headers
   - Store correlation ID in request state
   - Add correlation ID to response headers
   - Propagate correlation ID to logging context
   - _Requirements: 4.4_
-
 
 - [ ] 7.2 Configure middleware pipeline in main.py
   - Add CorrelationIDMiddleware first
@@ -292,11 +264,9 @@
   - Configure middleware order for proper execution
   - _Requirements: 6.1, 6.2, 7.1, 7.2_
 
-
-- [ ]* 7.3 Write integration tests for middleware
+- [ ]\* 7.3 Write integration tests for middleware
   - Test correlation ID propagation
   - Test rate limiting enforcement
-
 
   - Test request size validation
   - Test middleware execution order
@@ -305,13 +275,11 @@
 ---
 
 - [x] 8. Enhance OpenAPI documentation
-
   - Configure FastAPI to generate comprehensive OpenAPI spec
   - Add descriptions to all endpoints
   - Document request/response schemas
   - Add example payloads
   - _Requirements: 8.1, 8.2, 8.3, 8.4, 8.5, 8.6, 8.7_
-
 
 - [ ] 8.1 Add endpoint descriptions and metadata
   - Add docstrings to all route handlers
@@ -319,7 +287,6 @@
   - Add tags for endpoint grouping
   - Document authentication requirements
   - _Requirements: 8.4, 8.5_
-
 
 - [ ] 8.2 Configure OpenAPI settings
   - Set API title, version, and description
@@ -343,8 +310,6 @@
   - Ensure auto-update on code changes
   - _Requirements: 8.7_
 
-
-
 ---
 
 - [ ] 9. Increase test coverage to 60%
@@ -364,13 +329,11 @@
   - _Requirements: 5.1_
 
 - [x] 9.2 Write missing unit tests
-
   - Identify modules with low coverage
   - Write unit tests for uncovered code paths
   - Focus on critical paths (adapters, services)
   - Aim for 80%+ coverage on new code
   - _Requirements: 5.2, 5.3_
-
 
 - [ ] 9.3 Write integration tests
   - Test adapter with cache and circuit breaker
@@ -428,23 +391,28 @@
 ## Task Execution Order
 
 **Day 1: Foundation**
+
 - Task 1: Exception hierarchy (1.1, 1.2, 1.3)
 - Task 2: Shared utilities (2.1, 2.2, 2.3)
 
 **Day 2: Caching & Circuit Breakers**
+
 - Task 3: Response cache (3.1, 3.2, 3.3, 3.4)
 - Task 4: Circuit breakers (4.1, 4.2, 4.3, 4.4)
 
 **Day 3: Rate Limiting & Validation**
+
 - Task 5: Rate limiting (5.1, 5.2, 5.3, 5.4)
 - Task 6: Request size validation (6.1, 6.2, 6.3, 6.4)
 - Task 7: Middleware layer (7.1, 7.2, 7.3)
 
 **Day 4: Testing & Documentation**
+
 - Task 8: OpenAPI documentation (8.1, 8.2, 8.3, 8.4)
 - Task 9: Test coverage (9.1, 9.2, 9.3, 9.4)
 
 **Day 5: Deployment**
+
 - Task 10: Deployment runbook (10.1, 10.2, 10.3, 10.4)
 
 ---
@@ -461,6 +429,6 @@
 
 ---
 
-**Project Creator:** Herman Swanepoel  
-**Document Version:** 1.0  
+**Project Creator:** Herman Swanepoel
+**Document Version:** 1.0
 **Last Updated:** 2025-10-13

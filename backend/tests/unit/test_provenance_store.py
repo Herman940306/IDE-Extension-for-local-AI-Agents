@@ -3,9 +3,10 @@ Unit tests for Provenance Store
 Project Creator: Herman Swanepoel
 """
 
-import pytest
-import tempfile
 import os
+import tempfile
+
+import pytest
 from src.verifier.provenance_store import ProvenanceStore
 
 

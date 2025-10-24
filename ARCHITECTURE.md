@@ -46,12 +46,14 @@ Enterprise AI Agents Backend with production-ready infrastructure.
 **Purpose:** Centralized service lifecycle management
 
 **Services:**
+
 - Configuration (AppSettings)
 - Redis Connection Pool
 - Response Cache
 - Rate Limiter
 
 **Benefits:**
+
 - Singleton pattern
 - Lazy initialization
 - Easy testing (mock injection)
@@ -61,12 +63,14 @@ Enterprise AI Agents Backend with production-ready infrastructure.
 ### 2. Connection Pooling
 
 **Redis Pool:**
+
 - Max connections: 50
 - Min idle: 10
 - Auto-recycling
 - Graceful shutdown
 
 **Performance:**
+
 - 60% reduction in connection overhead
 - Reusable connections
 - Thread-safe
@@ -78,12 +82,14 @@ Enterprise AI Agents Backend with production-ready infrastructure.
 **Format:** JSON with correlation IDs
 
 **Features:**
+
 - Request tracing
 - Timestamp (ISO 8601)
 - Log levels (INFO, WARNING, ERROR)
 - Contextual data
 
 **Example:**
+
 ```json
 {
   "event": "redis_connected",
@@ -98,6 +104,7 @@ Enterprise AI Agents Backend with production-ready infrastructure.
 ### 4. Configuration Management
 
 **Centralized Settings:**
+
 - Database (Redis, ChromaDB)
 - LLM (Ollama)
 - Cache
@@ -105,6 +112,7 @@ Enterprise AI Agents Backend with production-ready infrastructure.
 - Application
 
 **Environment Variables:**
+
 ```env
 DB_REDIS_URL=redis://localhost:6379
 LLM_OLLAMA_URL=http://localhost:11434
@@ -117,6 +125,7 @@ LOG_LEVEL=INFO
 ### 5. Error Handling
 
 **Exception Hierarchy:**
+
 - AuraIAException (base)
 - AdapterException
 - LLMException
@@ -125,6 +134,7 @@ LOG_LEVEL=INFO
 - RateLimitExceededException
 
 **Features:**
+
 - Correlation IDs
 - Structured logging
 - Graceful degradation
@@ -137,21 +147,26 @@ LOG_LEVEL=INFO
 ### REST API
 
 **Health:**
+
 - `GET /health` - System health check
 
 **Root:**
+
 - `GET /` - API information
 
 **Documentation:**
+
 - `GET /docs` - Swagger UI
 - `GET /redoc` - ReDoc
 
 ### WebSocket
 
 **Connection:**
+
 - `WS /ws/{client_id}` - Real-time communication
 
 **Message Types:**
+
 - ping/pong
 - task_request
 - agent_response
@@ -216,11 +231,13 @@ docker-compose.yml
 ### Latency
 
 **Without Redis:**
+
 - Health check: ~10ms
 - WebSocket: ~50ms
 - API response: ~100ms
 
 **With Redis:**
+
 - Cache hit: <5ms
 - Cache miss: ~2000ms
 - Target hit rate: 60%+
@@ -228,11 +245,13 @@ docker-compose.yml
 ### Scalability
 
 **Current:**
+
 - Single instance
 - Stateless (with Redis)
 - Horizontal scaling ready
 
 **Future:**
+
 - Load balancer
 - Multiple instances
 - Shared Redis cluster
@@ -262,17 +281,20 @@ docker-compose.yml
 ## Technology Stack
 
 **Backend:**
+
 - Python 3.13
 - FastAPI
 - Uvicorn
 - Pydantic
 
 **Infrastructure:**
+
 - Redis (cache/rate limiting)
 - Docker (containerization)
 - Structlog (logging)
 
 **Dependencies:**
+
 - dependency-injector
 - pydantic-settings
 - redis-py
@@ -293,11 +315,13 @@ docker-compose.yml
 ## Testing Strategy
 
 **Unit Tests:**
+
 - 71/74 passing (96%)
 - Core services: 95%+ coverage
 - Exception handling: 100%
 
 **Integration Tests:**
+
 - WebSocket communication
 - Health checks
 - Error scenarios

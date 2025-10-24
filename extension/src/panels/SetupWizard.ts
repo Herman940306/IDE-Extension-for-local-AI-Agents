@@ -1,16 +1,16 @@
 /**
  * Setup Wizard - Initial configuration wizard
- * 
+ *
  * Guides users through essential configuration:
  * - Backend connection
  * - LLM provider selection
  * - Privacy preferences
  * - Accessibility settings
- * 
+ *
  * Project Creator: Herman Swanepoel
  */
 
-import * as vscode from 'vscode';
+import * as vscode from "vscode";
 
 export interface SetupStep {
   id: string;
@@ -21,7 +21,7 @@ export interface SetupStep {
 
 export interface SetupField {
   id: string;
-  type: 'text' | 'select' | 'checkbox' | 'number';
+  type: "text" | "select" | "checkbox" | "number";
   label: string;
   placeholder?: string;
   defaultValue?: any;
@@ -49,7 +49,7 @@ export interface ValidationError {
 export interface SetupConfiguration {
   backendUrl: string;
   backendPort: number;
-  llmProvider: 'ollama' | 'lmstudio' | 'cloud';
+  llmProvider: "ollama" | "lmstudio" | "cloud";
   telemetryEnabled: boolean;
   cloudFallbackEnabled: boolean;
   screenReaderEnabled: boolean;
@@ -67,7 +67,10 @@ export class SetupWizard {
   private onNextEmitter = new vscode.EventEmitter<number>();
   private onPreviousEmitter = new vscode.EventEmitter<number>();
   private onCompleteEmitter = new vscode.EventEmitter<SetupConfiguration>();
-  private onValidateEmitter = new vscode.EventEmitter<{ step: number; data: any }>();
+  private onValidateEmitter = new vscode.EventEmitter<{
+    step: number;
+    data: any;
+  }>();
 
   public readonly onNext = this.onNextEmitter.event;
   public readonly onPrevious = this.onPreviousEmitter.event;
@@ -83,9 +86,9 @@ export class SetupWizard {
 
     // Handle messages from webview
     this.panel.webview.onDidReceiveMessage(
-      message => this.handleMessage(message),
+      (message) => this.handleMessage(message),
       null,
-      this.disposables
+      this.disposables,
     );
 
     // Handle panel disposal
@@ -106,14 +109,14 @@ export class SetupWizard {
 
     // Create new panel
     const panel = vscode.window.createWebviewPanel(
-      'enterpriseAI.setup',
-      'Setup Wizard',
+      "enterpriseAI.setup",
+      "Setup Wizard",
       column,
       {
         enableScripts: true,
         retainContextWhenHidden: true,
-        localResourceRoots: [vscode.Uri.joinPath(extensionUri, 'media')]
-      }
+        localResourceRoots: [vscode.Uri.joinPath(extensionUri, "media")],
+      },
     );
 
     SetupWizard.currentPanel = new SetupWizard(panel, extensionUri);
@@ -124,7 +127,11 @@ export class SetupWizard {
    * Show the setup wizard at a specific step
    */
   public async show(stepIndex?: number): Promise<void> {
-    if (stepIndex !== undefined && stepIndex >= 0 && stepIndex < this.steps.length) {
+    if (
+      stepIndex !== undefined &&
+      stepIndex >= 0 &&
+      stepIndex < this.steps.length
+    ) {
       this.currentStepIndex = stepIndex;
       this.updateWebviewContent(this.panel.webview.options as any);
     }
@@ -178,31 +185,34 @@ export class SetupWizard {
       const value = data[field.id];
 
       // Required field validation
-      if (field.required && (value === undefined || value === null || value === '')) {
+      if (
+        field.required &&
+        (value === undefined || value === null || value === "")
+      ) {
         errors.push({
           fieldId: field.id,
-          message: `${field.label} is required`
+          message: `${field.label} is required`,
         });
         continue;
       }
 
       // Type-specific validation
-      if (value !== undefined && value !== null && value !== '') {
+      if (value !== undefined && value !== null && value !== "") {
         switch (field.id) {
-          case 'backendUrl':
+          case "backendUrl":
             if (!this.isValidUrl(value)) {
               errors.push({
                 fieldId: field.id,
-                message: 'Please enter a valid URL (e.g., http://localhost)'
+                message: "Please enter a valid URL (e.g., http://localhost)",
               });
             }
             break;
 
-          case 'backendPort':
+          case "backendPort":
             if (!this.isValidPort(value)) {
               errors.push({
                 fieldId: field.id,
-                message: 'Port must be between 1 and 65535'
+                message: "Port must be between 1 and 65535",
               });
             }
             break;
@@ -212,7 +222,7 @@ export class SetupWizard {
 
     return {
       isValid: errors.length === 0,
-      errors
+      errors,
     };
   }
 
@@ -222,7 +232,7 @@ export class SetupWizard {
   private isValidUrl(url: string): boolean {
     try {
       const parsed = new URL(url);
-      return ['http:', 'https:'].includes(parsed.protocol);
+      return ["http:", "https:"].includes(parsed.protocol);
     } catch {
       return false;
     }
@@ -265,7 +275,7 @@ export class SetupWizard {
    */
   private async handleMessage(message: any): Promise<void> {
     switch (message.command) {
-      case 'next':
+      case "next":
         // Validate before proceeding
         const validation = await this.validateStep(message.data);
         if (validation.isValid) {
@@ -275,17 +285,17 @@ export class SetupWizard {
         } else {
           // Send validation errors back to webview
           this.panel.webview.postMessage({
-            command: 'validationErrors',
-            errors: validation.errors
+            command: "validationErrors",
+            errors: validation.errors,
           });
         }
         break;
 
-      case 'previous':
+      case "previous":
         await this.previous();
         break;
 
-      case 'complete':
+      case "complete":
         // Validate final step
         const finalValidation = await this.validateStep(message.data);
         if (finalValidation.isValid) {
@@ -293,17 +303,17 @@ export class SetupWizard {
           await this.complete();
         } else {
           this.panel.webview.postMessage({
-            command: 'validationErrors',
-            errors: finalValidation.errors
+            command: "validationErrors",
+            errors: finalValidation.errors,
           });
         }
         break;
 
-      case 'testConnection':
+      case "testConnection":
         // Emit event for connection testing
         this.onValidateEmitter.fire({
           step: this.currentStepIndex,
-          data: message.data
+          data: message.data,
         });
         break;
     }
@@ -322,108 +332,111 @@ export class SetupWizard {
   private getSetupSteps(): SetupStep[] {
     return [
       {
-        id: 'backend',
-        title: 'Backend Connection',
-        description: 'Configure connection to the AI backend server',
+        id: "backend",
+        title: "Backend Connection",
+        description: "Configure connection to the AI backend server",
         fields: [
           {
-            id: 'backendUrl',
-            type: 'text',
-            label: 'Backend URL',
-            placeholder: 'http://localhost',
-            defaultValue: 'http://localhost',
-            helpText: 'The URL where your AI backend is running',
-            required: true
+            id: "backendUrl",
+            type: "text",
+            label: "Backend URL",
+            placeholder: "http://localhost",
+            defaultValue: "http://localhost",
+            helpText: "The URL where your AI backend is running",
+            required: true,
           },
           {
-            id: 'backendPort',
-            type: 'number',
-            label: 'Backend Port',
-            placeholder: '8000',
+            id: "backendPort",
+            type: "number",
+            label: "Backend Port",
+            placeholder: "8000",
             defaultValue: 8000,
-            helpText: 'The port number for the backend server',
-            required: true
-          }
-        ]
+            helpText: "The port number for the backend server",
+            required: true,
+          },
+        ],
       },
       {
-        id: 'llm',
-        title: 'LLM Provider',
-        description: 'Choose your preferred language model provider',
+        id: "llm",
+        title: "LLM Provider",
+        description: "Choose your preferred language model provider",
         fields: [
           {
-            id: 'llmProvider',
-            type: 'select',
-            label: 'LLM Provider',
-            defaultValue: 'ollama',
+            id: "llmProvider",
+            type: "select",
+            label: "LLM Provider",
+            defaultValue: "ollama",
             options: [
               {
-                value: 'ollama',
-                label: 'Ollama',
-                description: 'Run models locally with Ollama (recommended for privacy)'
+                value: "ollama",
+                label: "Ollama",
+                description:
+                  "Run models locally with Ollama (recommended for privacy)",
               },
               {
-                value: 'lmstudio',
-                label: 'LM Studio',
-                description: 'Use LM Studio for local model inference'
+                value: "lmstudio",
+                label: "LM Studio",
+                description: "Use LM Studio for local model inference",
               },
               {
-                value: 'cloud',
-                label: 'Cloud Provider',
-                description: 'Use cloud-based LLMs (OpenAI, Anthropic, etc.)'
-              }
+                value: "cloud",
+                label: "Cloud Provider",
+                description: "Use cloud-based LLMs (OpenAI, Anthropic, etc.)",
+              },
             ],
-            helpText: 'Select how you want to run AI models',
-            required: true
-          }
-        ]
+            helpText: "Select how you want to run AI models",
+            required: true,
+          },
+        ],
       },
       {
-        id: 'privacy',
-        title: 'Privacy Preferences',
-        description: 'Configure your privacy and data sharing preferences',
+        id: "privacy",
+        title: "Privacy Preferences",
+        description: "Configure your privacy and data sharing preferences",
         fields: [
           {
-            id: 'cloudFallbackEnabled',
-            type: 'checkbox',
-            label: 'Enable cloud fallback',
+            id: "cloudFallbackEnabled",
+            type: "checkbox",
+            label: "Enable cloud fallback",
             defaultValue: false,
-            helpText: 'Allow fallback to cloud LLMs if local models are unavailable',
-            required: false
+            helpText:
+              "Allow fallback to cloud LLMs if local models are unavailable",
+            required: false,
           },
           {
-            id: 'telemetryEnabled',
-            type: 'checkbox',
-            label: 'Enable telemetry',
+            id: "telemetryEnabled",
+            type: "checkbox",
+            label: "Enable telemetry",
             defaultValue: false,
-            helpText: 'Help improve the extension by sending anonymous usage data',
-            required: false
-          }
-        ]
+            helpText:
+              "Help improve the extension by sending anonymous usage data",
+            required: false,
+          },
+        ],
       },
       {
-        id: 'accessibility',
-        title: 'Accessibility',
-        description: 'Configure accessibility features',
+        id: "accessibility",
+        title: "Accessibility",
+        description: "Configure accessibility features",
         fields: [
           {
-            id: 'screenReaderEnabled',
-            type: 'checkbox',
-            label: 'Enable screen reader support',
+            id: "screenReaderEnabled",
+            type: "checkbox",
+            label: "Enable screen reader support",
             defaultValue: false,
-            helpText: 'Optimize for screen reader usage',
-            required: false
+            helpText: "Optimize for screen reader usage",
+            required: false,
           },
           {
-            id: 'keyboardShortcutsEnabled',
-            type: 'checkbox',
-            label: 'Enable keyboard shortcuts',
+            id: "keyboardShortcutsEnabled",
+            type: "checkbox",
+            label: "Enable keyboard shortcuts",
             defaultValue: true,
-            helpText: 'Use keyboard shortcuts for quick access',
-            required: false
-          }
-        ]
-      }
+            helpText: "Use keyboard shortcuts for quick access",
+            required: false,
+          },
+        ],
+      },
     ];
   }
 
@@ -438,75 +451,82 @@ export class SetupWizard {
     const isLastStep = this.currentStepIndex === this.steps.length - 1;
 
     // Generate form fields HTML
-    const fieldsHtml = currentStep.fields.map(field => {
-      const savedValue = (this.configuration as any)[field.id] ?? field.defaultValue;
-      
-      switch (field.type) {
-        case 'text':
-        case 'number':
-          return `
+    const fieldsHtml = currentStep.fields
+      .map((field) => {
+        const savedValue =
+          (this.configuration as any)[field.id] ?? field.defaultValue;
+
+        switch (field.type) {
+          case "text":
+          case "number":
+            return `
             <div class="field">
               <label for="${field.id}">
-                ${field.label}${field.required ? ' <span class="required">*</span>' : ''}
+                ${field.label}${field.required ? ' <span class="required">*</span>' : ""}
               </label>
               <input 
                 type="${field.type}" 
                 id="${field.id}" 
                 name="${field.id}"
-                placeholder="${field.placeholder || ''}"
-                value="${savedValue || ''}"
-                ${field.required ? 'required' : ''}
+                placeholder="${field.placeholder || ""}"
+                value="${savedValue || ""}"
+                ${field.required ? "required" : ""}
                 aria-describedby="${field.id}-help ${field.id}-error"
               />
-              ${field.helpText ? `<p class="help-text" id="${field.id}-help">${field.helpText}</p>` : ''}
+              ${field.helpText ? `<p class="help-text" id="${field.id}-help">${field.helpText}</p>` : ""}
               <p class="error-text" id="${field.id}-error" role="alert" aria-live="polite"></p>
             </div>
           `;
 
-        case 'select':
-          return `
+          case "select":
+            return `
             <div class="field">
               <label for="${field.id}">
-                ${field.label}${field.required ? ' <span class="required">*</span>' : ''}
+                ${field.label}${field.required ? ' <span class="required">*</span>' : ""}
               </label>
               <select 
                 id="${field.id}" 
                 name="${field.id}"
-                ${field.required ? 'required' : ''}
+                ${field.required ? "required" : ""}
                 aria-describedby="${field.id}-help ${field.id}-error"
               >
-                ${field.options?.map(opt => `
-                  <option value="${opt.value}" ${savedValue === opt.value ? 'selected' : ''}>
+                ${field.options
+                  ?.map(
+                    (opt) => `
+                  <option value="${opt.value}" ${savedValue === opt.value ? "selected" : ""}>
                     ${opt.label}
                   </option>
-                `).join('')}
+                `,
+                  )
+                  .join("")}
               </select>
-              ${field.helpText ? `<p class="help-text" id="${field.id}-help">${field.helpText}</p>` : ''}
+              ${field.helpText ? `<p class="help-text" id="${field.id}-help">${field.helpText}</p>` : ""}
               <p class="error-text" id="${field.id}-error" role="alert" aria-live="polite"></p>
             </div>
           `;
 
-        case 'checkbox':
-          return `
+          case "checkbox":
+            return `
             <div class="field checkbox-field">
               <label>
                 <input 
                   type="checkbox" 
                   id="${field.id}" 
                   name="${field.id}"
-                  ${savedValue ? 'checked' : ''}
+                  ${savedValue ? "checked" : ""}
                   aria-describedby="${field.id}-help"
                 />
                 <span>${field.label}</span>
               </label>
-              ${field.helpText ? `<p class="help-text" id="${field.id}-help">${field.helpText}</p>` : ''}
+              ${field.helpText ? `<p class="help-text" id="${field.id}-help">${field.helpText}</p>` : ""}
             </div>
           `;
 
-        default:
-          return '';
-      }
-    }).join('');
+          default:
+            return "";
+        }
+      })
+      .join("");
 
     return `<!DOCTYPE html>
 <html lang="en">
@@ -727,18 +747,22 @@ export class SetupWizard {
     <form class="form" id="setupForm" onsubmit="return false;">
       ${fieldsHtml}
       
-      ${currentStep.id === 'backend' ? `
+      ${
+        currentStep.id === "backend"
+          ? `
         <button type="button" class="test-button" onclick="testConnection()">
           Test Connection
         </button>
-      ` : ''}
+      `
+          : ""
+      }
     </form>
 
     <div class="navigation">
       <button 
         class="secondary-button" 
         onclick="handlePrevious()"
-        ${isFirstStep ? 'disabled' : ''}
+        ${isFirstStep ? "disabled" : ""}
       >
         ← Previous
       </button>
@@ -746,7 +770,7 @@ export class SetupWizard {
         class="primary-button" 
         onclick="handleNext()"
       >
-        ${isLastStep ? 'Complete Setup' : 'Next →'}
+        ${isLastStep ? "Complete Setup" : "Next →"}
       </button>
     </div>
   </div>

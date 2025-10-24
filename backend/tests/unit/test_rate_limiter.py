@@ -6,8 +6,9 @@ Date: 2025-10-13
 Target Coverage: 90%
 """
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock
+
+import pytest
 from src.services.rate_limiter import RateLimiter
 
 

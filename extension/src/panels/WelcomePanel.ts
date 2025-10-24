@@ -1,12 +1,12 @@
 /**
  * Welcome Panel - First screen in onboarding flow
- * 
+ *
  * Displays welcome message, feature highlights, and action buttons
- * 
+ *
  * Project Creator: Herman Swanepoel
  */
 
-import * as vscode from 'vscode';
+import * as vscode from "vscode";
 
 export interface FeatureHighlight {
   icon: string;
@@ -46,9 +46,9 @@ export class WelcomePanel {
 
     // Handle messages from webview
     this.panel.webview.onDidReceiveMessage(
-      message => this.handleMessage(message),
+      (message) => this.handleMessage(message),
       null,
-      this.disposables
+      this.disposables,
     );
 
     // Handle panel disposal
@@ -69,14 +69,14 @@ export class WelcomePanel {
 
     // Create new panel
     const panel = vscode.window.createWebviewPanel(
-      'enterpriseAI.welcome',
-      'Welcome to Enterprise AI Agents',
+      "enterpriseAI.welcome",
+      "Welcome to Enterprise AI Agents",
       column,
       {
         enableScripts: true,
         retainContextWhenHidden: true,
-        localResourceRoots: [vscode.Uri.joinPath(extensionUri, 'media')]
-      }
+        localResourceRoots: [vscode.Uri.joinPath(extensionUri, "media")],
+      },
     );
 
     WelcomePanel.currentPanel = new WelcomePanel(panel, extensionUri);
@@ -119,12 +119,12 @@ export class WelcomePanel {
     }
   }
 
-  private skillLevel: 'beginner' | 'intermediate' | 'advanced' = 'beginner';
+  private skillLevel: "beginner" | "intermediate" | "advanced" = "beginner";
 
   /**
    * Get selected skill level
    */
-  public getSkillLevel(): 'beginner' | 'intermediate' | 'advanced' {
+  public getSkillLevel(): "beginner" | "intermediate" | "advanced" {
     return this.skillLevel;
   }
 
@@ -133,15 +133,15 @@ export class WelcomePanel {
    */
   private handleMessage(message: any): void {
     switch (message.command) {
-      case 'getStarted':
-        this.skillLevel = message.skillLevel || 'beginner';
+      case "getStarted":
+        this.skillLevel = message.skillLevel || "beginner";
         this.onGetStartedEmitter.fire();
         break;
-      case 'skipTour':
+      case "skipTour":
         this.onSkipTourEmitter.fire();
         break;
-      case 'openDocumentation':
-        vscode.env.openExternal(vscode.Uri.parse('https://docs.example.com'));
+      case "openDocumentation":
+        vscode.env.openExternal(vscode.Uri.parse("https://docs.example.com"));
         break;
     }
   }
@@ -410,13 +410,17 @@ export class WelcomePanel {
     </div>
 
     <div class="features" role="list" aria-label="Key Features">
-      ${content.features.map(feature => `
+      ${content.features
+        .map(
+          (feature) => `
         <div class="feature" role="listitem" tabindex="0">
           <div class="feature-icon" role="img" aria-label="${feature.title} icon">${feature.icon}</div>
           <h2 class="feature-title">${feature.title}</h2>
           <p class="feature-description">${feature.description}</p>
         </div>
-      `).join('')}
+      `,
+        )
+        .join("")}
     </div>
 
     <div class="skill-level" role="group" aria-label="Select your skill level">
@@ -447,15 +451,19 @@ export class WelcomePanel {
     </div>
 
     <div class="actions" role="group" aria-label="Onboarding Actions">
-      ${content.actions.map(action => `
+      ${content.actions
+        .map(
+          (action) => `
         <button 
-          class="${action.primary ? 'primary-button' : 'secondary-button'}"
+          class="${action.primary ? "primary-button" : "secondary-button"}"
           onclick="handleAction('${action.command}')"
           aria-label="${action.label}"
         >
           ${action.label}
         </button>
-      `).join('')}
+      `,
+        )
+        .join("")}
     </div>
 
     <div class="footer">
@@ -498,47 +506,53 @@ export class WelcomePanel {
    */
   private getWelcomeContent(): WelcomeContent {
     return {
-      title: 'Welcome to Enterprise AI Agents',
-      description: 'Your intelligent coding companion with privacy-first AI assistance, powered by multiple specialized agents working together.',
+      title: "Welcome to Enterprise AI Agents",
+      description:
+        "Your intelligent coding companion with privacy-first AI assistance, powered by multiple specialized agents working together.",
       features: [
         {
-          icon: '🤖',
-          title: 'Multi-Agent System',
-          description: '6 specialized AI agents collaborate to provide expert assistance across different domains.'
+          icon: "🤖",
+          title: "Multi-Agent System",
+          description:
+            "6 specialized AI agents collaborate to provide expert assistance across different domains.",
         },
         {
-          icon: '🔒',
-          title: 'Privacy First',
-          description: 'Run completely offline with local LLMs. Your code never leaves your machine.'
+          icon: "🔒",
+          title: "Privacy First",
+          description:
+            "Run completely offline with local LLMs. Your code never leaves your machine.",
         },
         {
-          icon: '⚡',
-          title: 'Real-time Suggestions',
-          description: 'Get intelligent code suggestions as you type, powered by context-aware AI.'
+          icon: "⚡",
+          title: "Real-time Suggestions",
+          description:
+            "Get intelligent code suggestions as you type, powered by context-aware AI.",
         },
         {
-          icon: '💬',
-          title: 'Agent Discussion',
-          description: 'Watch agents collaborate and discuss solutions to complex problems.'
+          icon: "💬",
+          title: "Agent Discussion",
+          description:
+            "Watch agents collaborate and discuss solutions to complex problems.",
         },
         {
-          icon: '📊',
-          title: 'Analytics Dashboard',
-          description: 'Track your productivity and see how AI assistance improves your workflow.'
-        }
+          icon: "📊",
+          title: "Analytics Dashboard",
+          description:
+            "Track your productivity and see how AI assistance improves your workflow.",
+        },
       ],
       actions: [
         {
-          label: 'Get Started',
-          command: 'getStarted',
-          primary: true
+          label: "Get Started",
+          command: "getStarted",
+          primary: true,
         },
         {
-          label: 'Skip Tour',
-          command: 'skipTour',
-          primary: false
-        }
-      ]
+          label: "Skip Tour",
+          command: "skipTour",
+          primary: false,
+        },
+      ],
     };
   }
 }

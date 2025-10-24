@@ -1,18 +1,14 @@
 title = "AuraIA Gitleaks Configuration"
 
 [extend]
-  paths = []
+paths = []
 
 [allowlist]
-  description = "Allow common non-secret patterns"
-  paths = [
-    "docs/",
-    "logs/",
-    ".gitignore"
-  ]
-  regexes = [
-    "(?i)example(_|-)?(key|token|secret)",
-    "(?i)changeme",
-    "(?i)<placeholder>",
-    "(?i)dummy"
-  ]
+description = "Allow common non-secret patterns"
+paths = ["docs/", "logs/", ".gitignore"]
+regexes = [
+  "(?i)example(_|-)?(key|token|secret)",
+  "(?i)changeme",
+  "(?i)<placeholder>",
+  "(?i)dummy",
+]

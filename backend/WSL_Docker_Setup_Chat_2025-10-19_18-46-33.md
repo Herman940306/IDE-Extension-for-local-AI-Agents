@@ -1,4 +1,3 @@
-
 # WSL + Docker Full Setup and Troubleshooting Guide (Chat Transcript)
 
 **Date:** 2025-10-19  
@@ -9,6 +8,7 @@
 ---
 
 ## 🧾 Summary of Goals
+
 - Fully remove all traces of WSL and Docker.
 - Reinstall WSL2 and Ubuntu 24.04 for Docker development.
 - Provide robust, repeatable PowerShell and Bash scripts.
@@ -17,9 +17,11 @@
 ---
 
 ## 🧹 Step 1 — Full Cleanup Script
+
 User requested a PowerShell script that removes all WSL and Docker components before reinstall.
 
 **Reset-WSL-Docker.ps1:**
+
 ```powershell
 # Run as Administrator
 Write-Host "=== Resetting all WSL & Docker components ==="
@@ -54,6 +56,7 @@ Write-Host "✅ Cleanup complete. Please reboot before reinstalling."
 ## 🧰 Step 2 — WSL & Docker Reinstall Script
 
 **Install-WSL-Docker.ps1 (fixed version):**
+
 ```powershell
 # Run as Administrator
 Write-Host "=== Starting WSL2 + Docker Setup ==="
@@ -97,7 +100,8 @@ Write-Host "✅ Installation complete. Reboot and run 'docker run hello-world'."
 
 ## 🧩 Step 3 — Troubleshooting “Unsupported 16-Bit Application” Error
 
-Error:  
+Error:
+
 > Unsupported 16-Bit Application — The program or feature ‘wslsetup.exe’ cannot start or run due to incompatibility with 64-bit versions of Windows.
 
 ✅ Root cause: Old or corrupted `wslsetup.exe` (32-bit) in temp folder.  
@@ -110,6 +114,7 @@ Start-Process msiexec.exe -ArgumentList "/i `"$msiPath`" /passive /norestart" -W
 ```
 
 Then verify:
+
 ```powershell
 wsl --version
 ```
@@ -121,6 +126,7 @@ If you get `system cannot find the file specified`, it means WSL isn’t linked 
 ## 🧠 Step 4 — Re-register and Verify WSL
 
 Run as Administrator:
+
 ```powershell
 dism.exe /online /enable-feature /featurename:Microsoft-Windows-Subsystem-Linux /all /norestart
 dism.exe /online /enable-feature /featurename:VirtualMachinePlatform /all /norestart
@@ -133,11 +139,13 @@ if (-not (Test-Path "$system32\wsl.exe")) {
 ```
 
 Reboot, then run:
+
 ```powershell
 wsl --version
 ```
 
 Expected result:
+
 ```
 WSL version: 2.x.x.x
 Kernel version: 5.15.x.x
@@ -159,6 +167,7 @@ After first launch, set username and password.
 ## 🐳 Step 5 — Verify Docker in Ubuntu
 
 Inside Ubuntu:
+
 ```bash
 sudo docker version
 sudo docker run hello-world

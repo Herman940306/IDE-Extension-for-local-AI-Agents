@@ -42,7 +42,7 @@ def test_api():
         health = requests.get(f"{base_url}/health", timeout=5)
         print(f"✅ Status Code: {health.status_code}")
         print(f"✅ Response Time: {health.elapsed.total_seconds():.3f}s")
-        print(f"\n📊 Response Data:")
+        print("\n📊 Response Data:"a:")
         print(json.dumps(health.json(), indent=2))
     except Exception as e:
         print(f"❌ Health check failed: {e}")

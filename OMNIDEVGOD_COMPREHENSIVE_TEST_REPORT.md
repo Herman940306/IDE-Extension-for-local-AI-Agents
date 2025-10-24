@@ -1,4 +1,5 @@
 # 🔥 OMNIDEVGOD COMPREHENSIVE TEST REPORT
+
 ## AuraIA Enterprise AI Agents - Complete System Audit
 
 **Date**: October 14, 2025  
@@ -10,14 +11,14 @@
 
 ## 📊 EXECUTIVE SUMMARY
 
-| Category | Status | Score | Details |
-|----------|--------|-------|---------|
-| **Syntax Validation** | ✅ **PASS** | 100% | All 70 Python files valid |
-| **Test Coverage** | ⚠️ **ISSUES** | 0/295 | 4 import errors blocking tests |
-| **Code Quality** | ⚠️ **NEEDS WORK** | 65% | 1,179 style issues found |
-| **Security Scan** | ⚠️ **MEDIUM RISK** | 75% | 4 security issues detected |
-| **Dependencies** | ⚠️ **FIXED** | 95% | Missing cffi/torch - now installed |
-| **Codebase Health** | ✅ **GOOD** | 85% | 16,330 lines, 70 files |
+| Category              | Status             | Score | Details                            |
+| --------------------- | ------------------ | ----- | ---------------------------------- |
+| **Syntax Validation** | ✅ **PASS**        | 100%  | All 70 Python files valid          |
+| **Test Coverage**     | ⚠️ **ISSUES**      | 0/295 | 4 import errors blocking tests     |
+| **Code Quality**      | ⚠️ **NEEDS WORK**  | 65%   | 1,179 style issues found           |
+| **Security Scan**     | ⚠️ **MEDIUM RISK** | 75%   | 4 security issues detected         |
+| **Dependencies**      | ⚠️ **FIXED**       | 95%   | Missing cffi/torch - now installed |
+| **Codebase Health**   | ✅ **GOOD**        | 85%   | 16,330 lines, 70 files             |
 
 ### 🎯 Overall System Score: **78/100** (GOOD - Needs Minor Fixes)
 
@@ -36,11 +37,13 @@
 ```
 
 ### Test Command:
+
 ```python
 python -m py_compile src/**/*.py
 ```
 
 ### Result:
+
 **ALL FILES VALID** - No syntax errors detected in entire codebase!
 
 ---
@@ -50,6 +53,7 @@ python -m py_compile src/**/*.py
 ### Status: **BLOCKED - 4 Import Errors**
 
 ### Summary:
+
 ```
 Total Tests: 295 tests
 Collected: 0 tests (blocked by import errors)
@@ -61,40 +65,49 @@ Errors: 4 import errors
 ### 🔴 Critical Issues Found:
 
 #### Error 1: Missing `_cffi_backend` Module
+
 **File**: `src/verifier/provenance_store.py`  
 **Line**: 13  
 **Issue**: `cryptography` package requires `cffi` backend
+
 ```python
 from cryptography.fernet import Fernet  # ❌ Fails
 ```
 
 **Impact**: Blocks 3 test modules:
+
 - `tests/unit/test_api_exception_handlers.py`
 - `tests/unit/test_api_middleware.py`
 - `tests/unit/test_provenance_store.py`
 
 **Fix Applied**: ✅
+
 ```bash
 pip install cffi --upgrade
 ```
 
 #### Error 2: PyTorch C Extensions Not Loaded
+
 **File**: `src/services/embeddings_service.py`  
 **Line**: 13  
 **Issue**: Torch C extensions not properly loaded via sentence-transformers
+
 ```python
 from sentence_transformers import SentenceTransformer  # ❌ Fails
 ```
 
 **Impact**: Blocks 1 test module:
+
 - `tests/test_refactor_agent.py`
 
 **Fix Applied**: ✅
+
 ```bash
 pip install torch --upgrade
 ```
 
 ### ✅ Expected Result After Fix:
+
 ```
 295 tests should run successfully
 Previous sessions showed: 297/297 PASS (100%)
@@ -108,27 +121,29 @@ Previous sessions showed: 297/297 PASS (100%)
 
 ### Breakdown by Severity:
 
-| Issue Type | Count | Severity | Auto-Fixable |
-|------------|-------|----------|--------------|
-| **W293**: Blank line contains whitespace | 1,032 | Low | ✅ Yes |
-| **E501**: Line too long (>100 chars) | 37 | Medium | ⚠️ Manual |
-| **F401**: Unused imports | 48 | Low | ✅ Yes |
-| **E722**: Bare except clause | 8 | High | ⚠️ Manual |
-| **F841**: Unused variables | 8 | Low | ✅ Yes |
-| **F541**: F-string without placeholders | 8 | Low | ✅ Yes |
-| **W291**: Trailing whitespace | 34 | Low | ✅ Yes |
-| **F821**: Undefined names | 3 | High | ❌ Manual |
-| **W391**: Blank line at EOF | 1 | Low | ✅ Yes |
+| Issue Type                               | Count | Severity | Auto-Fixable |
+| ---------------------------------------- | ----- | -------- | ------------ |
+| **W293**: Blank line contains whitespace | 1,032 | Low      | ✅ Yes       |
+| **E501**: Line too long (>100 chars)     | 37    | Medium   | ⚠️ Manual    |
+| **F401**: Unused imports                 | 48    | Low      | ✅ Yes       |
+| **E722**: Bare except clause             | 8     | High     | ⚠️ Manual    |
+| **F841**: Unused variables               | 8     | Low      | ✅ Yes       |
+| **F541**: F-string without placeholders  | 8     | Low      | ✅ Yes       |
+| **W291**: Trailing whitespace            | 34    | Low      | ✅ Yes       |
+| **F821**: Undefined names                | 3     | High     | ❌ Manual    |
+| **W391**: Blank line at EOF              | 1     | Low      | ✅ Yes       |
 
 ### 🔥 **Auto-Fixable Issues: 1,130 (96%)**
 
 ### Critical Issues Requiring Manual Fix:
 
 #### 1. Bare Except Clauses (8 occurrences)
+
 **Severity**: HIGH  
 **Security Risk**: Can mask critical errors
 
 **Files**:
+
 ```python
 # src/main.py:56
 try:
@@ -142,6 +157,7 @@ except Exception as e:  # ✅ GOOD - specific exception
 ```
 
 **Locations**:
+
 - `src/main.py:56`
 - `src/agents/test_agent.py:307`
 - `src/services/code_smell_detector.py:259, 279`
@@ -149,10 +165,12 @@ except Exception as e:  # ✅ GOOD - specific exception
 - `src/verifier/provenance_store.py:347`
 
 #### 2. Undefined Names (3 occurrences)
+
 **Severity**: HIGH  
 **Runtime Risk**: Will crash at runtime
 
 **Files**:
+
 ```python
 # src/services/context_manager.py:33
 logger.debug(...)  # ❌ 'logger' not imported
@@ -163,10 +181,12 @@ logger = logging.getLogger(__name__)
 ```
 
 #### 3. Lines Too Long (37 occurrences)
+
 **Severity**: MEDIUM  
 **Readability**: Reduces code maintainability
 
 **Longest Line**:
+
 ```python
 # src/agents/refactor_agent.py:579 (160 characters!)
 self.context_manager.update_context(file_path, {"refactored": True, "pattern": pattern.value, "timestamp": datetime.now().isoformat()})
@@ -183,18 +203,21 @@ self.context_manager.update_context(file_path, context_data)
 ### 🔧 Quick Fixes:
 
 #### Fix All Whitespace Issues:
+
 ```bash
 # Remove trailing whitespace and blank line whitespace
 python -m autopep8 --in-place --select=W291,W293,W391 src/
 ```
 
 #### Fix Unused Imports:
+
 ```bash
 # Remove unused imports automatically
 python -m autoflake --remove-all-unused-imports --in-place src/**/*.py
 ```
 
 #### Format with Black:
+
 ```bash
 # Auto-format all code
 python -m black src/ --line-length=100
@@ -208,17 +231,18 @@ python -m black src/ --line-length=100
 
 ### Summary:
 
-| Severity | Count | Status |
-|----------|-------|--------|
-| **HIGH** | 1 | ⚠️ Needs Fix |
-| **MEDIUM** | 3 | ⚠️ Review Required |
-| **LOW** | 0 | ✅ OK |
+| Severity   | Count | Status             |
+| ---------- | ----- | ------------------ |
+| **HIGH**   | 1     | ⚠️ Needs Fix       |
+| **MEDIUM** | 3     | ⚠️ Review Required |
+| **LOW**    | 0     | ✅ OK              |
 
 ---
 
 ### 🔴 HIGH SEVERITY ISSUES:
 
 #### Issue 1: Weak MD5 Hash Usage
+
 **CWE-327**: Use of Broken Cryptographic Algorithm  
 **File**: `src/agents/refactor_agent.py:409`  
 **Risk**: MD5 is cryptographically broken
@@ -241,8 +265,10 @@ code_hash = hashlib.sha256(code.encode()).hexdigest()
 ### ⚠️ MEDIUM SEVERITY ISSUES:
 
 #### Issue 2: Binding to All Interfaces (0.0.0.0)
+
 **CWE-605**: Multiple Binds to Same Port  
-**Files**: 
+**Files**:
+
 - `src/config/settings.py:44`
 - `src/main.py:342`
 
@@ -262,6 +288,7 @@ api_host: str = "127.0.0.1"  # Localhost only
 **Action Required**: Document in deployment guide
 
 #### Issue 3: Unsafe Pickle Usage
+
 **CWE-502**: Deserialization of Untrusted Data  
 **File**: `src/orchestrator/policies/rl_policy.py:332`
 
@@ -294,6 +321,7 @@ import hashlib
 ```
 
 ### Files Requiring Fix:
+
 1. `src/main.py` - Mixed stdlib and local imports
 2. `src/models.py` - Import order issues
 3. `src/adapters/*.py` (6 files)
@@ -303,12 +331,14 @@ import hashlib
 7. Others (4 files)
 
 ### Auto-Fix Command:
+
 ```bash
 # Sort all imports according to PEP 8
 python -m isort src/ --profile black
 ```
 
 ### Expected Import Order:
+
 ```python
 # 1. Standard library imports
 import os
@@ -336,12 +366,14 @@ Would reformat 30+ files
 ```
 
 ### Auto-Fix Command:
+
 ```bash
 # Format all Python files
 python -m black src/ --line-length=100
 ```
 
 ### What Black Will Fix:
+
 - ✅ Consistent indentation (4 spaces)
 - ✅ Consistent string quotes (")
 - ✅ Trailing commas in multiline structures
@@ -360,6 +392,7 @@ python -m black src/ --line-length=100
 ```
 
 ### Manual Check Required:
+
 ```bash
 # Check for vulnerable packages
 pip list --outdated
@@ -367,6 +400,7 @@ pip audit  # Python 3.11+
 ```
 
 ### Known Dependencies (from requirements.txt):
+
 - `fastapi==0.104.1` - ✅ Recent version
 - `uvicorn==0.24.0` - ✅ Recent version
 - `pydantic==2.5.0` - ✅ Recent version
@@ -391,16 +425,16 @@ pip audit  # Python 3.11+
 
 ### Module Breakdown:
 
-| Module | Files | Lines | Complexity |
-|--------|-------|-------|------------|
-| **src/agents/** | 5 | 844 | Medium |
-| **src/api/** | 5 | 367 | Low |
-| **src/services/** | 18 | 2,629 | High |
-| **src/orchestrator/** | 7 | 729 | High |
-| **src/models/** | 9 | 506 | Low |
-| **src/verifier/** | 4 | 316 | Medium |
-| **src/memory/** | 3 | 303 | Medium |
-| **src/utils/** | 4 | 355 | Low |
+| Module                | Files | Lines | Complexity |
+| --------------------- | ----- | ----- | ---------- |
+| **src/agents/**       | 5     | 844   | Medium     |
+| **src/api/**          | 5     | 367   | Low        |
+| **src/services/**     | 18    | 2,629 | High       |
+| **src/orchestrator/** | 7     | 729   | High       |
+| **src/models/**       | 9     | 506   | Low        |
+| **src/verifier/**     | 4     | 316   | Medium     |
+| **src/memory/**       | 3     | 303   | Medium     |
+| **src/utils/**        | 4     | 355   | Low        |
 
 ### Code Coverage (from previous run):
 
@@ -605,18 +639,18 @@ Virtual Env Size: ~2.5 GB
 
 ### Category Scores:
 
-| Category | Score | Weight | Weighted Score |
-|----------|-------|--------|----------------|
-| **Code Quality** | 65% | 20% | 13 |
-| **Test Coverage** | 0%* | 25% | 0* |
-| **Security** | 75% | 25% | 18.75 |
-| **Documentation** | 90% | 10% | 9 |
-| **Performance** | 85% | 10% | 8.5 |
-| **Dependencies** | 95% | 10% | 9.5 |
+| Category          | Score | Weight | Weighted Score |
+| ----------------- | ----- | ------ | -------------- |
+| **Code Quality**  | 65%   | 20%    | 13             |
+| **Test Coverage** | 0%\*  | 25%    | 0\*            |
+| **Security**      | 75%   | 25%    | 18.75          |
+| **Documentation** | 90%   | 10%    | 9              |
+| **Performance**   | 85%   | 10%    | 8.5            |
+| **Dependencies**  | 95%   | 10%    | 9.5            |
 
 ### **Total Score: 58.75/100** (Blocked by Test Issues)
 
-*After fixing dependencies: Expected **88/100** (EXCELLENT)
+\*After fixing dependencies: Expected **88/100** (EXCELLENT)
 
 ### Deployment Status:
 
@@ -634,11 +668,13 @@ Virtual Env Size: ~2.5 GB
 ### Immediate Actions (Next 30 minutes):
 
 1. ✅ **Install Dependencies** (DONE)
+
    ```bash
    pip install cffi torch --upgrade
    ```
 
 2. ⏳ **Verify Test Execution**
+
    ```bash
    pytest tests/ -v
    ```
@@ -653,6 +689,7 @@ Virtual Env Size: ~2.5 GB
 ### Short-term Actions (Next 2 hours):
 
 4. **Run Auto-Fixes**
+
    ```bash
    bash omnidevgod-autofix.sh
    ```
@@ -701,16 +738,19 @@ Virtual Env Size: ~2.5 GB
 ### 🎯 **Recommendations**:
 
 #### CRITICAL (Do Now):
+
 - ✅ Install cffi and torch (DONE)
 - Fix undefined logger variable
 - Re-run test suite
 
 #### IMPORTANT (Do Today):
+
 - Run auto-fix script for code quality
 - Fix bare except clauses
 - Address security issues
 
 #### NICE TO HAVE (Do This Week):
+
 - Achieve 85%+ test coverage
 - Complete code formatting
 - Update documentation
@@ -776,7 +816,7 @@ bash omnidevgod-autofix.sh
 **Duration**: 45 minutes comprehensive analysis  
 **Files Analyzed**: 70 Python files (16,330 lines)  
 **Tests Analyzed**: 295 test cases  
-**Security Scans**: 4 tools (flake8, bandit, isort, black)  
+**Security Scans**: 4 tools (flake8, bandit, isort, black)
 
 **Status**: ✅ **ANALYSIS COMPLETE** - Ready for fixes!
 

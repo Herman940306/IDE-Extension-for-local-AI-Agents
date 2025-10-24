@@ -21,9 +21,11 @@
 ## 🏗️ Current Architecture
 
 ### **1. IDE Extension (Frontend)**
+
 **Location:** `extension/src/`
 
 **Key Features:**
+
 - ✅ **Inline Code Suggestions** - Real-time AI-powered code completions
 - ✅ **Agent Discussion Panel** - Chat interface for complex queries
 - ✅ **Code Actions** - Context-aware refactoring, explanation, optimization
@@ -32,6 +34,7 @@
 - 🚧 **Accessibility Features** - WCAG compliance (in progress)
 
 **Tech Stack:**
+
 - TypeScript
 - VS Code Extension API
 - WebSocket for real-time communication
@@ -40,6 +43,7 @@
 ---
 
 ### **2. Backend AI System (Multi-Agent Orchestration)**
+
 **Location:** `backend/src/`
 
 **Architecture Pattern:** **Hexagonal Architecture** (Ports & Adapters)
@@ -96,7 +100,9 @@
 ### **Current Implementation:**
 
 #### **1. Adapter Pattern (Unified Interface)**
+
 All agents implement the same interface:
+
 ```python
 class AgentAdapter:
     async def initialize() -> None
@@ -108,15 +114,16 @@ class AgentAdapter:
 
 #### **2. Agent Types & Specialization**
 
-| Agent Type | Framework | Use Case | Status |
-|------------|-----------|----------|--------|
-| **Ollama Local** | Ollama | Fast inline suggestions, local inference | ✅ Active |
-| **LangChain** | LangChain | RAG, document Q&A, chains | ✅ Active |
-| **CrewAI** | CrewAI | Role-based collaboration (PM, Dev, QA) | ✅ Active |
-| **SuperAGI** | SuperAGI | Autonomous goal-driven execution | ✅ Complete |
-| **AutoGPT** | AutoGPT | Research, multi-step planning | ✅ Complete |
+| Agent Type       | Framework | Use Case                                 | Status      |
+| ---------------- | --------- | ---------------------------------------- | ----------- |
+| **Ollama Local** | Ollama    | Fast inline suggestions, local inference | ✅ Active   |
+| **LangChain**    | LangChain | RAG, document Q&A, chains                | ✅ Active   |
+| **CrewAI**       | CrewAI    | Role-based collaboration (PM, Dev, QA)   | ✅ Active   |
+| **SuperAGI**     | SuperAGI  | Autonomous goal-driven execution         | ✅ Complete |
+| **AutoGPT**      | AutoGPT   | Research, multi-step planning            | ✅ Complete |
 
 #### **3. Task Routing Logic**
+
 ```python
 # Orchestrator decides which agent(s) to use based on:
 - Task type (refactor, explain, generate, debug)
@@ -131,6 +138,7 @@ class AgentAdapter:
 ## 🚀 Local Inference & Caching Strategy
 
 ### **1. Model Selection (Ollama)**
+
 ```yaml
 Tier 1 (Ultra-fast): LLaMA 3.2 3B
   - Inline suggestions (<200ms)
@@ -149,6 +157,7 @@ Tier 3 (Complex): DeepSeek Coder 33B (optional)
 ```
 
 ### **2. Multi-Tier Caching**
+
 ```python
 L1 Cache (Memory): LRU cache for recent suggestions
   - 100 most recent code contexts
@@ -167,6 +176,7 @@ L3 Cache (ChromaDB): Long-term vector cache
 ```
 
 ### **3. Predictive Caching (ML-Driven)**
+
 ```python
 # Analyze user patterns to pre-cache:
 - Peak coding hours (9-10am, 2-3pm)
@@ -180,21 +190,23 @@ L3 Cache (ChromaDB): Long-term vector cache
 ## 🔌 Plugin & Context Management
 
 ### **1. Context Collection**
+
 ```typescript
 // IDE Extension collects:
 interface CodeContext {
   file_path: string;
   language: string;
-  code: string;              // Full file content
-  selected_text?: string;    // User selection
+  code: string; // Full file content
+  selected_text?: string; // User selection
   cursor_position: Position;
-  surrounding_code: string;  // ±50 lines
-  imports: string[];         // File dependencies
-  git_diff?: string;         // Recent changes
+  surrounding_code: string; // ±50 lines
+  imports: string[]; // File dependencies
+  git_diff?: string; // Recent changes
 }
 ```
 
 ### **2. Context Enrichment (Backend)**
+
 ```python
 # Backend enriches with:
 - AST analysis (syntax tree)
@@ -206,6 +218,7 @@ interface CodeContext {
 ```
 
 ### **3. Plugin System**
+
 ```python
 # Modular plugin architecture:
 plugins/
@@ -221,6 +234,7 @@ plugins/
 ## 🛡️ Safety & Provenance Logging
 
 ### **1. Safety Mechanisms**
+
 ```python
 # Pre-execution validation:
 - Syntax checking (no broken code)
@@ -235,6 +249,7 @@ plugins/
 ```
 
 ### **2. Provenance Logging**
+
 ```python
 # Every suggestion tracked:
 {
@@ -254,6 +269,7 @@ plugins/
 ```
 
 ### **3. Audit Trail**
+
 ```python
 # Stored in:
 - Local SQLite (developer machine)
@@ -274,6 +290,7 @@ plugins/
 **Phase:** Beta Deployment (Week 3-8)
 
 ### **Completed:**
+
 - ✅ Core agent adapters (Ollama, LangChain, CrewAI)
 - ✅ SuperAGI & AutoGPT integration
 - ✅ Analytics dashboard with metrics
@@ -281,12 +298,14 @@ plugins/
 - ✅ Multi-language support
 
 ### **In Progress (HIGH Priority):**
+
 - 🚧 Accessibility fixes (WCAG compliance)
 - 🚧 Exponential backoff for adapters
 - 🚧 Code refactoring (shared utilities)
 - 🚧 Test coverage for adapters
 
 ### **Next (MEDIUM Priority):**
+
 - 📋 Predictive caching implementation
 - 📋 LLM response caching
 - 📋 Error handling standardization
@@ -353,6 +372,7 @@ aura-ia/
 ## 🚀 Getting Started
 
 ### **Prerequisites**
+
 ```bash
 # Install Ollama (local LLM runtime)
 curl -fsSL https://ollama.ai/install.sh | sh
@@ -372,6 +392,7 @@ npm install
 ```
 
 ### **Running the System**
+
 ```bash
 # Terminal 1: Start Ollama
 ollama serve
@@ -389,6 +410,7 @@ uvicorn src.main:app --reload --port 8000
 ## 🔧 Configuration
 
 ### **Backend Configuration**
+
 ```python
 # backend/src/config/settings.py
 OLLAMA_BASE_URL = "http://localhost:11434"
@@ -402,6 +424,7 @@ RESEARCH_TIMEOUT = 30000          # ms
 ```
 
 ### **Extension Configuration**
+
 ```json
 // .vscode/settings.json
 {
@@ -418,6 +441,7 @@ RESEARCH_TIMEOUT = 30000          # ms
 ## 🧪 Testing Strategy
 
 ### **Unit Tests**
+
 ```bash
 # Backend
 pytest backend/tests/unit/
@@ -427,6 +451,7 @@ npm test
 ```
 
 ### **Integration Tests**
+
 ```bash
 # Test agent adapters
 pytest backend/tests/integration/test_adapters.py
@@ -436,6 +461,7 @@ pytest backend/tests/integration/test_orchestrator.py
 ```
 
 ### **E2E Tests**
+
 ```bash
 # VS Code extension tests
 npm run test:e2e
@@ -446,12 +472,14 @@ npm run test:e2e
 ## 📈 Performance Metrics
 
 ### **Target Latencies**
+
 - Inline suggestions: <200ms (p95)
 - Code actions: <1000ms (p95)
 - Agent discussion: <3000ms (p95)
 - Analytics refresh: <500ms (p95)
 
 ### **Resource Usage**
+
 - Memory: <500MB (extension + backend)
 - CPU: <20% (idle), <60% (active inference)
 - Disk: <2GB (models + cache)
@@ -461,12 +489,14 @@ npm run test:e2e
 ## 🔐 Security Considerations
 
 ### **Data Privacy**
+
 - All inference runs locally (no cloud calls)
 - Code never leaves developer machine
 - Optional telemetry (opt-in only)
 - Encrypted cache storage
 
 ### **Code Safety**
+
 - Syntax validation before application
 - Sandboxed execution environment
 - User confirmation for destructive changes
@@ -477,18 +507,21 @@ npm run test:e2e
 ## 🛣️ Roadmap
 
 ### **Q1 2025 - Beta Release**
+
 - ✅ Core multi-agent system
 - ✅ SuperAGI & AutoGPT integration
 - 🚧 Accessibility compliance
 - 🚧 Comprehensive testing
 
 ### **Q2 2025 - Production Release**
+
 - 📋 Enterprise SSO integration
 - 📋 Team collaboration features
 - 📋 Custom agent training
 - 📋 Performance optimization
 
 ### **Q3 2025 - Advanced Features**
+
 - 📋 Multi-IDE support (JetBrains, Vim)
 - 📋 Mobile companion app
 - 📋 Cloud sync (optional)
@@ -510,7 +543,7 @@ Proprietary - Herman Swanepoel
 
 ## 👤 Author
 
-**Herman Swanepoel** - *Project Creator*
+**Herman Swanepoel** - _Project Creator_
 
 ---
 

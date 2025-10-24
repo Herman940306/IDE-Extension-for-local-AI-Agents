@@ -1,12 +1,12 @@
 /**
  * Quick Start Guide - Reference documentation
- * 
+ *
  * Provides searchable quick start guide with common tasks and shortcuts
- * 
+ *
  * Project Creator: Herman Swanepoel
  */
 
-import * as vscode from 'vscode';
+import * as vscode from "vscode";
 
 export interface GuideSection {
   id: string;
@@ -38,9 +38,9 @@ export class QuickStartGuide {
 
     // Handle messages from webview
     this.panel.webview.onDidReceiveMessage(
-      message => this.handleMessage(message),
+      (message) => this.handleMessage(message),
       null,
-      this.disposables
+      this.disposables,
     );
 
     // Handle panel disposal
@@ -50,7 +50,10 @@ export class QuickStartGuide {
   /**
    * Create or show the quick start guide
    */
-  public static createOrShow(extensionUri: vscode.Uri, section?: string): QuickStartGuide {
+  public static createOrShow(
+    extensionUri: vscode.Uri,
+    section?: string,
+  ): QuickStartGuide {
     const column = vscode.ViewColumn.One;
 
     // If panel already exists, show it
@@ -64,14 +67,14 @@ export class QuickStartGuide {
 
     // Create new panel
     const panel = vscode.window.createWebviewPanel(
-      'enterpriseAI.quickStart',
-      'Quick Start Guide',
+      "enterpriseAI.quickStart",
+      "Quick Start Guide",
       column,
       {
         enableScripts: true,
         retainContextWhenHidden: true,
-        localResourceRoots: [vscode.Uri.joinPath(extensionUri, 'media')]
-      }
+        localResourceRoots: [vscode.Uri.joinPath(extensionUri, "media")],
+      },
     );
 
     QuickStartGuide.currentPanel = new QuickStartGuide(panel, extensionUri);
@@ -104,8 +107,8 @@ export class QuickStartGuide {
   public navigate(sectionId: string): void {
     this.currentSection = sectionId;
     this.panel.webview.postMessage({
-      command: 'navigateToSection',
-      sectionId
+      command: "navigateToSection",
+      sectionId,
     });
   }
 
@@ -131,7 +134,7 @@ export class QuickStartGuide {
       }
 
       // Check keywords
-      section.keywords.forEach(keyword => {
+      section.keywords.forEach((keyword) => {
         if (keyword.toLowerCase().includes(lowerQuery)) {
           matchedKeywords.push(keyword);
           relevance += 3;
@@ -142,7 +145,7 @@ export class QuickStartGuide {
         results.push({
           section,
           relevance,
-          matchedKeywords
+          matchedKeywords,
         });
       }
 
@@ -176,15 +179,15 @@ export class QuickStartGuide {
    */
   private async handleMessage(message: any): Promise<void> {
     switch (message.command) {
-      case 'search':
+      case "search":
         const results = await this.search(message.query);
         this.panel.webview.postMessage({
-          command: 'searchResults',
-          results
+          command: "searchResults",
+          results,
         });
         break;
 
-      case 'navigate':
+      case "navigate":
         this.navigate(message.sectionId);
         break;
     }
@@ -203,8 +206,8 @@ export class QuickStartGuide {
   private getGuideSections(): GuideSection[] {
     return [
       {
-        id: 'getting-started',
-        title: 'Getting Started',
+        id: "getting-started",
+        title: "Getting Started",
         content: `
           <h2>Welcome to Enterprise AI Agents!</h2>
           <p>Follow this checklist to get started:</p>
@@ -216,11 +219,11 @@ export class QuickStartGuide {
             <li>✓ Explore the agent discussion panel</li>
           </ul>
         `,
-        keywords: ['start', 'begin', 'setup', 'configure']
+        keywords: ["start", "begin", "setup", "configure"],
       },
       {
-        id: 'common-tasks',
-        title: 'Common Tasks',
+        id: "common-tasks",
+        title: "Common Tasks",
         content: `
           <h2>Common Tasks</h2>
           
@@ -239,11 +242,11 @@ export class QuickStartGuide {
           <h3>Switch Modes</h3>
           <p>Click the mode indicator in the status bar to toggle between Offline and Online modes.</p>
         `,
-        keywords: ['tasks', 'how to', 'suggestions', 'help', 'review', 'test']
+        keywords: ["tasks", "how to", "suggestions", "help", "review", "test"],
       },
       {
-        id: 'keyboard-shortcuts',
-        title: 'Keyboard Shortcuts',
+        id: "keyboard-shortcuts",
+        title: "Keyboard Shortcuts",
         content: `
           <h2>Keyboard Shortcuts</h2>
           <table>
@@ -277,11 +280,11 @@ export class QuickStartGuide {
             </tr>
           </table>
         `,
-        keywords: ['shortcuts', 'keyboard', 'keys', 'hotkeys']
+        keywords: ["shortcuts", "keyboard", "keys", "hotkeys"],
       },
       {
-        id: 'troubleshooting',
-        title: 'Troubleshooting',
+        id: "troubleshooting",
+        title: "Troubleshooting",
         content: `
           <h2>Troubleshooting</h2>
           
@@ -315,11 +318,11 @@ export class QuickStartGuide {
             <li>Check the analytics dashboard for performance metrics</li>
           </ul>
         `,
-        keywords: ['troubleshoot', 'problem', 'error', 'fix', 'help', 'issue']
+        keywords: ["troubleshoot", "problem", "error", "fix", "help", "issue"],
       },
       {
-        id: 'documentation',
-        title: 'Full Documentation',
+        id: "documentation",
+        title: "Full Documentation",
         content: `
           <h2>Full Documentation</h2>
           <p>For comprehensive documentation, visit:</p>
@@ -330,8 +333,8 @@ export class QuickStartGuide {
             <li><a href="https://discord.gg/example">Community Discord</a></li>
           </ul>
         `,
-        keywords: ['docs', 'documentation', 'reference', 'manual']
-      }
+        keywords: ["docs", "documentation", "reference", "manual"],
+      },
     ];
   }
 
@@ -339,19 +342,27 @@ export class QuickStartGuide {
    * Get webview HTML content
    */
   private getWebviewContent(): string {
-    const sectionsHtml = this.sections.map(section => `
+    const sectionsHtml = this.sections
+      .map(
+        (section) => `
       <section id="${section.id}" class="guide-section">
         ${section.content}
       </section>
-    `).join('');
+    `,
+      )
+      .join("");
 
-    const navHtml = this.sections.map(section => `
+    const navHtml = this.sections
+      .map(
+        (section) => `
       <li>
         <a href="#${section.id}" onclick="navigateToSection('${section.id}'); return false;">
           ${section.title}
         </a>
       </li>
-    `).join('');
+    `,
+      )
+      .join("");
 
     return `<!DOCTYPE html>
 <html lang="en">

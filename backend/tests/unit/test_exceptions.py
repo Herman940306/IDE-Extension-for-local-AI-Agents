@@ -6,15 +6,16 @@ Date: 2025-10-13
 Target Coverage: 100%
 """
 
-import pytest
 from datetime import datetime
+
+import pytest
 from src.utils.exceptions import (
-    AuraIAException,
     AdapterException,
-    LLMException,
-    ValidationException,
+    AuraIAException,
     CircuitBreakerOpenException,
+    LLMException,
     RateLimitExceededException,
+    ValidationException,
 )
 
 

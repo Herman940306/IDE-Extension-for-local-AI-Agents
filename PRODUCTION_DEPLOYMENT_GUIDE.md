@@ -539,7 +539,7 @@ python run.py
 server {
     listen 80;
     server_name api.your-domain.com;
-    
+
     # Redirect HTTP to HTTPS
     return 301 https://$server_name$request_uri;
 }
@@ -547,11 +547,11 @@ server {
 server {
     listen 443 ssl http2;
     server_name api.your-domain.com;
-    
+
     # SSL Configuration
     ssl_certificate /etc/letsencrypt/live/api.your-domain.com/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/api.your-domain.com/privkey.pem;
-    
+
     # Proxy to FastAPI
     location / {
         proxy_pass http://localhost:8000;
@@ -559,13 +559,13 @@ server {
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
-        
+
         # WebSocket support
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
     }
-    
+
     # Static files (if any)
     location /static {
         alias /var/www/aura-ia/static;
@@ -717,46 +717,46 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    
+
     steps:
-    - uses: actions/checkout@v3
-    
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.11'
-    
-    - name: Install dependencies
-      run: |
-        cd backend
-        pip install -r requirements.txt
-    
-    - name: Run tests
-      run: |
-        cd backend
-        pytest tests/unit/ -v
-    
-    - name: Check coverage
-      run: |
-        cd backend
-        pytest tests/unit/ --cov=src --cov-report=term-missing
-  
+      - uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          cd backend
+          pip install -r requirements.txt
+
+      - name: Run tests
+        run: |
+          cd backend
+          pytest tests/unit/ -v
+
+      - name: Check coverage
+        run: |
+          cd backend
+          pytest tests/unit/ --cov=src --cov-report=term-missing
+
   deploy:
     needs: test
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
-    
+
     steps:
-    - uses: actions/checkout@v3
-    
-    - name: Deploy to production
-      env:
-        SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
-        SERVER_HOST: ${{ secrets.SERVER_HOST }}
-      run: |
-        echo "$SSH_PRIVATE_KEY" > key.pem
-        chmod 600 key.pem
-        ssh -i key.pem user@$SERVER_HOST "cd /var/www/aura-ia && git pull && docker-compose restart"
+      - uses: actions/checkout@v3
+
+      - name: Deploy to production
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SERVER_HOST: ${{ secrets.SERVER_HOST }}
+        run: |
+          echo "$SSH_PRIVATE_KEY" > key.pem
+          chmod 600 key.pem
+          ssh -i key.pem user@$SERVER_HOST "cd /var/www/aura-ia && git pull && docker-compose restart"
 ```
 
 ---
