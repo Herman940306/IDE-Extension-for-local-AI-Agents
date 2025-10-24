@@ -6,12 +6,19 @@ Project Creator: Herman Swanepoel
 import asyncio
 import inspect
 import time
+import uuid
 from contextlib import asynccontextmanager
 from typing import Any, Awaitable, Dict, Optional, cast
 
-from fastapi import FastAPI, Response, WebSocket, WebSocketDisconnect
+from fastapi import BackgroundTasks, FastAPI, Response, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
-from prometheus_client import CONTENT_TYPE_LATEST, Counter, Histogram, generate_latest
+from prometheus_client import (
+    CONTENT_TYPE_LATEST,
+    Counter,
+    Gauge,
+    Histogram,
+    generate_latest,
+)
 from pydantic import ValidationError
 
 from src.api.exception_handlers import register_exception_handlers
@@ -131,6 +138,101 @@ REQUEST_LATENCY = Histogram(
     labelnames=["method", "path", "status_code"],
     buckets=(0.05, 0.1, 0.2, 0.5, 1, 2, 5, 10),
 )
+
+# Job metrics
+JOBS_QUEUED_TOTAL = Counter(
+    "jobs_queued_total",
+    "Total jobs enqueued",
+    labelnames=["job_type"],
+)
+JOBS_COMPLETED_TOTAL = Counter(
+    "jobs_completed_total",
+    "Total jobs completed by outcome",
+    labelnames=["job_type", "outcome"],
+)
+JOBS_IN_PROGRESS = Gauge(
+    "jobs_in_progress",
+    "Current in-progress jobs",
+    labelnames=["job_type"],
+)
+JOB_DURATION_SECONDS = Histogram(
+    "job_duration_seconds",
+    "Duration of background jobs in seconds",
+    labelnames=["job_type", "outcome"],
+    buckets=(0.5, 1, 2, 5, 10, 20, 60),
+)
+
+# Simple in-memory job store
+job_store: Dict[str, Dict[str, Any]] = {}
+job_lock = asyncio.Lock()
+
+
+async def _run_long_job(job_id: str, job_type: str, duration: float) -> None:
+    """Simulate a long-running job and record metrics/status."""
+    start = time.perf_counter()
+    JOBS_IN_PROGRESS.labels(job_type=job_type).inc()
+    try:
+        await asyncio.sleep(duration)
+        total = time.perf_counter() - start
+        async with job_lock:
+            job = job_store.get(job_id)
+            if job is not None:
+                job["status"] = "completed"
+                job["completed_at"] = asyncio.get_event_loop().time()
+                job["duration"] = total
+        JOBS_COMPLETED_TOTAL.labels(job_type=job_type, outcome="success").inc()
+        JOB_DURATION_SECONDS.labels(job_type=job_type, outcome="success").observe(total)
+    except Exception as e:  # pragma: no cover - defensive
+        total = time.perf_counter() - start
+        async with job_lock:
+            job = job_store.get(job_id)
+            if job is not None:
+                job["status"] = "failed"
+                job["error"] = str(e)
+                job["completed_at"] = asyncio.get_event_loop().time()
+                job["duration"] = total
+        JOBS_COMPLETED_TOTAL.labels(job_type=job_type, outcome="error").inc()
+        JOB_DURATION_SECONDS.labels(job_type=job_type, outcome="error").observe(total)
+    finally:
+        JOBS_IN_PROGRESS.labels(job_type=job_type).dec()
+
+
+@app.post("/jobs/long", tags=["jobs"], status_code=202)
+async def create_long_job(
+    background: BackgroundTasks,
+    body: Dict[str, Any] | None = None,
+):
+    """Enqueue a simulated long-running job using BackgroundTasks.
+
+    body: {"duration_seconds": float (1-15), "job_type": str}
+    """
+    payload = body or {}
+    raw_duration = float(payload.get("duration_seconds", 5.0))
+    duration = max(1.0, min(raw_duration, 15.0))
+    job_type = str(payload.get("job_type", "long"))
+
+    job_id = str(uuid.uuid4())
+    now = asyncio.get_event_loop().time()
+    async with job_lock:
+        job_store[job_id] = {
+            "status": "queued",
+            "job_type": job_type,
+            "enqueued_at": now,
+            "duration": None,
+        }
+
+    JOBS_QUEUED_TOTAL.labels(job_type=job_type).inc()
+    background.add_task(_run_long_job, job_id, job_type, duration)
+    return {"job_id": job_id, "status": "queued"}
+
+
+@app.get("/jobs/status/{job_id}", tags=["jobs"])
+async def get_job_status(job_id: str):
+    async with job_lock:
+        job = job_store.get(job_id)
+        if job is None:
+            return {"job_id": job_id, "status": "not_found"}
+        return {"job_id": job_id, **job}
 
 
 @app.middleware("http")
