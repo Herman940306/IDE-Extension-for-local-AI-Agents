@@ -138,7 +138,6 @@ services:
     ports:
       - "80:80"
       - "443:443"
-      - "9180:9180" # Caddy Prometheus metrics (internal preferred)
     volumes:
       - ./monitoring/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
