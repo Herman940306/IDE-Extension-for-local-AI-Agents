@@ -5,12 +5,15 @@ Project Creator: Herman Swanepoel
 
 import asyncio
 import inspect
+import time
 from contextlib import asynccontextmanager
 from typing import Any, Awaitable, Dict, Optional, cast
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, Response, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
+from prometheus_client import CONTENT_TYPE_LATEST, Counter, Histogram, generate_latest
 from pydantic import ValidationError
+
 from src.api.exception_handlers import register_exception_handlers
 from src.api.middleware import (
     CorrelationIDMiddleware,
@@ -113,6 +116,45 @@ app.add_middleware(CorrelationIDMiddleware)
 
 # 2. Request Size Validation (check size before processing)
 app.add_middleware(RequestSizeMiddleware, max_size=settings.max_request_size)
+
+
+# --- Prometheus metrics ---
+# Basic HTTP metrics: request counts and durations by method/path/status
+REQUEST_COUNT = Counter(
+    "http_requests_total",
+    "Total HTTP requests",
+    labelnames=["method", "path", "status_code"],
+)
+REQUEST_LATENCY = Histogram(
+    "http_request_duration_seconds",
+    "HTTP request duration in seconds",
+    labelnames=["method", "path", "status_code"],
+    buckets=(0.05, 0.1, 0.2, 0.5, 1, 2, 5, 10),
+)
+
+
+@app.middleware("http")
+async def prometheus_http_middleware(request, call_next):
+    start = time.perf_counter()
+    response = await call_next(request)
+    elapsed = time.perf_counter() - start
+    path = request.url.path
+    method = request.method
+    status = str(response.status_code)
+    # record
+    REQUEST_COUNT.labels(method=method, path=path, status_code=status).inc()
+    REQUEST_LATENCY.labels(
+        method=method,
+        path=path,
+        status_code=status,
+    ).observe(elapsed)
+    return response
+
+
+@app.get("/metrics", include_in_schema=False)
+def metrics_endpoint() -> Response:
+    """Prometheus scrape endpoint"""
+    return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
 
 
 @app.get(
@@ -233,7 +275,11 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
                 message_type = data.get("type")
                 payload = data.get("payload", {})
 
-                logger.info("message_received", client_id=client_id, message_type=message_type)
+                logger.info(
+                    "message_received",
+                    client_id=client_id,
+                    message_type=message_type,
+                )
 
                 if message_type == "task_request":
                     await handle_task_request(client_id, payload)
@@ -245,7 +291,9 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
                     await connection_manager.send_personal_message(
                         {
                             "type": "error",
-                            "payload": {"message": f"Unknown message type: {message_type}"},
+                            "payload": {
+                                "message": f"Unknown message type: {message_type}"
+                            },
                         },
                         client_id,
                     )
@@ -256,7 +304,9 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
             except RuntimeError as runtime_error:
                 message = str(runtime_error).lower()
                 disconnect_error = "disconnect message" in message
-                receive_after_disconnect = "receive" in message and "disconnect" in message
+                receive_after_disconnect = (
+                    "receive" in message and "disconnect" in message
+                )
 
                 if disconnect_error or receive_after_disconnect:
                     # Treat as clean disconnect without bubbling an exception to uvicorn
@@ -282,7 +332,11 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
                     client_id,
                 )
             except Exception as e:
-                logger.error("message_processing_error", client_id=client_id, error=str(e))
+                logger.error(
+                    "message_processing_error",
+                    client_id=client_id,
+                    error=str(e),
+                )
                 await connection_manager.send_personal_message(
                     {
                         "type": "error",
@@ -299,7 +353,11 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
         disconnect_reason = "server_error"
     finally:
         if connected:
-            logger.info("client_disconnected", client_id=client_id, reason=disconnect_reason)
+            logger.info(
+                "client_disconnected",
+                client_id=client_id,
+                reason=disconnect_reason,
+            )
             await connection_manager.disconnect(client_id)
 
 
