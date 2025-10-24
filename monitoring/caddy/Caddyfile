@@ -7,6 +7,15 @@
 {$SERVER_DOMAIN:localhost} {
 	encode zstd gzip
 
+	# Security headers (safe defaults)
+	header {
+		Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
+		X-Frame-Options "DENY"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "no-referrer"
+		Permissions-Policy "geolocation=(), microphone=(), camera=()"
+	}
+
 	# --- API: strip /api prefix so FastAPI sees original paths
 	handle_path /api/* {
 		reverse_proxy backend:8001
