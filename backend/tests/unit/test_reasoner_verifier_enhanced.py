@@ -482,7 +482,7 @@ Code is correct
 
         assert isinstance(result, VerificationResponse)
         assert result.valid is True
-        assert result.latency_ms > 0
+        assert result.latency_ms >= 0  # Can be 0 on very fast operations
         assert result.model == "mistral:7b"
         assert verifier.total_verifications == 1
 
