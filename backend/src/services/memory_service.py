@@ -344,9 +344,9 @@ class MemoryService:
         cursor = self.sqlite_conn.cursor()
         cursor.execute(
             """
-            SELECT id, workspace_path, created_at, last_accessed, metadata, message_count  # noqa: E501
+            SELECT id, workspace_path, created_at, last_accessed, metadata, message_count
             FROM sessions WHERE id = ?
-        """,
+        """,  # noqa: E501
             (session_id,),
         )
 
@@ -478,7 +478,7 @@ class MemoryService:
             SELECT id, session_id, type, content, metadata, timestamp
             FROM messages
             WHERE session_id = ? {type_filter}
-            ORDER BY timestamp DESC
+            ORDER BY timestamp ASC
             LIMIT ?
         """
 
@@ -677,7 +677,9 @@ class MemoryService:
             "first_message": time_range[0] if time_range[0] else None,
             "last_message": time_range[1] if time_range[1] else None,
             "session_duration_hours": (
-                (time_range[1] - time_range[0]) / 3600 if time_range[0] and time_range[1] else 0
+                (time_range[1] - time_range[0]) / 3600
+                if time_range[0] and time_range[1]
+                else 0
             ),
             "workspace_path": session.workspace_path if session else None,
             "created_at": session.created_at if session else None,
