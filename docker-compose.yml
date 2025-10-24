@@ -120,6 +120,7 @@ services:
       - grafana_data:/var/lib/grafana
       - ./monitoring/dashboards:/var/lib/grafana/dashboards:ro
       - ./monitoring/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./monitoring/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
     depends_on:
       prometheus:
         condition: service_started
