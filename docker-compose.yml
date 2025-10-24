@@ -118,6 +118,8 @@ services:
       - "3000:3000"
     volumes:
       - grafana_data:/var/lib/grafana
+      - ./monitoring/dashboards:/var/lib/grafana/dashboards:ro
+      - ./monitoring/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
     depends_on:
       prometheus:
         condition: service_started
