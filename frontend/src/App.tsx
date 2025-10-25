@@ -5,6 +5,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import "./App.css";
+import "./brand.css";
 import { wsService, type ConnectionState } from "./services/websocket";
 import type {
   ClientMessageMap,
@@ -349,6 +350,12 @@ function App() {
     <div className="app">
       <aside className="sidebar">
         <div className="sidebar-header">
+          {/* Logo */}
+          <div className="logo-container">
+            <div className="logo-text">AuraIA</div>
+            <div className="logo-tagline">The Future Beside You</div>
+          </div>
+          
           <button className="new-chat-btn" onClick={startNewChat}>
             <span>+</span> New chat
           </button>

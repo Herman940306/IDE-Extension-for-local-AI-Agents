@@ -165,6 +165,7 @@ class LLMManager:
         stop: Optional[List[str]] = None,
         use_cloud: bool = False,
         use_cache: bool = True,
+        model: Optional[str] = None,  # NEW: Allow model override
     ) -> str:
         """
         Generate text using the LLM with optional caching
@@ -177,10 +178,14 @@ class LLMManager:
             stop: Stop sequences
             use_cloud: Force cloud usage (if allowed)
             use_cache: Whether to use cache for this request
+            model: Optional model override (defaults to self.model)
 
         Returns:
             Generated text
         """
+        # Use provided model or fall back to default
+        active_model = model or self.model
+
         target_provider = self._determine_target_provider(use_cloud)
         cache_provider_value = target_provider.value
 
@@ -199,14 +204,14 @@ class LLMManager:
             }
 
             cached_response = await self.response_cache.get(
-                prompt=prompt, model=self.model, context_params=context_params
+                prompt=prompt, model=active_model, context_params=context_params
             )
 
             if cached_response:
                 logger.info(
                     "Cache hit for LLM request",
                     extra={
-                        "model": self.model,
+                        "model": active_model,
                         "prompt_length": len(prompt),
                         "cache_enabled": True,
                     },
@@ -218,7 +223,12 @@ class LLMManager:
         try:
             if target_provider == LLMProvider.OLLAMA:
                 response_text = await self._generate_ollama(
-                    prompt, system_prompt, temperature, max_tokens, stop
+                    prompt,
+                    system_prompt,
+                    temperature,
+                    max_tokens,
+                    stop,
+                    model=active_model,
                 )
             else:
                 response_text = await self._generate_cloud(
@@ -228,6 +238,7 @@ class LLMManager:
                     max_tokens,
                     stop,
                     target_provider=target_provider,
+                    model=active_model,
                 )
         except LLMError as exc:
             if target_provider == LLMProvider.OLLAMA and self.allow_cloud:
@@ -243,6 +254,7 @@ class LLMManager:
                     max_tokens,
                     stop,
                     target_provider=target_provider,
+                    model=active_model,
                 )
             else:
                 raise
@@ -290,9 +302,14 @@ class LLMManager:
         temperature: float,
         max_tokens: Optional[int],
         stop: Optional[List[str]],
+        model: Optional[str] = None,  # NEW: Accept model parameter
     ) -> str:
-        """Generate using Ollama"""
+        """Generate using Ollama with optional model override"""
         client = self._ensure_ollama_available()
+
+        # Use provided model or fall back to default
+        active_model = model or self.model
+
         try:
             messages = []
 
@@ -321,7 +338,7 @@ class LLMManager:
             response = await loop.run_in_executor(
                 None,
                 lambda: client.chat(
-                    model=self.model,
+                    model=active_model,  # Use active model
                     messages=messages,
                     options=options,
                     keep_alive=keep_alive,
@@ -342,8 +359,9 @@ class LLMManager:
         max_tokens: Optional[int],
         stop: Optional[List[str]],
         target_provider: LLMProvider,
+        model: Optional[str] = None,  # NEW: Accept model parameter
     ) -> str:
-        """Generate using the selected cloud provider."""
+        """Generate using the selected cloud provider with optional model override."""
         if not self.allow_cloud:
             raise LLMError("Cloud usage is disabled for this manager instance.")
 
@@ -351,6 +369,8 @@ class LLMManager:
         if not allowed:
             raise LLMError(f"Cloud usage blocked: {reason}")
 
+        # Note: Cloud provider doesn't support model override yet
+        # This parameter is here for API consistency
         provider = self._get_cloud_provider(target_provider)
         sanitized_prompt = self.privacy_manager.sanitize_code(prompt)
         sanitized_system: Optional[str] = None

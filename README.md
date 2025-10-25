@@ -1,10 +1,37 @@
-# Enterprise AI Agents Integration for VS Code
+# 🚀 AuraIA - The Local-First Copilot
+
+<div align="center">
+
+**The Future Beside You**
+
+*Privacy-First Multi-Agent AI Coding Assistant*
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![VS Code](https://img.shields.io/badge/VS%20Code-Extension-007ACC.svg)](https://code.visualstudio.com/)
+[![Ollama](https://img.shields.io/badge/Powered%20by-Ollama-FF6B35.svg)](https://ollama.ai)
+[![Status](https://img.shields.io/badge/Status-Alpha-yellow.svg)](CHANGELOG.md)
+
+[Quick Start](#-quick-start) • [Features](#-features) • [Architecture](#-architecture) • [Contributing](#-contributing) • [License](#-license)
+
+</div>
+
+---
 
 **Project Creator:** Herman Swanepoel  
-**Version:** 1.0.0  
-**Status:** Production Ready
+**Version:** 1.0.0-alpha  
+**Status:** Active Development
 
-A comprehensive multi-agent AI coding assistant with privacy-first local operations, featuring specialized agents for code generation, refactoring, bug detection, documentation, and testing.
+> **AuraIA** is a revolutionary IDE extension that runs multi-agent AI orchestration **locally** with optional cloud fallback, giving developers enterprise-grade AI assistance while maintaining complete privacy and control.
+
+### 🎯 Why AuraIA?
+
+| Feature | GitHub Copilot | Cursor | AuraIA |
+|---------|---------------|---------|---------|
+| **Privacy** | Cloud-only | Cloud-dependent | Local-first ✅ |
+| **Cost** | $10-20/mo | $20/mo | **Free** (community) |
+| **Architecture** | Single model | Single model | **Multi-agent** ✅ |
+| **Transparency** | Closed | Closed | **Open-core** ✅ |
+| **Customization** | None | Limited | **Full control** ✅ |
 
 ---
 
@@ -193,6 +220,43 @@ pwsh -File monitoring/scripts/Quick-Import-GrafanaDashboard.ps1 -GrafanaUrl "htt
    - Search for "Enterprise AI"
    - Set backend URL (default: `http://localhost:8000`)
    - Configure LLM provider (Ollama/Cloud)
+
+---
+
+## ⚡ Quick Start
+
+### 1. Install Ollama
+```powershell
+# Windows
+winget install Ollama.Ollama
+# Or download from https://ollama.ai
+```
+
+### 2. Download Models
+```powershell
+ollama pull llama3.2:3b       # Fast reasoner (~2GB)
+ollama pull codellama:7b       # Code generation (~4GB)
+ollama pull nomic-embed-text   # Embeddings (~274MB)
+```
+
+### 3. Start Services
+```powershell
+# Terminal 1: Backend
+cd backend
+python -m uvicorn src.main:app --reload --host 127.0.0.1 --port 8001
+
+# Terminal 2: Frontend
+cd frontend
+npm run dev
+```
+
+### 4. Test It
+Open `http://localhost:3000` and try:
+- "1+1"
+- "write a hello world function in python"
+- "explain this code: def factorial(n): return 1 if n <= 1 else n * factorial(n-1)"
+
+📖 **Full guide:** See [QUICKSTART.md](QUICKSTART.md)
 
 ---
 

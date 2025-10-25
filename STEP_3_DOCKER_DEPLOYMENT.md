@@ -9,10 +9,12 @@
 ## 📋 Prerequisites
 
 ✅ **Completed:**
+
 - Step 1: All 870 tests passing ✅
 - Step 2: Extension validated and working ✅
 
 ✅ **Required:**
+
 - Docker Desktop installed and running
 - Docker Compose available
 - Ports available: 8001, 6379, 11434, 9090, 3000
@@ -60,11 +62,13 @@ docker ps
 ```
 
 **Expected output:**
+
 - Docker version 20.10+ or later
 - Docker Compose version 2.0+ or later
 - No errors
 
 **If Docker is not running:**
+
 - Open Docker Desktop
 - Wait for "Docker Desktop is running" status
 - Retry commands
@@ -83,6 +87,7 @@ Get-Content docker-compose.yml | Select-String -Pattern "services:|image:|ports:
 **Verify environment variables:**
 
 Check `backend/.env` exists and contains:
+
 - `REDIS_HOST=redis`
 - `REDIS_PORT=6379`
 - `OLLAMA_HOST=http://ollama:11434` (optional)
@@ -98,6 +103,7 @@ docker-compose build backend
 ```
 
 **Expected output:**
+
 ```
 [+] Building 45.3s (15/15) FINISHED
 => [backend] exporting to image
@@ -111,6 +117,7 @@ docker images | Select-String "ai-agents"
 ```
 
 You should see:
+
 - `ai-agents-backend` image
 - Size: ~500-800MB
 - Created: "Just now"
@@ -126,6 +133,7 @@ docker-compose up -d
 ```
 
 **Expected output:**
+
 ```
 [+] Running 5/5
 ✔ Container ai-agents-redis      Started
@@ -154,6 +162,7 @@ Invoke-WebRequest -Uri "http://localhost:8001/health" -UseBasicParsing | Select-
 ```
 
 **Expected:**
+
 - Status: 200
 - Content: `{"status":"healthy",...}`
 
@@ -170,6 +179,7 @@ docker exec ai-agents-redis redis-cli ping
 Open browser: <http://localhost:9090>
 
 **Expected:**
+
 - Prometheus UI loads
 - Targets page shows backend as "UP"
 
@@ -178,6 +188,7 @@ Open browser: <http://localhost:9090>
 Open browser: <http://localhost:3000>
 
 **Expected:**
+
 - Grafana login page
 - Default credentials: `admin/admin`
 
@@ -188,6 +199,7 @@ docker-compose logs backend --tail=50
 ```
 
 **Expected:**
+
 - "Application startup complete"
 - No errors
 - Structured JSON logs
@@ -204,6 +216,7 @@ docker-compose logs backend --tail=50
    - WebSocket URL: `ws://localhost:8001/ws`
 
 **Reload VS Code:**
+
 - `Ctrl+Shift+P` → "Developer: Reload Window"
 
 **Test Commands:**
@@ -219,11 +232,13 @@ docker-compose logs backend --tail=20 --follow
 ```
 
 You should see:
+
 - `websocket_connected`
 - `message_received`
 - `task_processing`
 
 **Success Criteria:**
+
 - ✅ Extension connects to Docker backend
 - ✅ Commands execute successfully
 - ✅ Responses appear in Output panel
@@ -262,6 +277,7 @@ docker exec ai-agents-backend curl -s http://ollama:11434/api/tags
 Open: <http://localhost:9090/targets>
 
 **Expected:**
+
 - Backend target: `http://backend:8001/metrics`
 - State: **UP** (green)
 
@@ -290,11 +306,13 @@ Open: <http://localhost:9090/targets>
 ### Backend Container Won't Start
 
 **Check logs:**
+
 ```powershell
 docker-compose logs backend
 ```
 
 **Common issues:**
+
 - Port 8001 already in use → Stop local backend first
 - Missing dependencies → Rebuild: `docker-compose build --no-cache backend`
 - Environment vars missing → Check `backend/.env`
@@ -302,11 +320,13 @@ docker-compose logs backend
 ### Redis Connection Failed
 
 **Check Redis is running:**
+
 ```powershell
 docker-compose ps redis
 ```
 
 **Test connection:**
+
 ```powershell
 docker exec ai-agents-redis redis-cli ping
 ```
@@ -316,6 +336,7 @@ docker exec ai-agents-redis redis-cli ping
 ### Extension Can't Connect
 
 **Verify backend is exposed:**
+
 ```powershell
 docker-compose port backend 8001
 ```
@@ -323,12 +344,14 @@ docker-compose port backend 8001
 **Expected:** `0.0.0.0:8001`
 
 **Check Windows Firewall:**
+
 - Allow Docker Desktop
 - Allow port 8001 inbound
 
 ### Ollama Not Working (Optional)
 
 **Pull a model:**
+
 ```powershell
 docker exec ai-agents-ollama ollama pull llama3.2:3b-q4_K_M
 ```
@@ -342,29 +365,34 @@ docker exec ai-agents-ollama ollama pull llama3.2:3b-q4_K_M
 Mark each as complete:
 
 ### Infrastructure
+
 - [ ] Docker Desktop running
 - [ ] All 5 containers started successfully
 - [ ] No container restarts or errors
 
 ### Service Health
+
 - [ ] Backend health endpoint returns 200
 - [ ] Redis responds to PING
 - [ ] Prometheus UI accessible
 - [ ] Grafana UI accessible
 
 ### Extension Integration
+
 - [ ] Extension connects to Docker backend
 - [ ] WebSocket connection established
 - [ ] All 4 commands execute successfully
 - [ ] Docker logs show task processing
 
 ### Service Communication
+
 - [ ] Backend can write to Redis
 - [ ] Backend can read from Redis
 - [ ] Prometheus scraping backend metrics
 - [ ] Grafana connected to Prometheus
 
 ### Monitoring
+
 - [ ] Prometheus targets showing UP
 - [ ] Metrics queryable in Prometheus
 - [ ] Grafana data source configured
@@ -403,16 +431,19 @@ Record these metrics for production reference:
 ## 🧹 Cleanup (After Testing)
 
 **Stop all services:**
+
 ```powershell
 docker-compose down
 ```
 
 **Remove volumes (if needed):**
+
 ```powershell
 docker-compose down -v
 ```
 
 **Remove images (if rebuilding):**
+
 ```powershell
 docker-compose down --rmi all
 ```

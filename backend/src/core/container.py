@@ -17,6 +17,7 @@ from src.core.connection_pool import RedisConnectionPool
 from src.orchestrator.cognitive_trace import CognitiveTraceStore
 from src.orchestrator.meta_controller import MetaController
 from src.orchestrator.meta_orchestrator import MetaOrchestrator
+from src.orchestrator.multi_model_router import MultiModelRouter
 from src.orchestrator.task_router import TaskRouter
 from src.services.code_smell_detector import CodeSmellDetector
 from src.services.connection_manager import ConnectionManager
@@ -87,8 +88,6 @@ class Container(containers.DeclarativeContainer):
         default_window=60,
     )
 
-    task_orchestrator = providers.Singleton(TaskOrchestrator)
-
     prompt_templates = providers.Singleton(PromptTemplates)
 
     embeddings_service = providers.Singleton(
@@ -131,6 +130,15 @@ class Container(containers.DeclarativeContainer):
         allow_cloud=config.provided.llm.allow_cloud,
         response_cache=response_cache,
         enable_cache=config.provided.llm.enable_cache,
+    )
+
+    # Multi-Model Router for intelligent model selection
+    multi_model_router = providers.Singleton(MultiModelRouter)
+
+    task_orchestrator = providers.Singleton(
+        TaskOrchestrator,
+        llm_manager=llm_manager,
+        router=multi_model_router,
     )
 
     memory_backend = providers.Callable(

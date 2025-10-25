@@ -1,3 +1,25 @@
+# 🔒 CONFIDENTIAL - NEVER COMMIT TO GITHUB
+AuraIA IDE Vision and Roadmap/
+**/AuraIA IDE Vision and Roadmap/
+Commercialization_Plan*.md
+Patent_Guide*.md
+**/AuraIA logo.*
+**/Aural*.html
+**/Aural*Investor*.*
+**/Investor*.html
+**/Investor*.pdf
+**/Investor*.pptx
+IDE_Extension_AI_Analysis.md
+BRAND_GUIDELINES.md
+ARCHITECTURE_IMPLEMENTATION_ROADMAP.md
+COMPLETE_VISION.md
+
+# 🤖 LLM Models - DO NOT COMMIT (Large files)
+models/
+*.gguf
+*.bin
+*.safetensors
+
 # Virtual Environments
 venv/
 env/
