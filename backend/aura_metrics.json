@@ -1,12 +1,42 @@
 {
   "unknown": {
-    "calls": 4,
-    "total_latency": 6.111149697264409,
-    "avg_latency": 1.5277874243161023,
-    "success_count": 4,
+    "calls": 24,
+    "total_latency": 325.68106863613684,
+    "avg_latency": 13.570044526505702,
+    "success_count": 24,
     "error_count": 0,
     "success_rate": 1.0,
-    "last_used": 1761391484.8769677,
+    "last_used": 1761394486.3505986,
+    "errors": []
+  },
+  "gemma3:12b": {
+    "calls": 22,
+    "total_latency": 1187.5844897003699,
+    "avg_latency": 53.98111316819863,
+    "success_count": 22,
+    "error_count": 0,
+    "success_rate": 1.0,
+    "last_used": 1761398200.4139817,
+    "errors": []
+  },
+  "qwen3:8b": {
+    "calls": 10,
+    "total_latency": 1036.0940591853105,
+    "avg_latency": 103.60940591853105,
+    "success_count": 10,
+    "error_count": 0,
+    "success_rate": 1.0,
+    "last_used": 1761398200.4144971,
+    "errors": []
+  },
+  "codellama:7b": {
+    "calls": 14,
+    "total_latency": 1298.8719400855007,
+    "avg_latency": 92.77656714896433,
+    "success_count": 14,
+    "error_count": 0,
+    "success_rate": 1.0,
+    "last_used": 1761397423.7165704,
     "errors": []
   }
 }

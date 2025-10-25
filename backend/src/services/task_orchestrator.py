@@ -122,7 +122,7 @@ class SimpleReasonerEngine:
         prompts = {
             TaskType.CODE_GENERATION: "You are an expert programmer. Generate clean, well-documented code based on the user's requirements.",  # noqa: E501
             TaskType.BUG_FIX: "You are a debugging expert. Analyze the code and provide a fixed version with explanations.",  # noqa: E501
-            TaskType.REFACTORING: "You are a code quality expert. Refactor the code to improve readability, maintainability, and performance.",  # noqa: E501
+            TaskType.REFACTOR: "You are a code quality expert. Refactor the code to improve readability, maintainability, and performance.",  # noqa: E501
             TaskType.TEST_GENERATION: "You are a testing expert. Generate comprehensive unit tests for the provided code.",  # noqa: E501
             TaskType.DOCUMENTATION: "You are a technical writer. Generate clear, comprehensive documentation.",  # noqa: E501
         }
