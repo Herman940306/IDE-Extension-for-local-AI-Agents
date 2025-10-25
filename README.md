@@ -427,6 +427,255 @@ PORT=8000
 
 ---
 
+## 🔌 HTTP API Reference (v2.0)
+
+AuraIA v2.0 introduces a comprehensive HTTP API for intelligent task routing with built-in safety checks, verification, and tone enhancement.
+
+### Base URL
+
+```
+http://localhost:8001/api/v1
+```
+
+### Endpoints
+
+#### 1. POST `/route` - Intelligent Task Routing
+
+Route tasks through the complete 6-stage pipeline: Context → Reasoning → Verification → Safety → Composition → Metrics.
+
+**Request:**
+
+```bash
+curl -X POST http://localhost:8001/api/v1/route \
+  -H "Content-Type: application/json" \
+  -d '{
+    "prompt": "Write a hello world function in Python",
+    "task_type": "general",
+    "user_id": "user123",
+    "session_id": "session456"
+  }'
+```
+
+**PowerShell:**
+
+```powershell
+$body = @{
+    prompt = "Write a hello world function in Python"
+    task_type = "general"
+    user_id = "user123"
+    session_id = "session456"
+} | ConvertTo-Json
+
+Invoke-WebRequest -Uri "http://localhost:8001/api/v1/route" `
+  -Method POST `
+  -ContentType "application/json" `
+  -Body $body
+```
+
+**Response:**
+
+```json
+{
+  "text": "def hello_world():\n    \"\"\"Print Hello, World! to console.\"\"\"\n    print(\"Hello, World!\")",
+  "verified": true,
+  "safety": true,
+  "metadata": {
+    "latency": 1.523,
+    "models_used": ["qwen3:8b", "deepseek-r1:8b", "phi3:mini", "gemma3:12b"],
+    "task_type": "general",
+    "pipeline_stages": {
+      "context_retrieval": 0.045,
+      "system1_reasoning": 0.782,
+      "system2_verification": 0.456,
+      "safety_check": 0.123,
+      "output_composition": 0.117
+    }
+  }
+}
+```
+
+**Task Types:**
+
+- `general` - General coding tasks
+- `code_generation` - Create new code
+- `code_review` - Review and suggest improvements
+- `refactor` - Code refactoring
+- `documentation` - Generate documentation
+- `testing` - Create unit tests
+- `debugging` - Find and fix bugs
+
+#### 2. GET `/metrics` - Performance Report
+
+Get overall system performance metrics including latency, success rates, and model usage.
+
+**Request:**
+
+```bash
+curl http://localhost:8001/api/v1/metrics
+```
+
+**Response:**
+
+```json
+{
+  "summary": {
+    "total_calls": 42,
+    "total_success": 40,
+    "total_errors": 2,
+    "overall_success_rate": 0.952,
+    "avg_latency": 1.523,
+    "models_tracked": 4
+  },
+  "issues": {
+    "high_latency_models": ["deepseek-r1:8b"],
+    "low_success_models": []
+  },
+  "models": {
+    "qwen3:8b": {
+      "calls": 42,
+      "success": 40,
+      "errors": 2,
+      "success_rate": 0.952,
+      "avg_latency": 0.782,
+      "total_latency": 32.844
+    }
+  }
+}
+```
+
+#### 3. GET `/metrics/models` - Per-Model Statistics
+
+Get detailed statistics for each model including usage patterns and performance.
+
+**Request:**
+
+```bash
+curl http://localhost:8001/api/v1/metrics/models
+```
+
+**Response:**
+
+```json
+{
+  "models": {
+    "qwen3:8b": {
+      "calls": 42,
+      "success_rate": 0.952,
+      "avg_latency": 0.782,
+      "role": "System 1 Fast Reasoner"
+    },
+    "deepseek-r1:8b": {
+      "calls": 42,
+      "success_rate": 1.0,
+      "avg_latency": 2.145,
+      "role": "System 2 Verifier"
+    }
+  }
+}
+```
+
+#### 4. POST `/autotune` - Auto-Tuning Recommendations
+
+Get intelligent recommendations for optimizing model performance based on collected metrics.
+
+**Request:**
+
+```bash
+curl -X POST http://localhost:8001/api/v1/autotune \
+  -H "Content-Type: application/json" \
+  -d '{
+    "latency_threshold": 5.0,
+    "success_rate_threshold": 0.7
+  }'
+```
+
+**Response:**
+
+```json
+{
+  "recommendations": [
+    {
+      "model": "deepseek-r1:8b",
+      "issue": "high_latency",
+      "current_avg": 5.234,
+      "threshold": 5.0,
+      "suggestion": "Consider using a smaller model or quantized version"
+    },
+    {
+      "model": "qwen3:4b",
+      "issue": "low_success_rate",
+      "current_rate": 0.65,
+      "threshold": 0.7,
+      "suggestion": "Model may need fine-tuning or replacement"
+    }
+  ]
+}
+```
+
+#### 5. POST `/notify` - Notification Callback
+
+Webhook endpoint for receiving notifications from external systems or integrations.
+
+**Request:**
+
+```bash
+curl -X POST http://localhost:8001/api/v1/notify \
+  -H "Content-Type: application/json" \
+  -d '{
+    "event": "model_update",
+    "data": {
+      "model": "qwen3:8b",
+      "version": "latest"
+    }
+  }'
+```
+
+**Response:**
+
+```json
+{
+  "status": "received",
+  "message": "Notification processed"
+}
+```
+
+### Pipeline Stages
+
+The `/route` endpoint executes a 6-stage pipeline:
+
+1. **Context Retrieval** - Semantic search for relevant past interactions (nomic-embed-text)
+2. **System 1 Reasoning** - Fast initial response generation (qwen3:8b or qwen3:4b)
+3. **System 2 Verification** - Deep analysis and verification (deepseek-r1:8b)
+4. **Safety Check** - Content moderation and security validation (phi3:mini)
+5. **Output Composition** - Tone enhancement with AuraIA personality (gemma3:12b or gemma3:4b)
+6. **Metrics Recording** - Performance tracking and auto-tune suggestions
+
+### Error Handling
+
+All endpoints return consistent error responses:
+
+```json
+{
+  "detail": "Routing failed: Invalid task type"
+}
+```
+
+**HTTP Status Codes:**
+
+- `200` - Success
+- `400` - Bad Request (invalid parameters)
+- `500` - Internal Server Error (pipeline failure)
+
+### Rate Limiting
+
+No rate limiting is enforced in the current version. For production deployments, consider implementing rate limiting at the reverse proxy level (e.g., nginx).
+
+### Authentication
+
+No authentication is required in the current version. For production deployments, add API key authentication or OAuth2.
+
+---
+
 ## 🏗️ Architecture
 
 ### Frontend (VS Code Extension)

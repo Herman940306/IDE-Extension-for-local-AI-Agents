@@ -210,7 +210,7 @@ class MultiModelRouter:
                 ModelRole.SYSTEM1_FAST,
                 ModelRole.FALLBACK,
             ],
-            TaskType.REFACTORING: [
+            TaskType.REFACTOR: [
                 ModelRole.CODE_ENGINE,
                 ModelRole.SYSTEM1_FAST,
                 ModelRole.FALLBACK,

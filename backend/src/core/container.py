@@ -21,15 +21,19 @@ from src.orchestrator.multi_model_router import MultiModelRouter
 from src.orchestrator.task_router import TaskRouter
 from src.services.code_smell_detector import CodeSmellDetector
 from src.services.connection_manager import ConnectionManager
+from src.services.context_engine import ContextEngine
 from src.services.context_manager import ContextManager
 from src.services.embeddings_service import EmbeddingsService
 from src.services.llm_manager import LLMManager, LLMProvider
 from src.services.memory_service import MemoryConfig, MemoryService, StorageBackend
+from src.services.metrics_service import MetricsService
 from src.services.mode_manager import ModeManager, OperationMode
+from src.services.output_composer import OutputComposer
 from src.services.predictive_cache_manager import PredictiveCacheManager
 from src.services.prompt_templates import PromptTemplates
 from src.services.rate_limiter import RateLimiter
 from src.services.response_cache import ResponseCache
+from src.services.safety_layer import SafetyLayer
 from src.services.semantic_search import SemanticSearchService
 from src.services.task_orchestrator import TaskOrchestrator
 from src.services.telemetry_service import TelemetryService
@@ -135,10 +139,37 @@ class Container(containers.DeclarativeContainer):
     # Multi-Model Router for intelligent model selection
     multi_model_router = providers.Singleton(MultiModelRouter)
 
+    # Safety Layer for content moderation
+    safety_layer = providers.Singleton(
+        SafetyLayer,
+        llm_manager=llm_manager,
+    )
+
+    # Output Composer for tone enhancement
+    output_composer = providers.Singleton(
+        OutputComposer,
+        llm_manager=llm_manager,
+    )
+
+    # Context Engine for semantic search
+    context_engine = providers.Singleton(
+        ContextEngine,
+        llm_manager=llm_manager,
+    )
+
+    # Metrics Service for performance tracking
+    metrics_service = providers.Singleton(
+        MetricsService,
+    )
+
     task_orchestrator = providers.Singleton(
         TaskOrchestrator,
         llm_manager=llm_manager,
         router=multi_model_router,
+        safety_layer=safety_layer,
+        output_composer=output_composer,
+        context_engine=context_engine,
+        metrics_service=metrics_service,
     )
 
     memory_backend = providers.Callable(

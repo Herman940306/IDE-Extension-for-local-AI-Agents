@@ -1,0 +1,12 @@
+{
+  "unknown": {
+    "calls": 4,
+    "total_latency": 6.111149697264409,
+    "avg_latency": 1.5277874243161023,
+    "success_count": 4,
+    "error_count": 0,
+    "success_rate": 1.0,
+    "last_used": 1761391484.8769677,
+    "errors": []
+  }
+}

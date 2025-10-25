@@ -29,6 +29,8 @@ from src.api.middleware import (
     RateLimitMiddleware,
     RequestSizeMiddleware,
 )
+from src.api.router_endpoints import init_router_endpoints
+from src.api.router_endpoints import router as router_api
 from src.core.config import get_settings
 from src.core.container import Container
 from src.core.logging import configure_logging, get_logger
@@ -61,6 +63,13 @@ async def lifespan(app: FastAPI):
     local_container = Container()
     container = local_container
     logger.info("container_initialized")
+
+    # Initialize router endpoints with dependencies
+    init_router_endpoints(
+        task_orchestrator=local_container.task_orchestrator(),
+        metrics_service=local_container.metrics_service(),
+    )
+    logger.info("router_endpoints_initialized")
 
     try:
         redis = local_container.redis_client()
@@ -126,6 +135,10 @@ app.add_middleware(CorrelationIDMiddleware)
 
 # 2. Request Size Validation (check size before processing)
 app.add_middleware(RequestSizeMiddleware, max_size=settings.max_request_size)
+
+# Register router endpoints
+app.include_router(router_api)
+logger.info("router_endpoints_registered")
 
 
 # --- Prometheus metrics ---

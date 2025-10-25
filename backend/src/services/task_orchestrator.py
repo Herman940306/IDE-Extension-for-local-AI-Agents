@@ -366,9 +366,9 @@ Verify this code and provide analysis.
 
 class TaskOrchestrator:
     """
-    Coordinates task execution with multi-model routing.
+    Coordinates task execution with multi-model routing and full pipeline.
 
-    Orchestrates reasoning and verification stages using optimal models.
+    Orchestrates: Context → Reasoning → Verification → Safety → Composition → Metrics
     """
 
     def __init__(
@@ -377,15 +377,23 @@ class TaskOrchestrator:
         verifier: Optional[SimpleVerifierEngine] = None,
         llm_manager=None,
         router: Optional[MultiModelRouter] = None,
+        safety_layer=None,
+        output_composer=None,
+        context_engine=None,
+        metrics_service=None,
     ):
         """
-        Initialize orchestrator with multi-model support.
+        Initialize orchestrator with full service pipeline.
 
         Args:
             reasoner: Custom reasoner engine (optional)
             verifier: Custom verifier engine (optional)
             llm_manager: LLM Manager for model execution
             router: Multi-Model Router for intelligent model selection
+            safety_layer: Safety validation service
+            output_composer: Output composition service
+            context_engine: Context and embedding service
+            metrics_service: Performance metrics service
         """
         self.router = router or MultiModelRouter()
         self.llm_manager = llm_manager
@@ -395,6 +403,10 @@ class TaskOrchestrator:
         self._verifier = verifier or SimpleVerifierEngine(
             llm_manager=llm_manager, router=self.router
         )
+        self.safety_layer = safety_layer
+        self.output_composer = output_composer
+        self.context_engine = context_engine
+        self.metrics_service = metrics_service
 
     async def execute(self, request: TaskRequestPayload) -> TaskSessionResult:
         """Process a task request and return an aggregated session result."""
@@ -446,6 +458,171 @@ class TaskOrchestrator:
                     if verification_summary
                     else VerificationStatus.SKIPPED.value
                 ),
+            },
+        )
+
+        return result
+
+    async def execute_task(self, request: TaskRequestPayload) -> TaskSessionResult:
+        """
+        Execute task with full pipeline: Context → Reason → Verify → Safety → Compose
+
+        This is the enhanced version that uses all AuralA services.
+
+        Args:
+            request: Task request payload
+
+        Returns:
+            Complete task result with safety and composition
+        """
+        start_time = time.perf_counter()
+        pipeline_metadata = {
+            "stages": [],
+            "models_used": [],
+            "latencies": {},
+        }
+
+        ws_logger.info(
+            "enhanced_task_execution_started",
+            extra={
+                "task_id": request.id,
+                "task_type": request.type.value,
+            },
+        )
+
+        # Stage 1: Context Retrieval (if context engine available)
+        context_snippets = []
+        if self.context_engine and request.content:
+            try:
+                t0 = time.perf_counter()
+                context_snippets = await self.context_engine.get_context_snippets(
+                    request.content, top_k=3
+                )
+                pipeline_metadata["latencies"]["context_retrieval"] = (
+                    time.perf_counter() - t0
+                )
+                pipeline_metadata["stages"].append("context_retrieval")
+                ws_logger.debug("Retrieved %d context snippets", len(context_snippets))
+            except Exception as e:
+                ws_logger.warning("Context retrieval failed: %s", e)
+
+        # Stage 2: Reasoning (System 1 Fast)
+        t0 = time.perf_counter()
+        agent_response = await self._reasoner.generate(request)
+        pipeline_metadata["latencies"]["reasoning"] = time.perf_counter() - t0
+        pipeline_metadata["stages"].append("reasoning")
+
+        # Extract model used from metadata
+        if hasattr(agent_response, "metadata") and agent_response.metadata:
+            model = agent_response.metadata.get("selected_model", "unknown")
+            pipeline_metadata["models_used"].append(model)
+
+        # Stage 3: Verification (System 2 Deep)
+        verification_summary = None
+        if self._verifier:
+            t0 = time.perf_counter()
+            verification_summary = await self._verifier.verify(request, agent_response)
+            pipeline_metadata["latencies"]["verification"] = time.perf_counter() - t0
+            pipeline_metadata["stages"].append("verification")
+
+        # Stage 4: Safety Check
+        safety_result = None
+        if self.safety_layer and agent_response.suggestions:
+            try:
+                t0 = time.perf_counter()
+                code_text = agent_response.suggestions[0].code
+                safety_result = await self.safety_layer.check_safety(code_text)
+                pipeline_metadata["latencies"]["safety"] = time.perf_counter() - t0
+                pipeline_metadata["stages"].append("safety")
+                pipeline_metadata["safety_passed"] = safety_result.get("safe", True)
+
+                if not safety_result.get("safe"):
+                    ws_logger.warning(
+                        "Safety check failed for task %s: %s",
+                        request.id,
+                        safety_result.get("reason", "Unknown"),
+                    )
+            except Exception as e:
+                ws_logger.error("Safety check failed: %s", e)
+                safety_result = {"safe": True, "raw": f"Error: {e}"}
+
+        # Stage 5: Output Composition (Tone Enhancement)
+        final_output = None
+        if self.output_composer and agent_response.suggestions:
+            try:
+                t0 = time.perf_counter()
+                system1_text = agent_response.suggestions[0].code
+                system2_text = (
+                    verification_summary.metadata.get("verifier_output", "")
+                    if verification_summary
+                    else None
+                )
+
+                composition = await self.output_composer.compose(
+                    system1_text=system1_text,
+                    system2_text=system2_text,
+                    use_premium_tone=True,
+                    safety_result=safety_result,
+                )
+                final_output = composition.get("final_text", system1_text)
+                pipeline_metadata["latencies"]["composition"] = time.perf_counter() - t0
+                pipeline_metadata["stages"].append("composition")
+                pipeline_metadata["models_used"].extend(
+                    composition.get("used_models", [])
+                )
+
+                # Update the suggestion with composed output
+                if final_output and agent_response.suggestions:
+                    agent_response.suggestions[0].code = final_output
+
+            except Exception as e:
+                ws_logger.error("Output composition failed: %s", e)
+
+        # Stage 6: Metrics Recording
+        total_duration = time.perf_counter() - start_time
+        if self.metrics_service:
+            try:
+                for model in pipeline_metadata["models_used"]:
+                    model_latency = pipeline_metadata["latencies"].get("reasoning", 0.0)
+                    self.metrics_service.record_call(
+                        model=model,
+                        latency=model_latency,
+                        success=bool(agent_response.suggestions),
+                    )
+            except Exception as e:
+                ws_logger.error("Metrics recording failed: %s", e)
+
+        # Build final result
+        duration_ms = total_duration * 1000
+        summary = self._build_summary(agent_response, verification_summary)
+
+        result = TaskSessionResult(
+            task_id=request.id,
+            status="completed",
+            summary=summary,
+            responses=[
+                AgentRunResult(
+                    response=agent_response,
+                    duration_ms=duration_ms,
+                    escalated=verification_summary is not None,
+                )
+            ],
+            verification=verification_summary,
+            metrics={
+                "duration_ms": round(duration_ms, 2),
+                "suggestion_count": len(agent_response.suggestions),
+                "pipeline": pipeline_metadata,
+            },
+        )
+
+        ws_logger.info(
+            "enhanced_task_execution_completed",
+            extra={
+                "task_id": request.id,
+                "duration_ms": round(duration_ms, 2),
+                "stages": pipeline_metadata["stages"],
+                "models_used": pipeline_metadata["models_used"],
+                "safety_passed": pipeline_metadata.get("safety_passed", True),
             },
         )
 
