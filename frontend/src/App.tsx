@@ -37,12 +37,16 @@ function App() {
   const [chatHistory, setChatHistory] = useState<ChatSession[]>([]);
   const [currentChatId, setCurrentChatId] = useState<string | null>(null);
   const [mode, setMode] = useState<"local" | "cloud">("local");
+  const [interactionMode, setInteractionMode] = useState<"agent" | "chat" | "edit">("chat");
+  const [isListening, setIsListening] = useState(false);
+  const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
   const [banner, setBanner] = useState<{
     type: "info" | "error" | "warning";
     message: string;
   } | null>(null);
   const [lastPingAt, setLastPingAt] = useState<number | null>(null);
   const currentChatIdRef = useRef<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const connected = connectionState === "connected";
 
@@ -84,11 +88,30 @@ function App() {
     };
 
     const handleAgentResponse = (payload: TaskSessionResultPayload) => {
-      const summary =
-        payload.reasoning || payload.summary || "Response received";
+      // Extract actual suggestions from the response
+      let content = "";
+      
+      if (payload.responses && payload.responses.length > 0) {
+        // Get all suggestions from responses
+        const suggestions = payload.responses
+          .filter(r => r.response?.suggestions && r.response.suggestions.length > 0)
+          .flatMap(r => r.response.suggestions);
+        
+        if (suggestions.length > 0) {
+          content = suggestions
+            .map(s => `${s.description || ''}\n\`\`\`\n${s.code || ''}\n\`\`\``)
+            .join('\n\n');
+        }
+      }
+      
+      // Fallback to reasoning/summary if no suggestions
+      if (!content) {
+        content = payload.reasoning || payload.summary || "Response received";
+      }
+      
       const newMsg = {
         role: "assistant" as const,
-        content: summary,
+        content: content,
         timestamp: Date.now(),
       };
 
@@ -210,6 +233,57 @@ function App() {
     }
   };
 
+  const handleFileAttach = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    setAttachedFiles(prev => [...prev, ...files]);
+    setBanner({ type: "info", message: `${files.length} file(s) attached` });
+  };
+
+  const removeFile = (index: number) => {
+    setAttachedFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const toggleVoiceInput = () => {
+    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+      setBanner({ type: "error", message: "Voice input not supported in this browser" });
+      return;
+    }
+
+    if (isListening) {
+      setIsListening(false);
+      setBanner({ type: "info", message: "Voice input stopped" });
+    } else {
+      setIsListening(true);
+      setBanner({ type: "info", message: "Listening... Speak now" });
+      
+      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      const recognition = new SpeechRecognition();
+      recognition.continuous = false;
+      recognition.interimResults = false;
+      
+      recognition.onresult = (event: any) => {
+        const transcript = event.results[0][0].transcript;
+        setInput(prev => prev + (prev ? ' ' : '') + transcript);
+        setIsListening(false);
+      };
+      
+      recognition.onerror = () => {
+        setIsListening(false);
+        setBanner({ type: "error", message: "Voice input error" });
+      };
+      
+      recognition.onend = () => {
+        setIsListening(false);
+      };
+      
+      recognition.start();
+    }
+  };
+
   const handleSend = () => {
     if (!input.trim() || !connected) return;
 
@@ -225,24 +299,38 @@ function App() {
       return updated;
     });
 
+    // Determine task type based on interaction mode
+    let taskType = "code_generation";
+    if (interactionMode === "agent") {
+      taskType = "code_generation";
+    } else if (interactionMode === "edit") {
+      taskType = "refactor";
+    } else {
+      taskType = "documentation";
+    }
+
     const payload: ClientMessageMap["task_request"] = {
       id: `task-${Date.now()}`,
-      type: "code_generation",
+      type: taskType,
       description: input,
       content: input,
       context: {
         description: input,
         mode,
+        interaction_mode: interactionMode,
+        files: attachedFiles.map(f => f.name),
       },
       mode,
       metadata: {
         source: "frontend",
+        attached_files: attachedFiles.length,
       },
     };
 
     wsService.sendTask(payload);
 
     setInput("");
+    setAttachedFiles([]);
     setIsLoading(true);
   };
 
@@ -310,6 +398,29 @@ function App() {
         <header className="header">
           <h1>AuraIA</h1>
           <div className="header-controls">
+            <div className="mode-selector">
+              <button
+                className={`mode-btn ${interactionMode === "chat" ? "active" : ""}`}
+                onClick={() => setInteractionMode("chat")}
+                title="Chat mode - conversational AI"
+              >
+                💬 Chat
+              </button>
+              <button
+                className={`mode-btn ${interactionMode === "agent" ? "active" : ""}`}
+                onClick={() => setInteractionMode("agent")}
+                title="Agent mode - code generation"
+              >
+                🤖 Agent
+              </button>
+              <button
+                className={`mode-btn ${interactionMode === "edit" ? "active" : ""}`}
+                onClick={() => setInteractionMode("edit")}
+                title="Edit mode - refactoring"
+              >
+                ✏️ Edit
+              </button>
+            </div>
             <div className={`status status-${connectionState}`}>
               {connectionLabel}
               {lastPingAt && connected ? (
@@ -380,8 +491,31 @@ function App() {
         </div>
 
         <div className="input-container">
+          {attachedFiles.length > 0 && (
+            <div className="attached-files">
+              {attachedFiles.map((file, i) => (
+                <div key={i} className="file-chip">
+                  📎 {file.name}
+                  <button onClick={() => removeFile(i)} className="remove-file">×</button>
+                </div>
+              ))}
+            </div>
+          )}
           <div className="input-wrapper">
-            <button className="attach-btn">+</button>
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileChange}
+              style={{ display: 'none' }}
+              multiple
+            />
+            <button 
+              className="attach-btn" 
+              onClick={handleFileAttach}
+              title="Attach files"
+            >
+              +
+            </button>
             <input
               type="text"
               placeholder={
@@ -395,7 +529,13 @@ function App() {
               onChange={(e) => setInput(e.target.value)}
               onKeyPress={(e) => e.key === "Enter" && handleSend()}
             />
-            <button className="voice-btn">🎤</button>
+            <button 
+              className={`voice-btn ${isListening ? 'listening' : ''}`}
+              onClick={toggleVoiceInput}
+              title={isListening ? "Stop listening" : "Start voice input"}
+            >
+              {isListening ? '⏹️' : '🎤'}
+            </button>
             <button
               className="send-btn"
               onClick={handleSend}
