@@ -12,9 +12,11 @@ export class BackendService {
   private clientId: string;
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 5;
+  private outputChannel: vscode.OutputChannel;
 
   constructor() {
     this.clientId = `vscode-${Date.now()}`;
+    this.outputChannel = vscode.window.createOutputChannel("Aura AI Response");
   }
 
   connect(): Promise<void> {
@@ -90,8 +92,63 @@ export class BackendService {
   }
 
   private handleAgentResponse(payload: any) {
+    console.log("Handling agent response:", JSON.stringify(payload, null, 2));
+
+    // payload is TaskSessionResult
+    const summary = payload.summary || payload.reasoning || "Task completed";
+
+    // Extract suggestions from responses
+    let suggestionText = "";
+    if (payload.responses && payload.responses.length > 0) {
+      const agentResponse = payload.responses[0].response;
+
+      if (agentResponse.suggestions && agentResponse.suggestions.length > 0) {
+        const suggestions = agentResponse.suggestions
+          .map((s: any, i: number) => {
+            const code = s.code || "";
+            const desc = s.description || "";
+            return `${i + 1}. ${desc}\n${code ? "```\n" + code + "\n```" : ""}`;
+          })
+          .join("\n\n");
+
+        suggestionText = suggestions;
+      }
+
+      // Show detailed reasoning if available
+      if (agentResponse.reasoning) {
+        suggestionText += `\n\n**Reasoning:** ${agentResponse.reasoning}`;
+      }
+    }
+
+    // Clear and populate output channel
+    this.outputChannel.clear();
+    this.outputChannel.appendLine("=".repeat(80));
+    this.outputChannel.appendLine(`Task: ${payload.task_id || 'unknown'}`);
+    this.outputChannel.appendLine(`Status: ${payload.status || 'completed'}`);
+    this.outputChannel.appendLine("=".repeat(80));
+    this.outputChannel.appendLine("");
+    this.outputChannel.appendLine(summary);
+    this.outputChannel.appendLine("");
+
+    if (suggestionText) {
+      this.outputChannel.appendLine("SUGGESTIONS:");
+      this.outputChannel.appendLine("-".repeat(80));
+      this.outputChannel.appendLine(suggestionText);
+    } else {
+      this.outputChannel.appendLine("(No specific suggestions generated)");
+    }
+
+    this.outputChannel.appendLine("");
+    this.outputChannel.appendLine("=".repeat(80));
+
+    // Show the output channel
+    this.outputChannel.show(true);
+
+    console.log("Output channel should be visible now");
+
+    // Also show a notification
     vscode.window.showInformationMessage(
-      `Agent response: ${payload.reasoning}`,
+      "✅ Task completed! Check 'Aura AI Response' output.",
     );
   }
 

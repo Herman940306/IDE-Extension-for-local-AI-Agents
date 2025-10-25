@@ -96,10 +96,11 @@ async function generateCode() {
     backendService.sendTask({
       id: `task-${Date.now()}`,
       type: "code_generation",
+      description: description,
+      content: "",
       context: {
         language: editor.document.languageId,
         file_path: editor.document.fileName,
-        description,
       },
     });
     vscode.window.showInformationMessage("Task sent to AI backend");
@@ -118,10 +119,12 @@ async function refactorCode() {
 
   backendService.sendTask({
     id: `task-${Date.now()}`,
-    type: "refactoring",
+    type: "refactor",
+    description: "Refactor the selected code to improve quality and maintainability",
+    content: selection,
     context: {
       language: editor.document.languageId,
-      code: selection,
+      file_path: editor.document.fileName,
     },
   });
 }
@@ -138,10 +141,12 @@ async function explainCode() {
 
   backendService.sendTask({
     id: `task-${Date.now()}`,
-    type: "explanation",
+    type: "documentation",
+    description: "Explain the selected code in detail",
+    content: selection,
     context: {
       language: editor.document.languageId,
-      code: selection,
+      file_path: editor.document.fileName,
     },
   });
 }
@@ -150,13 +155,20 @@ async function fixBugs() {
   const editor = vscode.window.activeTextEditor;
   if (!editor) return;
 
+  const selection = editor.document.getText(editor.selection);
+  if (!selection) {
+    vscode.window.showWarningMessage("Please select code to analyze for bugs");
+    return;
+  }
+
   backendService.sendTask({
     id: `task-${Date.now()}`,
-    type: "bug_fixing",
+    type: "bug_fix",
+    description: "Analyze and fix bugs in the selected code",
+    content: selection,
     context: {
       language: editor.document.languageId,
       file_path: editor.document.fileName,
-      code: editor.document.getText(),
     },
   });
 }
