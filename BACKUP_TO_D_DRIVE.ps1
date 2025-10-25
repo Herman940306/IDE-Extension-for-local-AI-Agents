@@ -1,14 +1,15 @@
 # ===================================================================
-# Automated Project Backup to D:\VScode Projects
+# Automated Project Backup & Migration to F:\VScode Projects (SSD)
 # Backs up entire AI Agents Integration System
+# Recommended: Use F: (Samsung 750 EVO SSD) for AI workloads
 # Project Creator: Herman Swanepoel
 # ===================================================================
 
 $ErrorActionPreference = "Stop"
 
 Write-Host "╔════════════════════════════════════════════════════════════════╗" -ForegroundColor Cyan
-Write-Host "║  Automated Project Backup                                     ║" -ForegroundColor Cyan
-Write-Host "║  Target: D:\VScode Projects                                   ║" -ForegroundColor Cyan
+Write-Host "║  Automated Project Backup & Migration to SSD                  ║" -ForegroundColor Cyan
+Write-Host "║  Target: F:\VScode Projects (Samsung 750 EVO - Healthy)       ║" -ForegroundColor Cyan
 Write-Host "╚════════════════════════════════════════════════════════════════╝" -ForegroundColor Cyan
 Write-Host ""
 
@@ -17,8 +18,8 @@ $ProjectRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 $ProjectName = Split-Path -Leaf $ProjectRoot
 $Timestamp = Get-Date -Format 'yyyy-MM-dd_HHmmss'
 
-# Backup locations
-$BackupBase = "D:\VScode Projects"
+# Backup locations - Using F: SSD for speed
+$BackupBase = "F:\VScode Projects"
 $BackupPath = Join-Path $BackupBase $ProjectName
 $BackupArchive = Join-Path $BackupBase "${ProjectName}_BACKUP_${Timestamp}.zip"
 

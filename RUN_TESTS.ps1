@@ -50,7 +50,7 @@ Write-Host ""
 Write-Host "🔍 Checking Ollama service..." -ForegroundColor Cyan
 
 # Set portable models path
-$PortableModelsDir = Join-Path $ProjectRoot "ollama_models"
+$PortableModelsDir = Join-Path $ProjectRoot "models"  # Changed from ollama_models
 $env:OLLAMA_MODELS = $PortableModelsDir
 
 try {

@@ -22,7 +22,6 @@ models/
 
 # 🚀 Portable Ollama - DO NOT COMMIT (Large files)
 ollama/
-ollama_models/
 *.exe
 
 # Virtual Environments

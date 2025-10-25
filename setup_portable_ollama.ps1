@@ -1,6 +1,7 @@
 # ===================================================================
 # Portable Ollama Setup Script
 # Creates a self-contained Ollama installation in project directory
+# Folder Structure: ollama/ (exe) + models/ (AI models)
 # Project Creator: Herman Swanepoel
 # ===================================================================
 
@@ -9,7 +10,7 @@ $ErrorActionPreference = "Stop"
 # Get project root
 $ProjectRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 $OllamaDir = Join-Path $ProjectRoot "ollama"
-$ModelsDir = Join-Path $ProjectRoot "ollama_models"
+$ModelsDir = Join-Path $ProjectRoot "models"  # Changed to match structure
 
 Write-Host "╔════════════════════════════════════════════════════════════════╗" -ForegroundColor Cyan
 Write-Host "║  Portable Ollama Setup - Self-Contained Installation          ║" -ForegroundColor Cyan
