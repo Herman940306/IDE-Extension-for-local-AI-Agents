@@ -1,0 +1,52 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+rule_files:
+  - alerts.yml
+  - recording-rules.yml
+
+scrape_configs:
+  - job_name: "auraia-backend"
+    metrics_path: /metrics
+    scheme: http
+    static_configs:
+      - targets:
+          - backend:8001
+    relabel_configs:
+      - source_labels: [__address__]
+        regex: "(.*)"
+        replacement: "${1}"
+        target_label: instance
+
+  - job_name: "ollama"
+    metrics_path: /metrics
+    scheme: http
+    static_configs:
+      - targets:
+          - ollama:11434
+
+  - job_name: "prometheus"
+    static_configs:
+      - targets:
+          - prometheus:9090
+
+  - job_name: "celery-worker"
+    metrics_path: /
+    scheme: http
+    static_configs:
+      - targets:
+          - celery_worker:9100
+
+  # Caddy metrics disabled (using official image without prometheus plugin)
+
+  # Optional: GPU metrics (uncomment the exporter you use)
+  # - job_name: "nvidia-gpu-exporter"
+  #   static_configs:
+  #     - targets:
+  #         - nvidia_gpu_exporter:9835  # nvidia-smi exporter default port
+
+  # - job_name: "dcgm"
+  #   static_configs:
+  #     - targets:
+  #         - dcgm-exporter:9400        # NVIDIA DCGM exporter default port
