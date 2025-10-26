@@ -12,26 +12,57 @@ let statusBarItem: vscode.StatusBarItem;
 let analyticsService: AnalyticsService | undefined;
 
 export async function activate(context: vscode.ExtensionContext) {
-  console.log("Aura AI Assistant activated");
+  console.log("🚀 Aura AI Assistant activating...");
+
+  // Status bar - create first
+  statusBarItem = vscode.window.createStatusBarItem(
+    vscode.StatusBarAlignment.Right,
+    100,
+  );
+  statusBarItem.text = "$(sync~spin) Aura AI: Connecting...";
+  statusBarItem.tooltip = "Connecting to backend...";
+  statusBarItem.show();
+  context.subscriptions.push(statusBarItem);
 
   backendService = new BackendService();
   analyticsService = new AnalyticsService(context);
 
   try {
-    await backendService.connect();
-    updateStatusBar("✅ Aura AI", "Connected to backend");
-  } catch (error) {
-    updateStatusBar("❌ Aura AI", "Backend disconnected");
-    vscode.window.showErrorMessage("Failed to connect to Aura AI backend");
-  }
+    await vscode.window.withProgress(
+      {
+        location: vscode.ProgressLocation.Notification,
+        title: "Connecting to Aura AI backend...",
+        cancellable: false,
+      },
+      async () => {
+        await backendService.connect();
+      }
+    );
 
-  // Status bar
-  statusBarItem = vscode.window.createStatusBarItem(
-    vscode.StatusBarAlignment.Right,
-    100,
-  );
-  statusBarItem.show();
-  context.subscriptions.push(statusBarItem);
+    statusBarItem.text = "$(check) Aura AI: Connected";
+    statusBarItem.tooltip = "Connected to backend - Ready to assist!";
+    vscode.window.showInformationMessage("✅ Aura AI Assistant is ready!");
+    console.log("✅ Aura AI Assistant activated successfully");
+  } catch (error) {
+    statusBarItem.text = "$(error) Aura AI: Disconnected";
+    statusBarItem.tooltip = "Failed to connect to backend. Click to troubleshoot.";
+    statusBarItem.command = "aura.showConnectionHelp";
+
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error("❌ Failed to connect to Aura AI backend:", errorMessage);
+
+    vscode.window.showErrorMessage(
+      "Failed to connect to Aura AI backend. Please check:\n" +
+      "1. Backend is running (check Debug Console)\n" +
+      "2. Ollama service is running\n" +
+      "3. Configuration in Settings",
+      "Show Setup Guide"
+    ).then(selection => {
+      if (selection === "Show Setup Guide") {
+        vscode.env.openExternal(vscode.Uri.parse("https://github.com/Herman940306/IDE-Extension-for-local-AI-Agents#setup"));
+      }
+    });
+  }
 
   const telemetryCommand = vscode.commands.registerCommand(
     "enterpriseAI.toggleTelemetry",
@@ -77,100 +108,257 @@ export async function activate(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand("aura.refactorCode", refactorCode),
     vscode.commands.registerCommand("aura.explainCode", explainCode),
     vscode.commands.registerCommand("aura.fixBugs", fixBugs),
+    vscode.commands.registerCommand("aura.showConnectionHelp", showConnectionHelp),
   );
+}
+
+async function showConnectionHelp() {
+  const config = vscode.workspace.getConfiguration("aura");
+  const websocketUrl = config.get<string>("backend.websocket", "ws://127.0.0.1:8001/ws");
+  const httpUrl = config.get<string>("backend.url", "http://127.0.0.1:8001");
+
+  const message = `🔧 **Aura AI Connection Troubleshooting**
+
+**Current Configuration:**
+- WebSocket: ${websocketUrl}
+- HTTP API: ${httpUrl}
+
+**Checklist:**
+1. ✅ Backend running? Check terminal for "Uvicorn running on http://127.0.0.1:8001"
+2. ✅ Ollama running? Open terminal: \`curl http://localhost:11434/api/tags\`
+3. ✅ Correct URL? Check Settings > Aura > Backend
+
+**Quick Fix:**
+Press F5 to reload the extension after starting services.`;
+
+  const selection = await vscode.window.showInformationMessage(
+    message,
+    { modal: true },
+    "Open Settings",
+    "Reload Extension",
+    "Test Backend"
+  );
+
+  if (selection === "Open Settings") {
+    vscode.commands.executeCommand("workbench.action.openSettings", "aura.backend");
+  } else if (selection === "Reload Extension") {
+    vscode.commands.executeCommand("workbench.action.reloadWindow");
+  } else if (selection === "Test Backend") {
+    vscode.env.openExternal(vscode.Uri.parse(httpUrl));
+  }
 }
 
 async function generateCode() {
   const editor = vscode.window.activeTextEditor;
   if (!editor) {
-    vscode.window.showWarningMessage("No active editor");
+    vscode.window.showWarningMessage("⚠️ No active editor found. Please open a file first.");
     return;
   }
 
   const description = await vscode.window.showInputBox({
     prompt: "Describe the code you want to generate",
     placeHolder: "e.g., Create a function to sort an array",
+    validateInput: (value) => {
+      if (!value || value.trim().length === 0) {
+        return "Description cannot be empty";
+      }
+      return null;
+    },
   });
 
-  if (description) {
-    backendService.sendTask({
-      id: `task-${Date.now()}`,
-      type: "code_generation",
-      description: description,
-      content: "",
-      context: {
-        language: editor.document.languageId,
-        file_path: editor.document.fileName,
-      },
-    });
-    vscode.window.showInformationMessage("Task sent to AI backend");
+  if (!description) {
+    return;
   }
+
+  await vscode.window.withProgress(
+    {
+      location: vscode.ProgressLocation.Notification,
+      title: "🤖 Aura AI",
+      cancellable: true,
+    },
+    async (progress, token) => {
+      progress.report({ message: "Generating code..." });
+
+      try {
+        backendService.sendTask({
+          id: `task-${Date.now()}`,
+          type: "code_generation",
+          description: description,
+          content: "",
+          context: {
+            language: editor.document.languageId,
+            file_path: editor.document.fileName,
+          },
+        });
+
+        progress.report({ increment: 100, message: "Task sent successfully!" });
+        updateStatusBar("✅ Aura AI", "Code generation in progress");
+
+        setTimeout(() => {
+          vscode.window.showInformationMessage("✨ Code generation task submitted to Aura AI");
+        }, 500);
+      } catch (error) {
+        vscode.window.showErrorMessage(`❌ Failed to send task: ${error}`);
+        updateStatusBar("❌ Aura AI", "Task failed");
+      }
+    }
+  );
 }
 
 async function refactorCode() {
   const editor = vscode.window.activeTextEditor;
-  if (!editor) return;
-
-  const selection = editor.document.getText(editor.selection);
-  if (!selection) {
-    vscode.window.showWarningMessage("Please select code to refactor");
+  if (!editor) {
+    vscode.window.showWarningMessage("⚠️ No active editor found. Please open a file first.");
     return;
   }
 
-  backendService.sendTask({
-    id: `task-${Date.now()}`,
-    type: "refactor",
-    description: "Refactor the selected code to improve quality and maintainability",
-    content: selection,
-    context: {
-      language: editor.document.languageId,
-      file_path: editor.document.fileName,
+  const selection = editor.document.getText(editor.selection);
+  if (!selection || selection.trim().length === 0) {
+    vscode.window.showWarningMessage("⚠️ Please select code to refactor");
+    return;
+  }
+
+  await vscode.window.withProgress(
+    {
+      location: vscode.ProgressLocation.Notification,
+      title: "🤖 Aura AI",
+      cancellable: false,
     },
-  });
+    async (progress) => {
+      progress.report({ message: "Analyzing code for refactoring..." });
+
+      try {
+        backendService.sendTask({
+          id: `task-${Date.now()}`,
+          type: "refactor",
+          description: "Refactor the selected code to improve quality and maintainability",
+          content: selection,
+          context: {
+            language: editor.document.languageId,
+            file_path: editor.document.fileName,
+            selection_lines: {
+              start: editor.selection.start.line,
+              end: editor.selection.end.line,
+            },
+          },
+        });
+
+        progress.report({ increment: 100, message: "Refactoring task sent!" });
+        updateStatusBar("✅ Aura AI", "Refactoring in progress");
+
+        setTimeout(() => {
+          vscode.window.showInformationMessage(`🔧 Analyzing ${selection.split('\n').length} lines for refactoring`);
+        }, 500);
+      } catch (error) {
+        vscode.window.showErrorMessage(`❌ Failed to send refactoring task: ${error}`);
+        updateStatusBar("❌ Aura AI", "Task failed");
+      }
+    }
+  );
 }
 
 async function explainCode() {
   const editor = vscode.window.activeTextEditor;
-  if (!editor) return;
-
-  const selection = editor.document.getText(editor.selection);
-  if (!selection) {
-    vscode.window.showWarningMessage("Please select code to explain");
+  if (!editor) {
+    vscode.window.showWarningMessage("⚠️ No active editor found. Please open a file first.");
     return;
   }
 
-  backendService.sendTask({
-    id: `task-${Date.now()}`,
-    type: "documentation",
-    description: "Explain the selected code in detail",
-    content: selection,
-    context: {
-      language: editor.document.languageId,
-      file_path: editor.document.fileName,
+  const selection = editor.document.getText(editor.selection);
+  if (!selection || selection.trim().length === 0) {
+    vscode.window.showWarningMessage("⚠️ Please select code to explain");
+    return;
+  }
+
+  await vscode.window.withProgress(
+    {
+      location: vscode.ProgressLocation.Notification,
+      title: "🤖 Aura AI",
+      cancellable: false,
     },
-  });
+    async (progress) => {
+      progress.report({ message: "Analyzing code..." });
+
+      try {
+        backendService.sendTask({
+          id: `task-${Date.now()}`,
+          type: "documentation",
+          description: "Explain the selected code in detail",
+          content: selection,
+          context: {
+            language: editor.document.languageId,
+            file_path: editor.document.fileName,
+            selection_lines: {
+              start: editor.selection.start.line,
+              end: editor.selection.end.line,
+            },
+          },
+        });
+
+        progress.report({ increment: 100, message: "Explanation request sent!" });
+        updateStatusBar("✅ Aura AI", "Analyzing code");
+
+        setTimeout(() => {
+          vscode.window.showInformationMessage(`📖 Generating explanation for ${selection.split('\n').length} lines of code`);
+        }, 500);
+      } catch (error) {
+        vscode.window.showErrorMessage(`❌ Failed to send explanation task: ${error}`);
+        updateStatusBar("❌ Aura AI", "Task failed");
+      }
+    }
+  );
 }
 
 async function fixBugs() {
   const editor = vscode.window.activeTextEditor;
-  if (!editor) return;
-
-  const selection = editor.document.getText(editor.selection);
-  if (!selection) {
-    vscode.window.showWarningMessage("Please select code to analyze for bugs");
+  if (!editor) {
+    vscode.window.showWarningMessage("⚠️ No active editor found. Please open a file first.");
     return;
   }
 
-  backendService.sendTask({
-    id: `task-${Date.now()}`,
-    type: "bug_fix",
-    description: "Analyze and fix bugs in the selected code",
-    content: selection,
-    context: {
-      language: editor.document.languageId,
-      file_path: editor.document.fileName,
+  const selection = editor.document.getText(editor.selection);
+  if (!selection || selection.trim().length === 0) {
+    vscode.window.showWarningMessage("⚠️ Please select code to analyze for bugs");
+    return;
+  }
+
+  await vscode.window.withProgress(
+    {
+      location: vscode.ProgressLocation.Notification,
+      title: "🤖 Aura AI",
+      cancellable: false,
     },
-  });
+    async (progress) => {
+      progress.report({ message: "Scanning for bugs..." });
+
+      try {
+        backendService.sendTask({
+          id: `task-${Date.now()}`,
+          type: "bug_fix",
+          description: "Analyze and fix bugs in the selected code",
+          content: selection,
+          context: {
+            language: editor.document.languageId,
+            file_path: editor.document.fileName,
+            selection_lines: {
+              start: editor.selection.start.line,
+              end: editor.selection.end.line,
+            },
+          },
+        });
+
+        progress.report({ increment: 100, message: "Bug analysis started!" });
+        updateStatusBar("✅ Aura AI", "Analyzing bugs");
+
+        setTimeout(() => {
+          vscode.window.showInformationMessage(`🐛 Scanning ${selection.split('\n').length} lines for potential bugs`);
+        }, 500);
+      } catch (error) {
+        vscode.window.showErrorMessage(`❌ Failed to send bug fix task: ${error}`);
+        updateStatusBar("❌ Aura AI", "Task failed");
+      }
+    }
+  );
 }
 
 function updateStatusBar(text: string, tooltip: string) {

@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### ✨ Added
+
+- **CrewAI Bug Detection Adapter** - New specialized adapter for bug detection and security analysis
+  - Implements BUG_DETECTION capability for CrewAI framework
+  - Expert security analyst persona for identifying vulnerabilities
+  - Detects SQL injection, XSS, command injection, hardcoded secrets, and logic errors
+  - Follows established pattern with CrewAIBugAgent specialized class
+  - Comprehensive test coverage with 3 new test cases
+
 ### 🎯 Planned
 
 - PII detection in safety layer

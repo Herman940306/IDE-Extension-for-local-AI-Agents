@@ -1,6 +1,7 @@
 # 🔒 CONFIDENTIAL - NEVER COMMIT TO GITHUB
 AuraIA IDE Vision and Roadmap/
 **/AuraIA IDE Vision and Roadmap/
+AuraIA IDE Vision and Roadmap/openai.key
 Commercialization_Plan*.md
 Patent_Guide*.md
 **/AuraIA logo.*
@@ -115,3 +116,4 @@ coverage.xml
 *.tmp
 *.temp
 .cache/
+.test_venv/

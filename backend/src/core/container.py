@@ -25,9 +25,11 @@ from src.services.context_engine import ContextEngine
 from src.services.context_manager import ContextManager
 from src.services.embeddings_service import EmbeddingsService
 from src.services.llm_manager import LLMManager, LLMProvider
+from src.services.llm_router import LLMRouter
 from src.services.memory_service import MemoryConfig, MemoryService, StorageBackend
 from src.services.metrics_service import MetricsService
 from src.services.mode_manager import ModeManager, OperationMode
+from src.services.ollama_service import OllamaService
 from src.services.output_composer import OutputComposer
 from src.services.predictive_cache_manager import PredictiveCacheManager
 from src.services.prompt_templates import PromptTemplates
@@ -215,6 +217,15 @@ class Container(containers.DeclarativeContainer):
             lambda settings: _resolve_operation_mode(settings.mode.default_mode),
             config,
         ),
+    )
+
+    ollama_service = providers.Singleton(OllamaService)
+
+    llm_router = providers.Singleton(
+        LLMRouter,
+        mode_manager=mode_manager,
+        ollama_service=ollama_service,
+        openai_api_key=config.provided.llm.api_key,
     )
 
     connection_manager = providers.Singleton(ConnectionManager)

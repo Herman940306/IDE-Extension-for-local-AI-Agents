@@ -32,9 +32,7 @@ class CodeSmellDetector:
         self.similarity_threshold = 0.85  # 85% similarity = potential duplication
         self.god_class_threshold = 10  # Methods/responsibilities
 
-    async def detect_smells(
-        self, file_path: str, content: str, language: str
-    ) -> List[CodeSmell]:
+    async def detect_smells(self, file_path: str, content: str, language: str) -> List[CodeSmell]:
         """
         Detect code smells in a file
 
@@ -64,9 +62,7 @@ class CodeSmellDetector:
 
         return smells
 
-    async def _detect_python_smells(
-        self, file_path: str, content: str
-    ) -> List[CodeSmell]:
+    async def _detect_python_smells(self, file_path: str, content: str) -> List[CodeSmell]:
         """Detect Python-specific code smells"""
         smells: List[CodeSmell] = []
 
@@ -182,9 +178,7 @@ class CodeSmellDetector:
 
         return smells
 
-    async def _detect_semantic_duplication(
-        self, file_path: str, content: str
-    ) -> List[CodeSmell]:
+    async def _detect_semantic_duplication(self, file_path: str, content: str) -> List[CodeSmell]:
         """
         Detect semantic code duplication using embeddings
         Finds similar code even with different variable names
@@ -261,15 +255,10 @@ class CodeSmellDetector:
         except Exception as e:
             logger.debug(f"AST parsing failed, using regex fallback: {e}")
             # Fallback: simple regex-based extraction
-            func_pattern = (
-                r"(function\s+(\w+)|(\w+)\s*=\s*function|"
-                r"(\w+)\s*=\s*\([^)]*\)\s*=>)"
-            )
+            func_pattern = r"(function\s+(\w+)|(\w+)\s*=\s*function|" r"(\w+)\s*=\s*\([^)]*\)\s*=>)"
             matches = re.finditer(func_pattern, content)
             for match in matches:
-                func_name = (
-                    match.group(2) or match.group(3) or match.group(4) or "anonymous"
-                )
+                func_name = match.group(2) or match.group(3) or match.group(4) or "anonymous"
                 # Extract function body (simplified)
                 start_pos = match.start()
                 line_num = content[:start_pos].count("\n") + 1

@@ -379,9 +379,7 @@ import * as utils from './utils';
     async def test_get_dependencies_javascript(self, context_manager, temp_workspace):
         """Test getting JavaScript dependencies"""
         test_file = temp_workspace / "module.js"
-        test_file.write_text(
-            "import utils from './utils';\nconst config = require('./config');"
-        )
+        test_file.write_text("import utils from './utils';\nconst config = require('./config');")
 
         deps = await context_manager._get_dependencies(test_file)
 

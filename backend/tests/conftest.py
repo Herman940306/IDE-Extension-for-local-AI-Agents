@@ -389,9 +389,9 @@ def performance_timer():
 
     class Timer:
         def __init__(self):
-            self.start_time = None
-            self.end_time = None
-            self.elapsed = None
+            self.start_time: float = 0.0
+            self.end_time: float = 0.0
+            self.elapsed: float | None = None
 
         def __enter__(self):
             self.start_time = time.time()
@@ -402,6 +402,24 @@ def performance_timer():
             self.elapsed = self.end_time - self.start_time
 
     return Timer
+
+
+# ============================================================================
+# Collection modifiers
+# ============================================================================
+
+
+def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
+    """Auto-mark tests in the integration folder with the 'integration' marker.
+
+    This allows excluding them with `-m "not integration"` even if tests aren't
+    explicitly decorated. It relies on file paths containing '/tests/integration/'.
+    """
+    for item in items:
+        # Normalize path separators for Windows
+        path = str(item.fspath).replace("\\", "/")
+        if "/tests/integration/" in path:
+            item.add_marker(pytest.mark.integration)
 
 
 # ============================================================================

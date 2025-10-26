@@ -8,24 +8,40 @@ import WebSocket from "ws";
 
 export class BackendService {
   private ws: WebSocket | null = null;
-  private readonly baseUrl = "ws://127.0.0.1:8001/ws";
+  private baseUrl: string;
   private clientId: string;
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 5;
   private outputChannel: vscode.OutputChannel;
 
   constructor() {
+    // Get backend WebSocket URL from VS Code configuration
+    const config = vscode.workspace.getConfiguration("aura");
+    this.baseUrl = config.get<string>("backend.websocket", "ws://127.0.0.1:8001/ws");
+
     this.clientId = `vscode-${Date.now()}`;
     this.outputChannel = vscode.window.createOutputChannel("Aura AI Response");
+
+    console.log(`[BackendService] Configured WebSocket URL: ${this.baseUrl}`);
   }
 
   connect(): Promise<void> {
     return new Promise((resolve, reject) => {
+      console.log(`[BackendService] Attempting to connect to ${this.baseUrl}/${this.clientId}`);
+
       const socket = new WebSocket(`${this.baseUrl}/${this.clientId}`);
       this.ws = socket;
 
+      const connectionTimeout = setTimeout(() => {
+        socket.terminate();
+        const error = new Error(`Connection timeout after 10 seconds. Is the backend running at ${this.baseUrl}?`);
+        console.error("[BackendService]", error.message);
+        reject(error);
+      }, 10000);
+
       socket.on("open", () => {
-        console.log("Connected to backend");
+        clearTimeout(connectionTimeout);
+        console.log("[BackendService] ✅ Connected to backend successfully");
         this.reconnectAttempts = 0;
         resolve();
       });
@@ -35,17 +51,22 @@ export class BackendService {
           const message = JSON.parse(data.toString());
           this.handleMessage(message);
         } catch (error) {
-          console.error("Failed to parse backend message", error);
+          console.error("[BackendService] Failed to parse backend message", error);
         }
       });
 
       socket.on("error", (error) => {
-        console.error("WebSocket error:", error);
+        clearTimeout(connectionTimeout);
+        console.error("[BackendService] ❌ WebSocket error:", error);
+        vscode.window.showErrorMessage(
+          `Failed to connect to Aura AI backend at ${this.baseUrl}. Please ensure:\n1. Backend is running (uvicorn)\n2. Ollama service is running\n3. WebSocket URL is correct in settings`
+        );
         reject(error);
       });
 
       socket.on("close", () => {
-        console.log("Disconnected from backend");
+        clearTimeout(connectionTimeout);
+        console.log("[BackendService] 🔌 Disconnected from backend");
         this.attemptReconnect();
       });
     });

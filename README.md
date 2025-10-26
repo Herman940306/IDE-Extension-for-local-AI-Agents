@@ -39,7 +39,7 @@
 
 ### Multi-Agent Collaboration
 
-- **CrewAI Integration** - Collaborative documentation and test generation
+- **CrewAI Integration** - Collaborative documentation, test generation, and bug detection
 - **SuperAGI Integration** - Autonomous code generation with tool support
 - **AutoGPT Integration** - Deep research and complex analysis
 - **Specialized Agents** - Refactor, Bug, Doc, and Test agents

@@ -27,9 +27,7 @@ async def test_basic_route():
         }
 
         try:
-            response1 = await client.post(
-                "http://localhost:8001/api/v1/route", json=request1
-            )
+            response1 = await client.post("http://localhost:8001/api/v1/route", json=request1)
             print(f"Status: {response1.status_code}")
             data1 = response1.json()
             print(f"Response: {data1.get('text', 'NO TEXT')[:200]}")
@@ -53,9 +51,7 @@ async def test_basic_route():
         }
 
         try:
-            response2 = await client.post(
-                "http://localhost:8001/api/v1/route", json=request2
-            )
+            response2 = await client.post("http://localhost:8001/api/v1/route", json=request2)
             print(f"Status: {response2.status_code}")
             data2 = response2.json()
             print(f"Response: {data2.get('text', 'NO TEXT')[:200]}")
