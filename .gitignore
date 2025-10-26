@@ -116,3 +116,4 @@ coverage.xml
 *.tmp
 *.temp
 .cache/
+.test_venv/
