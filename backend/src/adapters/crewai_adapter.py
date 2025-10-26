@@ -3,59 +3,89 @@ CrewAI adapter for collaborative agent execution
 Project Creator: Herman Swanepoel
 """
 
+from __future__ import annotations
+
 import asyncio
 import textwrap
-from typing import Any, List, Optional
+from dataclasses import dataclass
+from typing import Any, Dict, List, Optional, Sequence, Tuple
 
-from crewai import Agent, Crew, Process
-from crewai import Task as CrewTask
-from langchain.llms import Ollama
-from src.adapters.adapter_utils import AdapterUtils
+from src.adapters.adapter_utils import AdapterExceptions, AdapterUtils
+
+# pylint: disable=broad-except
 from src.adapters.base_adapter import AgentAdapter, AgentConfig, Capability
-from src.models import AgentResponse, CodeContext, Suggestion, Task
+from src.models import (
+    AgentResponse,
+    CodeContext,
+    ConfidenceLevel,
+    Suggestion,
+    Task,
+    TaskType,
+)
+
+
+@dataclass(frozen=True)
+class CrewAIDependencies:
+    """Container for CrewAI runtime dependencies."""
+
+    agent_cls: Any
+    crew_cls: Any
+    process_enum: Any
+    task_cls: Any
 
 
 class CrewAIAdapter(AgentAdapter):
-    """
-    Adapter for CrewAI framework
+    """Adapter that orchestrates CrewAI agents for documentation and testing."""
 
-    Enables collaborative multi-agent execution using CrewAI's crew system.
-    Supports Doc Agent and Test Agent for documentation and test generation.
-    """
+    _CONFIDENCE_LOOKUP: Dict[ConfidenceLevel, float] = {
+        ConfidenceLevel.HIGH: 0.85,
+        ConfidenceLevel.MEDIUM: 0.6,
+        ConfidenceLevel.LOW: 0.35,
+    }
 
     def __init__(self, config: AgentConfig):
-        """
-        Initialize CrewAI adapter
-
-        Args:
-            config: Agent configuration
-        """
         super().__init__(config)
-        self.llm: Optional[Ollama] = None
-        self.doc_agent: Optional[Agent] = None
-        self.test_agent: Optional[Agent] = None
-        self.crew: Optional[Crew] = None
+        self.llm: Optional[Any] = None
+        self.doc_agent: Optional[Any] = None
+        self.test_agent: Optional[Any] = None
+        self.crew: Optional[Any] = None
         self.agent_id: str = self.config.metadata.get("agent_id", "crewai_adapter")
+        self._crewai_deps: Optional[CrewAIDependencies] = None
+        self._ollama_cls: Optional[Any] = None
 
     async def initialize(self) -> None:
-        """Initialize CrewAI agents and crew"""
+        """Initialise the CrewAI LLM and any available agents."""
         try:
-            # Initialize LLM
-            self.llm = Ollama(
+            self._crewai_deps = self._crewai_deps or self._load_crewai_dependencies()
+            self._ollama_cls = self._ollama_cls or self._load_ollama_client()
+
+            if not self._crewai_deps:
+                raise AdapterExceptions.AdapterInitializationError(
+                    "CrewAI dependencies failed to load."
+                )
+
+            if not self._ollama_cls:
+                raise AdapterExceptions.AdapterInitializationError(
+                    "Ollama client failed to load."
+                )
+
+            self.llm = self._ollama_cls(
                 model=self.config.metadata.get("model", "codellama:7b"),
-                base_url=self.config.metadata.get("ollama_url", "http://localhost:11434"),
+                base_url=self.config.metadata.get(
+                    "ollama_url", "http://localhost:11434"
+                ),
             )
 
-            # Create Doc Agent
             if Capability.DOCUMENTATION in self.config.capabilities:
-                self.doc_agent = Agent(
+                self.doc_agent = self._crewai_deps.agent_cls(
                     role="Documentation Specialist",
-                    goal="Generate clear, comprehensive documentation for code",
+                    goal="Generate clear, comprehensive documentation for code.",
                     backstory=textwrap.dedent(
                         """
-                        You are an expert technical writer with deep knowledge of software  # noqa: E501
-                        documentation best practices. You excel at creating docstrings, README  # noqa: E501
-                        files, and API documentation that are clear, concise, and helpful.  # noqa: E501
+                        You are an expert technical writer deeply versed in
+                        software documentation best practices. You create docstrings,
+                        README files, and API documentation that are clear, concise,
+                        and helpful.
                         """
                     ).strip(),
                     llm=self.llm,
@@ -63,16 +93,15 @@ class CrewAIAdapter(AgentAdapter):
                     allow_delegation=False,
                 )
 
-            # Create Test Agent
             if Capability.TESTING in self.config.capabilities:
-                self.test_agent = Agent(
+                self.test_agent = self._crewai_deps.agent_cls(
                     role="Test Engineer",
-                    goal="Generate comprehensive test cases for code",
+                    goal="Generate thorough automated tests for supplied code.",
                     backstory=textwrap.dedent(
                         """
-                        You are a senior test engineer with expertise in unit testing, integration  # noqa: E501
-                        testing, and test-driven development. You write thorough test cases that  # noqa: E501
-                        cover edge cases and ensure code reliability.
+                        You are a senior test engineer with expertise in unit testing,
+                        integration testing, and test-driven development. You write
+                        test cases that cover edge conditions and reduce regressions.
                         """
                     ).strip(),
                     llm=self.llm,
@@ -81,218 +110,236 @@ class CrewAIAdapter(AgentAdapter):
                 )
 
             self.is_initialized = True
-
-        except Exception as e:
-            raise Exception(f"Failed to initialize CrewAI adapter: {e}") from e
+        except Exception as exc:  # pragma: no cover - defensive guard
+            raise AdapterExceptions.AdapterInitializationError(
+                f"Failed to initialize CrewAI adapter: {exc}"
+            ) from exc
 
     async def execute_task(self, task: Task, context: CodeContext) -> AgentResponse:
-        """
-        Execute a task using CrewAI crew
-
-        Args:
-            task: Task to execute
-            context: Code context
-
-        Returns:
-            AgentResponse with suggestions
-        """
+        """Execute a project task using CrewAI and convert the result."""
         if not self.is_initialized:
             await self.initialize()
 
-        try:
-            # Convert task to CrewAI format
-            crew_task = self._convert_to_crew_task(task, context)
+        if not self.llm:
+            raise RuntimeError("CrewAI adapter LLM not initialized")
 
-            # Select appropriate agent(s)
-            agents = self._select_agents(task)
-
-            if not agents:
-                return AgentResponse(
-                    agent_id=self.agent_id,
-                    agent_name=self.config.name,
-                    suggestions=[],
-                    confidence=0.0,
-                    reasoning="No suitable CrewAI agents available for this task type",
-                    metadata={"task_id": task.id, "error": "no_agents"},
-                )
-
-            # Create and execute crew
-            crew = Crew(
-                agents=agents,
-                tasks=[crew_task],
-                process=Process.sequential,
-                verbose=self.config.metadata.get("verbose", False),
+        crew_setup = self._build_crew_setup(task, context)
+        if not crew_setup:
+            return AgentResponse(
+                agent_id=self.agent_id,
+                agent_name=self.config.name,
+                suggestions=[],
+                confidence=0.35,
+                reasoning=(
+                    "CrewAI adapter does not provide an agent for this task type."
+                ),
+                metadata={"task_id": task.id, "task_type": task.type.value},
             )
 
-            # Execute in thread pool to avoid blocking
-            loop = asyncio.get_event_loop()
-            result = await loop.run_in_executor(None, crew.kickoff)
+        if not self._crewai_deps:
+            raise RuntimeError("CrewAI dependencies not initialized")
 
-            # Parse and convert result
-            return self._convert_crew_result(result, task)
+        agents, crew_tasks = crew_setup
+        crew_instance = self._crewai_deps.crew_cls(
+            agents=agents,
+            tasks=crew_tasks,
+            process=self._crewai_deps.process_enum.sequential,
+            verbose=self.config.metadata.get("verbose", False),
+        )
+        self.crew = crew_instance
 
-        except Exception as e:
+        kickoff_inputs = {
+            "file_path": context.file_path,
+            "language": context.language,
+            "task_id": task.id,
+        }
+
+        try:
+            kickoff_async = getattr(crew_instance, "kickoff_async", None)
+            result: Any
+            if callable(kickoff_async):
+                async_result = kickoff_async(inputs=kickoff_inputs)
+                if asyncio.iscoroutine(async_result):
+                    result = await async_result
+                else:
+                    result = async_result
+            else:
+                kickoff_sync = getattr(crew_instance, "kickoff", None)
+                if not callable(kickoff_sync):
+                    raise AdapterExceptions.AdapterExecutionError(
+                        "CrewAI crew has no kickoff entry point."
+                    )
+                result = await asyncio.to_thread(kickoff_sync, inputs=kickoff_inputs)
+        except Exception as exc:  # noqa: BLE001
             return AgentResponse(
                 agent_id=self.agent_id,
                 agent_name=self.config.name,
                 suggestions=[],
                 confidence=0.0,
-                reasoning=f"CrewAI task execution failed: {str(e)}",
-                metadata={"task_id": task.id, "error": str(e)},
+                reasoning=f"CrewAI execution failed: {exc}",
+                metadata={"task_id": task.id, "task_type": task.type.value},
             )
 
-    def _convert_to_crew_task(self, task: Task, context: CodeContext) -> CrewTask:
-        """
-        Convert our task format to CrewAI task format
+        suggestions = self._parse_suggestions(result, task, context)
+        confidence = self._determine_confidence(suggestions)
+        reasoning = self._build_reasoning(result)
 
-        Args:
-            task: Our task format
-            context: Code context
+        metadata: Dict[str, Any] = {
+            "task_id": task.id,
+            "task_type": task.type.value,
+            "crew_agents": [self._agent_role(agent) for agent in agents],
+            "task_count": len(crew_tasks),
+        }
+        raw_text = getattr(result, "raw", None)
+        if raw_text:
+            metadata["raw_excerpt"] = AdapterUtils.truncate_output(
+                str(raw_text),
+                max_length=400,
+            )
 
-        Returns:
-            CrewAI task
-        """
-        # Build task description
-        description = f"""
-Task: {task.type.value}
-Priority: {task.priority.value}
+        token_usage = getattr(result, "token_usage", None)
+        if token_usage:
+            if hasattr(token_usage, "model_dump"):
+                metadata["token_usage"] = token_usage.model_dump()
+            elif hasattr(token_usage, "dict"):
+                metadata["token_usage"] = token_usage.dict()
+            else:
+                metadata["token_usage"] = token_usage
 
-Code Context:
-File: {context.file_path}
-Language: {context.language}
-
-Code:
-```{context.language}
-{context.code}
-```
-
-Requirements:
-{task.description}
-
-Please provide your response in the following format:
-1. Analysis of the code
-2. Specific suggestions or generated content
-3. Reasoning for your recommendations
-"""
-
-        if context.selected_text:
-            description += f"\n\nSelected Code:\n```{context.language}\n{context.selected_text}\n```"  # noqa: E501
-
-        return CrewTask(
-            description=description,
-            expected_output="Detailed analysis and actionable suggestions or generated content",  # noqa: E501
+        return AgentResponse(
+            agent_id=self.agent_id,
+            agent_name=self.config.name,
+            suggestions=suggestions,
+            confidence=confidence,
+            reasoning=reasoning,
+            metadata=metadata,
         )
 
-    def _select_agents(self, task: Task) -> List[Agent]:
-        """
-        Select appropriate agents for the task
+    def _build_crew_setup(
+        self, task: Task, context: CodeContext
+    ) -> Optional[Tuple[List[Any], List[Any]]]:
+        """Prepare CrewAI agents and tasks for the requested work."""
+        agents: List[Any] = []
+        crew_tasks: List[Any] = []
 
-        Args:
-            task: Task to execute
-
-        Returns:
-            List of agents to use
-        """
-        agents = []
-
-        if task.type.value == "documentation" and self.doc_agent:
+        if task.type == TaskType.DOCUMENTATION and self.doc_agent:
             agents.append(self.doc_agent)
-        elif task.type.value == "test_generation" and self.test_agent:
+            crew_tasks.append(
+                self._create_crewai_task(
+                    agent=self.doc_agent,
+                    task=task,
+                    context=context,
+                    expected_output=(
+                        "Markdown documentation summarising key behaviours, "
+                        "public APIs, usage examples, and explicit assumptions."
+                    ),
+                )
+            )
+
+        if task.type == TaskType.TEST_GENERATION and self.test_agent:
             agents.append(self.test_agent)
-        elif task.type.value == "refactor":
-            # For refactoring, we might want both doc and test agents
-            if self.doc_agent:
-                agents.append(self.doc_agent)
-            if self.test_agent:
-                agents.append(self.test_agent)
-
-        return agents
-
-    def _convert_crew_result(self, result: Any, task: Task) -> AgentResponse:
-        """
-        Convert CrewAI result to our response format
-
-        Args:
-            result: CrewAI execution result
-            task: Original task
-
-        Returns:
-            AgentResponse
-        """
-        try:
-            # Parse the result text
-            result_text = str(result)
-
-            # Extract suggestions from result
-            suggestions = self._parse_suggestions(result_text)
-
-            # Calculate confidence based on result quality
-            confidence = self._calculate_confidence(result_text, suggestions)
-
-            return AgentResponse(
-                agent_id=self.agent_id,
-                agent_name=self.config.name,
-                suggestions=suggestions,
-                confidence=confidence,
-                reasoning=result_text.strip() or "CrewAI execution produced no summary",
-                metadata={"task_id": task.id, "suggestion_count": len(suggestions)},
+            crew_tasks.append(
+                self._create_crewai_task(
+                    agent=self.test_agent,
+                    task=task,
+                    context=context,
+                    expected_output=(
+                        "Comprehensive automated tests with commentary on coverage and"
+                        " edge cases."
+                    ),
+                )
             )
 
-        except Exception as e:
-            return AgentResponse(
-                agent_id=self.agent_id,
-                agent_name=self.config.name,
-                suggestions=[],
-                confidence=0.0,
-                reasoning=f"Failed to parse CrewAI result: {str(e)}",
-                metadata={"task_id": task.id, "error": str(e)},
-            )
+        if not agents:
+            return None
 
-    def _parse_suggestions(self, result_text: str) -> List[Suggestion]:
-        """
-        Parse suggestions from CrewAI result text
+        return agents, crew_tasks
 
-        Args:
-            result_text: Result text from CrewAI
+    def _create_crewai_task(
+        self,
+        agent: Any,
+        task: Task,
+        context: CodeContext,
+        expected_output: str,
+    ) -> Any:
+        """Create a CrewAI Task definition using the supplied context."""
+        code_snippet = context.code or task.content
+        prompt_code = AdapterUtils.truncate_output(code_snippet or "(no code provided)")
+        overview = task.description or task.metadata.get("prompt") or task.content
 
-        Returns:
-            List of suggestions
-        """
-        suggestions = []
+        description = textwrap.dedent(
+            f"""
+            {overview or 'Analyse the provided code and respond accordingly.'}
 
-        # Extract code blocks from result
-        import re
+            Focus file: {context.file_path}
+            Language: {context.language}
 
-        code_blocks = re.findall(r"```[\w]*\n(.*?)```", result_text, re.DOTALL)
+            Code to use as context:
+            ```
+            {prompt_code}
+            ```
+            """
+        ).strip()
+
+        label = task.type.value.replace("_", " ").title()
+
+        if not self._crewai_deps:
+            raise RuntimeError("CrewAI dependencies not initialized")
+
+        return self._crewai_deps.task_cls(
+            name=f"{label} - {self._agent_role(agent)}",
+            description=description,
+            expected_output=expected_output,
+            agent=agent,
+            markdown=True,
+        )
+
+    def _parse_suggestions(
+        self, result: Any, task: Task, context: CodeContext
+    ) -> List[Suggestion]:
+        """Translate CrewAI output into project Suggestion models."""
+        outputs: List[str] = []
+
+        for task_output in getattr(result, "tasks_output", []) or []:
+            outputs.append(getattr(task_output, "raw", "") or "")
+            outputs.extend(self._extract_reasoning(task_output))
+
+        raw_result = getattr(result, "raw", None)
+        if raw_result:
+            outputs.append(raw_result)
+
+        combined = "\n\n".join(
+            segment.strip() for segment in outputs if segment.strip()
+        )
+        if not combined:
+            return []
+
+        code_blocks = AdapterUtils.extract_code_blocks(combined)
+        suggestions: List[Suggestion] = []
 
         if code_blocks:
-            for i, code in enumerate(code_blocks):
-                # Extract description (text before code block)
-                description_match = re.search(
-                    r"([^\n]+)\n```", result_text[: result_text.find(code)]
-                )
-                description = (
-                    description_match.group(1) if description_match else f"Suggestion {i+1}"
-                )
-
+            for code, description in code_blocks:
+                score = 0.82 if code else 0.55
                 suggestions.append(
                     Suggestion(
                         id=AdapterUtils.generate_suggestion_id("crewai"),
-                        code=code.strip(),
-                        description=description.strip(),
-                        confidence=AdapterUtils.map_confidence_score(0.8),
+                        code=code or combined,
+                        description=description
+                        or self._default_suggestion_description(task.type, context),
+                        confidence=AdapterUtils.map_confidence_score(score),
                         diff=None,
                         applicable_range=None,
                     )
                 )
         else:
-            # If no code blocks, treat entire result as suggestion
             suggestions.append(
                 Suggestion(
                     id=AdapterUtils.generate_suggestion_id("crewai"),
-                    code=result_text.strip(),
-                    description="General documentation suggestion",
-                    confidence=AdapterUtils.map_confidence_score(0.6),
+                    code=combined,
+                    description=self._default_suggestion_description(
+                        task.type, context
+                    ),
+                    confidence=AdapterUtils.map_confidence_score(0.58),
                     diff=None,
                     applicable_range=None,
                 )
@@ -300,72 +347,118 @@ Please provide your response in the following format:
 
         return suggestions
 
-    def _calculate_confidence(self, result_text: str, suggestions: List[Suggestion]) -> float:
-        """
-        Calculate confidence score based on result quality
+    def _default_suggestion_description(
+        self, task_type: TaskType, context: CodeContext
+    ) -> str:
+        if task_type == TaskType.DOCUMENTATION:
+            return f"Documentation updates for {context.file_path}"
+        if task_type == TaskType.TEST_GENERATION:
+            return f"Test coverage recommendations for {context.file_path}"
+        return f"CrewAI suggestion for {context.file_path}"
 
-        Args:
-            result_text: Result text
-            suggestions: Parsed suggestions
+    def _extract_reasoning(self, task_output: Any) -> List[str]:
+        reasoning: List[str] = []
+        summary = getattr(task_output, "summary", None)
+        if summary:
+            reasoning.append(summary)
+        description = getattr(task_output, "description", None)
+        if description and description not in reasoning:
+            reasoning.append(description)
+        return reasoning
 
-        Returns:
-            Confidence score (0.0 to 1.0)
-        """
-        confidence = 0.5  # Base confidence
+    def _determine_confidence(self, suggestions: Sequence[Suggestion]) -> float:
+        if not suggestions:
+            return 0.35
 
-        # Increase confidence if we have suggestions
-        if suggestions:
-            confidence += 0.2
+        scores = [
+            self._CONFIDENCE_LOOKUP.get(suggestion.confidence, 0.35)
+            for suggestion in suggestions
+        ]
+        return round(min(0.95, max(scores)), 2)
 
-        # Increase confidence if result is detailed
-        if len(result_text) > 200:
-            confidence += 0.1
+    def _build_reasoning(self, result: Any) -> str:
+        tasks_output = getattr(result, "tasks_output", []) or []
+        if not tasks_output:
+            return AdapterUtils.truncate_output(
+                getattr(result, "raw", "No output returned from CrewAI."),
+                600,
+            )
 
-        # Increase confidence if result has code blocks
-        if "```" in result_text:
-            confidence += 0.1
+        lines: List[str] = []
+        for index, task_output in enumerate(tasks_output, start=1):
+            agent_name = getattr(task_output, "agent", "CrewAI Agent")
+            summary = (
+                getattr(task_output, "summary", None)
+                or getattr(task_output, "description", None)
+                or "Task completed."
+            )
+            raw_excerpt = AdapterUtils.truncate_output(
+                getattr(task_output, "raw", "") or "",
+                300,
+            )
+            if raw_excerpt:
+                lines.append(f"Task {index} by {agent_name}: {summary}\n{raw_excerpt}")
+            else:
+                lines.append(f"Task {index} by {agent_name}: {summary}")
 
-        # Increase confidence if result has reasoning
-        if any(keyword in result_text.lower() for keyword in ["because", "reason", "analysis"]):
-            confidence += 0.1
-
-        return min(confidence, 1.0)
+        return "\n\n".join(lines)
 
     async def get_capabilities(self) -> List[Capability]:
-        """Get adapter capabilities"""
         return self.config.capabilities
 
     async def health_check(self) -> bool:
-        """Check if adapter is healthy"""
+        if not self.is_initialized or not self.llm:
+            return False
+
         try:
-            if not self.is_initialized:
-                return False
-
-            # Check if LLM is accessible
-            if self.llm:
-                # Simple test query
-                llm = self.llm
-                test_result = await asyncio.get_event_loop().run_in_executor(
-                    None, lambda: llm("Test")
-                )
-                return test_result is not None
-
-            return True
-
-        except Exception:
+            response = await asyncio.to_thread(self.llm, "ping")
+            return bool(response)
+        except Exception:  # noqa: BLE001
             return False
 
     async def shutdown(self) -> None:
-        """Shutdown adapter and cleanup resources"""
         self.llm = None
         self.doc_agent = None
         self.test_agent = None
         self.crew = None
         await super().shutdown()
 
+    def _agent_role(self, agent: Any) -> str:
+        return getattr(agent, "role", self.config.name)
+
+    def _load_crewai_dependencies(self) -> CrewAIDependencies:
+        """Import CrewAI classes lazily so optional dependency issues surface gently."""
+        try:
+            from crewai import Agent as CrewAgent  # type: ignore[import]
+            from crewai import Crew as CrewClass  # type: ignore[import]
+            from crewai import Process  # type: ignore[import]
+            from crewai import Task as CrewTask  # type: ignore[import]
+        except ImportError as exc:  # pragma: no cover - optional dependency
+            raise AdapterExceptions.AdapterInitializationError(
+                "CrewAI package is required for CrewAIAdapter but is not installed."
+            ) from exc
+
+        return CrewAIDependencies(
+            agent_cls=CrewAgent,
+            crew_cls=CrewClass,
+            process_enum=Process,
+            task_cls=CrewTask,
+        )
+
+    def _load_ollama_client(self) -> Any:
+        """Import the LangChain Ollama client lazily."""
+        try:
+            from langchain_community.llms import Ollama  # type: ignore[import]
+        except ImportError as exc:  # pragma: no cover - optional dependency
+            raise AdapterExceptions.AdapterInitializationError(
+                "LangChain community Ollama client is required but missing."
+            ) from exc
+
+        return Ollama
+
 
 class CrewAIDocAgent(CrewAIAdapter):
-    """Specialized CrewAI adapter for documentation generation"""
+    """Specialised CrewAI adapter for documentation generation."""
 
     def __init__(self):
         config = AgentConfig(
@@ -381,7 +474,7 @@ class CrewAIDocAgent(CrewAIAdapter):
 
 
 class CrewAITestAgent(CrewAIAdapter):
-    """Specialized CrewAI adapter for test generation"""
+    """Specialised CrewAI adapter for test generation."""
 
     def __init__(self):
         config = AgentConfig(
