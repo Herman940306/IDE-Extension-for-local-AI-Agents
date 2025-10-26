@@ -42,9 +42,7 @@ class ContextEngine:
 
         # Load existing cache
         self._load_cache()
-        logger.info(
-            "Context Engine initialized with %d cached embeddings", len(self.embed_db)
-        )
+        logger.info("Context Engine initialized with %d cached embeddings", len(self.embed_db))
 
     def _load_cache(self):
         """Load embeddings from cache file."""
@@ -235,9 +233,7 @@ class ContextEngine:
 
         # Return top_k results
         results = scored[:top_k]
-        logger.info(
-            "Retrieved %d similar contexts for query (top_k=%d)", len(results), top_k
-        )
+        logger.info("Retrieved %d similar contexts for query (top_k=%d)", len(results), top_k)
         return results
 
     async def get_context_snippets(self, query: str, top_k: int = 3) -> List[str]:

@@ -32,7 +32,7 @@ class ModelRole(str, Enum):
 
 
 class ModelConfig:
-    """Configuration for a specific model"""
+    """Configuration for a specific model with automatic fallbacks"""
 
     def __init__(
         self,
@@ -44,10 +44,12 @@ class ModelConfig:
         temperature: float = 0.7,
         max_tokens: int = 2000,
         description: str = "",
+        fallback_models: List[str] = None,
     ):
         self.name = name
         self.role = role
         self.keep_alive = keep_alive
+        self.fallback_models = fallback_models or []
         self.force_cpu = force_cpu
         self.timeout = timeout
         self.temperature = temperature
@@ -57,180 +59,203 @@ class ModelConfig:
 
 class MultiModelRouter:
     """
-    Routes tasks to appropriate models based on task type, complexity, and resource availability.
+    Routes tasks to appropriate models with automatic fallback.
 
-    Model Assignment Strategy:
-    - 🧠 System 1 (Fast): Qwen3:8B - Top-tier reasoning & coding speed
-    - ⚙️ Task Router: Qwen3:4B - Light classification logic
-    - 💻 Code Engine: CodeLlama:7B - Reliable code generation
-    - 🧩 System 2 Verifier: DeepSeek-R1:8B - Analytical validation
-    - 🧩 Fallback: CodeLlama:13B-Instruct-Q4_0 - CPU-safe deep reasoning
-    - 💬 UX Premium: Gemma3:12B - Quality conversational responses
-    - 💬 UX Light: Gemma3:4B - Quick help prompts
-    - 🔍 Embeddings: Nomic-Embed-Text - Semantic search
-    - 🛡 Safety: Phi3:mini/medium - Content moderation
-    - 🧠 Legacy: LLaMA 3.2:3B - Emergency fallback
+    Optimized for 1080 Ti (11GB VRAM) + 16GB RAM configuration.
     """
 
-    def __init__(self):
-        """Initialize the multi-model router with optimized model configurations."""
+    def __init__(self, show_model_names: bool = False):
+        """
+        Initialize the multi-model router.
+
+        Args:
+            show_model_names: If True, log model routing details (default: False)
+        """
         self.models = self._initialize_models()
         self.task_to_role_map = self._build_task_routing_map()
+        self.show_model_names = show_model_names
         logger.info("Multi-Model Router initialized with 10 specialized models")
 
     def _initialize_models(self) -> Dict[ModelRole, ModelConfig]:
-        """Initialize all model configurations."""
+        """
+        Initialize model configurations optimized for 1080 Ti (11GB VRAM) + 16GB RAM.
+
+        Strategy:
+        - Primary models: Q4 quantization for GPU (qwen3:8b, codellama:7b)
+        - Fallbacks: Automatic model selection if primary unavailable
+        - Resource management: <10GB VRAM, ~12-13GB RAM total
+        """
         return {
             # 🧠 System 1 - Fast Reasoner (Primary Intelligence)
             ModelRole.SYSTEM1_FAST: ModelConfig(
-                name="qwen3:8b",
+                name="qwen3:8b-q4_K_M",  # Primary (GPU, Q4)
+                fallback_models=["llama3.2:3b", "phi3:mini"],  # Auto-fallback
                 role=ModelRole.SYSTEM1_FAST,
-                keep_alive="30m",  # Keep resident for interactive use
+                keep_alive="30m",
                 force_cpu=False,
                 timeout=30.0,
                 temperature=0.7,
-                max_tokens=2000,
-                description="Top-tier reasoning & coding speed, modern tokenization",
+                max_tokens=600,
+                description="Fast reasoning",
             ),
             # ⚙️ Task Router - Light Classification
             ModelRole.TASK_ROUTER: ModelConfig(
-                name="qwen3:4b",
+                name="gemma3:4b",  # Primary (GPU, FP16)
+                fallback_models=["phi3:mini", "llama3.2:3b"],
                 role=ModelRole.TASK_ROUTER,
                 keep_alive="15m",
                 force_cpu=False,
                 timeout=15.0,
-                temperature=0.3,  # Low temp for consistent classification
+                temperature=0.3,
                 max_tokens=500,
-                description="Fast logic classifier for task routing",
+                description="Task classification",
             ),
             # 💻 Code Engine - Specialized Code Generation
             ModelRole.CODE_ENGINE: ModelConfig(
-                name="codellama:7b",
+                name="codellama:7b-q4_K_M",  # Primary (GPU, Q4)
+                fallback_models=["mistral:7b", "llama3.2:3b"],
                 role=ModelRole.CODE_ENGINE,
                 keep_alive="20m",
                 force_cpu=False,
                 timeout=45.0,
-                temperature=0.2,  # Low temp for deterministic code
+                temperature=0.2,
                 max_tokens=4000,
-                description="Reliable code generation with stable token handling",
+                description="Code generation",
             ),
             # 🧩 System 2 - Deep Verifier
             ModelRole.SYSTEM2_VERIFY: ModelConfig(
-                name="deepseek-r1:8b",
+                name="deepseek-r1:8b-q4_K_M",  # Primary (CPU fallback, Q4)
+                fallback_models=["mistral:7b", "llama3.2:3b"],
                 role=ModelRole.SYSTEM2_VERIFY,
                 keep_alive="10m",
-                force_cpu=False,
+                force_cpu=False,  # Try GPU first, CPU if needed
                 timeout=60.0,
                 temperature=0.5,
                 max_tokens=3000,
-                description="Analytical thinker for logic validation and error tracing",
+                description="Logic verification",
             ),
-            # 🧩 Fallback Reasoner - CPU-Safe Deep Reasoning
+            # 🧩 Fallback Reasoner - General Purpose
             ModelRole.FALLBACK: ModelConfig(
-                name="codellama:13b-instruct-q4_0",
+                name="mistral:7b",  # Available fallback
+                fallback_models=["llama3.2:3b", "phi3:mini"],
                 role=ModelRole.FALLBACK,
-                keep_alive="0",  # Load on demand
-                force_cpu=True,  # CPU-safe for resource constraints
-                timeout=90.0,
+                keep_alive="10m",
+                force_cpu=False,
+                timeout=45.0,
                 temperature=0.7,
-                max_tokens=3000,
-                description="CPU-safe fallback for deep reasoning when GPU saturated",
+                max_tokens=2000,
+                description="General fallback",
             ),
             # 💬 UX Premium - High-Quality Conversational
             ModelRole.UX_PREMIUM: ModelConfig(
-                name="gemma3:12b",
+                name="gemma3:4b",  # Primary (GPU, FP16)
+                fallback_models=["phi3:mini", "llama3.2:3b"],
                 role=ModelRole.UX_PREMIUM,
-                keep_alive="10m",
+                keep_alive="15m",
                 force_cpu=False,
-                timeout=40.0,
-                temperature=0.8,  # Higher temp for warmth
-                max_tokens=2000,
-                description="Premium-quality tone and phrasing for warmth and humanity",
+                timeout=30.0,
+                temperature=0.8,
+                max_tokens=800,
+                description="Conversational",
             ),
             # 💬 UX Light - Quick Help
             ModelRole.UX_LIGHT: ModelConfig(
-                name="gemma3:4b",
+                name="phi3:mini",  # Primary (CPU, FP16)
+                fallback_models=["llama3.2:3b"],
                 role=ModelRole.UX_LIGHT,
                 keep_alive="15m",
-                force_cpu=True,  # CPU-friendly
+                force_cpu=True,
                 timeout=20.0,
                 temperature=0.7,
-                max_tokens=1000,
-                description="Quick help prompts and doc explanations",
+                max_tokens=800,
+                description="Quick help",
             ),
             # 🔍 Embeddings - Context Memory
             ModelRole.EMBEDDINGS: ModelConfig(
-                name="nomic-embed-text",
+                name="nomic-embed-text",  # Primary (CPU, FP16)
+                fallback_models=[],  # No fallback for embeddings
                 role=ModelRole.EMBEDDINGS,
                 keep_alive="30m",
                 force_cpu=True,
                 timeout=10.0,
-                temperature=0.0,  # Not applicable for embeddings
-                max_tokens=0,  # Not applicable
-                description="Excellent embeddings for semantic search",
+                temperature=0.0,
+                max_tokens=0,
+                description="Semantic search",
             ),
             # 🛡 Safety Layer - Content Moderation
             ModelRole.SAFETY: ModelConfig(
-                name="phi3:mini",
+                name="phi3:mini",  # Primary (CPU, FP16)
+                fallback_models=["llama3.2:3b"],
                 role=ModelRole.SAFETY,
-                keep_alive="-1",  # Always resident
+                keep_alive="-1",
                 force_cpu=True,
                 timeout=15.0,
-                temperature=0.1,  # Very low for consistent safety
+                temperature=0.1,
                 max_tokens=500,
-                description="Reliable open moderation for code and NL responses",
+                description="Content moderation",
             ),
             # 🧠 Legacy Fallback - Emergency Only
             ModelRole.LEGACY: ModelConfig(
-                name="llama3.2:3b",
+                name="llama3.2:3b",  # Primary (available)
+                fallback_models=["phi3:mini"],
                 role=ModelRole.LEGACY,
-                keep_alive="5m",
+                keep_alive="10m",
                 force_cpu=True,
                 timeout=20.0,
                 temperature=0.7,
-                max_tokens=1500,
-                description="Emergency local fallback for resource-limited scenarios",
+                max_tokens=1000,
+                description="Emergency fallback",
             ),
         }
 
     def _build_task_routing_map(self) -> Dict[TaskType, List[ModelRole]]:
         """
-        Build task-to-model routing map.
+        Build task-to-model routing map with focus-based model selection.
+
+        FOCUS MODES:
+        - CODE FOCUS (code_gen, bug_fix, refactor): CodeLlama -> Fast, precise code output
+        - DEBUG FOCUS (bug_fix): CodeLlama -> Technical bug analysis
+        - DOCUMENTATION FOCUS (documentation): CodeLlama -> Concise code explanations
+        - TEST FOCUS (test_generation): Qwen3:8B -> Comprehensive test coverage
+        - CHAT MODE (general): Qwen3:8B/Gemma3 -> Conversational, contextual responses
+
         Returns list of models in priority order (primary, fallback1, fallback2).
         """
         return {
-            # Code-related tasks -> Code Engine (primary), System 1 (fallback)
+            # CODE FOCUS: CodeLlama for focused code generation
             TaskType.CODE_GENERATION: [
-                ModelRole.CODE_ENGINE,
+                ModelRole.CODE_ENGINE,  # Primary: Direct code output
                 ModelRole.SYSTEM1_FAST,
                 ModelRole.FALLBACK,
             ],
+            # DEBUG FOCUS: CodeLlama for technical debugging
             TaskType.BUG_FIX: [
-                ModelRole.CODE_ENGINE,
+                ModelRole.CODE_ENGINE,  # Primary: Bug identification + fix
                 ModelRole.SYSTEM1_FAST,
                 ModelRole.FALLBACK,
             ],
+            # REFACTOR FOCUS: CodeLlama for code optimization
             TaskType.REFACTOR: [
-                ModelRole.CODE_ENGINE,
+                ModelRole.CODE_ENGINE,  # Primary: Technical improvements
                 ModelRole.SYSTEM1_FAST,
                 ModelRole.FALLBACK,
             ],
-            # Testing -> System 1 (primary), Code Engine (assist)
+            # TEST FOCUS: Qwen3 for comprehensive test design
             TaskType.TEST_GENERATION: [
-                ModelRole.SYSTEM1_FAST,
+                ModelRole.SYSTEM1_FAST,  # Primary: Smart test coverage
                 ModelRole.CODE_ENGINE,
                 ModelRole.FALLBACK,
             ],
-            # Documentation -> UX Premium (primary), UX Light (fallback)
+            # DOCUMENTATION FOCUS: CodeLlama for concise code explanation
             TaskType.DOCUMENTATION: [
-                ModelRole.UX_PREMIUM,
-                ModelRole.UX_LIGHT,
+                ModelRole.CODE_ENGINE,  # Primary: Technical, focused explanations
                 ModelRole.SYSTEM1_FAST,
+                ModelRole.UX_LIGHT,  # Fallback to light UX, not premium
             ],
-            # General tasks -> System 1 (primary)
+            # CHAT MODE: Conversational models for general discussion
             TaskType.GENERAL: [
-                ModelRole.SYSTEM1_FAST,
-                ModelRole.UX_PREMIUM,
+                ModelRole.SYSTEM1_FAST,  # Primary: Context-aware responses
+                ModelRole.UX_PREMIUM,  # Secondary: Friendly, detailed conversation
                 ModelRole.LEGACY,
             ],
         }
@@ -268,9 +293,11 @@ class MultiModelRouter:
             selected_role = role_priority[0]
 
         model_config = self.models[selected_role]
-        logger.info(
-            f"Routed {task_type.value} task (complexity: {complexity}) to {model_config.name}"
-        )
+
+        # Only log routing info if enabled (default: hidden for clean UX)
+        if self.show_model_names:
+            logger.info(f"Routed {task_type.value} task to {model_config.name}")
+
         return model_config
 
     def get_verifier_model(self) -> ModelConfig:

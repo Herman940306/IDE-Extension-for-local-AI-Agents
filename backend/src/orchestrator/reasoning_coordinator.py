@@ -127,9 +127,7 @@ class ReasoningCoordinator:
 
         try:
             # Analyze task
-            task_analysis = self.task_router.analyze_task(
-                description, code_context, language
-            )
+            task_analysis = self.task_router.analyze_task(description, code_context, language)
 
             complexity = task_analysis["complexity"]
             intent = task_analysis["intent"]
@@ -144,9 +142,7 @@ class ReasoningCoordinator:
             # Determine processing strategy
             strategy = self._determine_strategy(mode, complexity, task_analysis)
 
-            logger.info(
-                f"Strategy: {strategy}, complexity={complexity:.2f}, intent={intent}"
-            )
+            logger.info(f"Strategy: {strategy}, complexity={complexity:.2f}, intent={intent}")
 
             # Execute based on strategy
             if strategy == ProcessingMode.SYSTEM1_ONLY:
@@ -194,9 +190,7 @@ class ReasoningCoordinator:
             # Update meta-controller
             self._update_performance_metrics(result)
 
-            logger.info(
-                f"Request completed: {total_latency:.0f}ms, strategy={strategy.value}"
-            )
+            logger.info(f"Request completed: {total_latency:.0f}ms, strategy={strategy.value}")
 
             return result
 
@@ -308,9 +302,7 @@ class ReasoningCoordinator:
 
             try:
                 # Check LRU cache first
-                cache_key = self._make_verify_cache_key(
-                    self.verifier.model, verification_request
-                )
+                cache_key = self._make_verify_cache_key(self.verifier.model, verification_request)
                 cached = self._verify_cache_get(cache_key)
                 if cached:
                     logger.info("Using cached System 2/advanced verification result")
@@ -592,20 +584,14 @@ class ReasoningCoordinator:
     def get_stats(self) -> Dict[str, Any]:
         """Get coordinator statistics"""
         system1_rate = (
-            self.system1_only_count / self.total_requests
-            if self.total_requests > 0
-            else 0
+            self.system1_only_count / self.total_requests if self.total_requests > 0 else 0
         )
 
         dual_process_rate = (
-            self.dual_process_count / self.total_requests
-            if self.total_requests > 0
-            else 0
+            self.dual_process_count / self.total_requests if self.total_requests > 0 else 0
         )
 
-        escalation_rate = (
-            self.escalations / self.total_requests if self.total_requests > 0 else 0
-        )
+        escalation_rate = self.escalations / self.total_requests if self.total_requests > 0 else 0
 
         return {
             "total_requests": self.total_requests,

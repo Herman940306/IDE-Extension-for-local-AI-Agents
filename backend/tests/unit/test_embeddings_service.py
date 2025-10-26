@@ -27,13 +27,8 @@ class TestEmbeddingsService:
     def test_initialization(self, embeddings_service, embeddings_config):
         """Test service initializes with correct configuration"""
         assert embeddings_service.model_name == embeddings_config["model_name"]
-        assert (
-            embeddings_service.chroma_persist_dir
-            == embeddings_config["chroma_persist_dir"]
-        )
-        assert (
-            embeddings_service.collection_name == embeddings_config["collection_name"]
-        )
+        assert embeddings_service.chroma_persist_dir == embeddings_config["chroma_persist_dir"]
+        assert embeddings_service.collection_name == embeddings_config["collection_name"]
         assert embeddings_service.is_initialized is False
         assert embeddings_service.model is None
 
@@ -440,9 +435,7 @@ class TestStatistics:
 
     def test_get_stats_initialized(self):
         """Test stats when initialized"""
-        service = EmbeddingsService(
-            model_name="test-model", collection_name="test-collection"
-        )
+        service = EmbeddingsService(model_name="test-model", collection_name="test-collection")
         service.is_initialized = True
         service.collection = MagicMock()
         service.collection.count.return_value = 42
@@ -484,9 +477,7 @@ class TestOllamaProvider:
         mock_chroma = MagicMock()
         mock_collection = MagicMock()
 
-        with patch(
-            "src.services.embeddings_service.chromadb.Client", return_value=mock_chroma
-        ):
+        with patch("src.services.embeddings_service.chromadb.Client", return_value=mock_chroma):
             mock_chroma.get_or_create_collection.return_value = mock_collection
             await ollama_service.initialize()
 
@@ -502,9 +493,7 @@ class TestOllamaProvider:
         mock_response.json.return_value = {"embedding": [0.1, 0.2, 0.3]}
 
         with patch("httpx.AsyncClient") as mock_client:
-            mock_client.return_value.__aenter__.return_value.post.return_value = (
-                mock_response
-            )
+            mock_client.return_value.__aenter__.return_value.post.return_value = mock_response
 
             result = await ollama_service.embed_code("def test(): pass")
 

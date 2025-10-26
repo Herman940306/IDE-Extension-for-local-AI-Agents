@@ -165,8 +165,7 @@ class MetricsService:
             weighted_latency = 0.0
             if total_calls > 0:
                 weighted_latency = (
-                    sum(m["avg_latency"] * m["calls"] for m in self.metrics.values())
-                    / total_calls
+                    sum(m["avg_latency"] * m["calls"] for m in self.metrics.values()) / total_calls
                 )
 
             # Identify problematic models

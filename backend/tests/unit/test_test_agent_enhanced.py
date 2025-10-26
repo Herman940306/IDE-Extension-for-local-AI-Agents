@@ -187,9 +187,7 @@ class TestTestGeneration:
     @pytest.mark.asyncio
     async def test_generate_edge_case_tests_success(self, test_agent, mock_llm_manager):
         """Test successful edge case test generation"""
-        mock_llm_manager.generate.return_value = (
-            "def test_edge(): assert add(0, 0) == 0"
-        )
+        mock_llm_manager.generate.return_value = "def test_edge(): assert add(0, 0) == 0"
 
         suggestion = await test_agent._generate_edge_case_tests(
             "def add(a, b): return a + b", "python", "pytest"
@@ -213,9 +211,7 @@ class TestTestGeneration:
         assert suggestion is None
 
     @pytest.mark.asyncio
-    async def test_generate_integration_tests_success(
-        self, test_agent, mock_llm_manager
-    ):
+    async def test_generate_integration_tests_success(self, test_agent, mock_llm_manager):
         """Test successful integration test generation"""
         mock_llm_manager.generate.return_value = "def test_api(): pass"
 
@@ -230,9 +226,7 @@ class TestTestGeneration:
         assert suggestion.id.startswith("test_integration_")
 
     @pytest.mark.asyncio
-    async def test_generate_integration_tests_failure(
-        self, test_agent, mock_llm_manager
-    ):
+    async def test_generate_integration_tests_failure(self, test_agent, mock_llm_manager):
         """Test integration test generation failure"""
         mock_llm_manager.generate.side_effect = Exception("LLM error")
 

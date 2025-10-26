@@ -25,17 +25,19 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 	PATH="/home/auraai/.local/bin:$PATH"
 
 RUN apt-get update \
-	&& apt-get install -y --no-install-recommends git \
+	&& apt-get install -y --no-install-recommends git curl \
 	&& rm -rf /var/lib/apt/lists/*
 
 RUN adduser --disabled-password --gecos "" auraai \
-	&& mkdir -p /var/lib/auraia /var/log/auraia \
+	&& mkdir -p /var/lib/auraia /var/log/auraia /app/data /app/logs /app/cache \
 	&& chown -R auraai:auraai /var/lib/auraia /var/log/auraia
 
 WORKDIR /app
 
 COPY --from=builder /app /app
 COPY --from=builder /root/.local /home/auraai/.local
+
+RUN chown -R auraai:auraai /app
 
 USER auraai
 

@@ -10,8 +10,9 @@ from __future__ import annotations
 import asyncio
 import textwrap
 import time
-from typing import Optional
+from typing import Any, Dict, List, Optional, cast
 
+from src.config.settings import get_settings
 from src.models.response import AgentResponse, ConfidenceLevel, Suggestion
 from src.models.session import (
     AgentRunResult,
@@ -23,6 +24,8 @@ from src.models.session import (
 from src.models.task import TaskType
 from src.orchestrator.multi_model_router import MultiModelRouter
 from src.services.connection_manager import logger as ws_logger
+
+settings = get_settings()
 
 
 class SimpleReasonerEngine:
@@ -44,7 +47,9 @@ class SimpleReasonerEngine:
             router: Multi-Model Router for intelligent model selection
         """
         self.llm_manager = llm_manager
-        self.router = router or MultiModelRouter()
+        self.router = router or MultiModelRouter(
+            show_model_names=settings.show_model_names_in_responses
+        )
 
     async def generate(self, request: TaskRequestPayload) -> AgentResponse:
         """Generate a response using the optimal model for the task."""
@@ -54,10 +59,14 @@ class SimpleReasonerEngine:
         # If we have LLM manager, use router to select best model
         if self.llm_manager:
             try:
-                return await self._generate_with_router(request, description, content)
-            except Exception as e:
+                return await self._generate_with_router(
+                    request, description, content
+                )  # noqa: BLE001
+            except Exception as e:  # noqa: BLE001
                 ws_logger.warning(
-                    f"Multi-model generation failed, using fallback: {e}", exc_info=True
+                    "Multi-model generation failed, using fallback: %s",
+                    e,
+                    exc_info=True,
                 )
                 # Fall through to deterministic fallback
 
@@ -75,12 +84,14 @@ class SimpleReasonerEngine:
             complexity="medium",  # Could be auto-detected
         )
 
-        # Build prompts based on task type
-        system_prompt = self._build_system_prompt(request.type)
+        # Build prompts based on task type (with adaptive personality for chat)
+        system_prompt = self._build_system_prompt(request.type, description, content)
         user_prompt = self._build_user_prompt(description, content, request.type)
 
         # Call LLM with model-specific parameters
-        response_text = await self.llm_manager.generate(
+        llm = self.llm_manager
+        assert llm is not None
+        response_text = await llm.generate(
             prompt=user_prompt,
             system_prompt=system_prompt,
             model=model_config.name,  # Use router-selected model
@@ -92,16 +103,24 @@ class SimpleReasonerEngine:
         suggestion = Suggestion(
             id=f"{request.id}-suggestion",
             code=response_text.strip(),
-            description=f"AI-generated solution using {model_config.name}",
+            description=(
+                "AI-generated solution"
+                if settings.clean_user_experience
+                else f"AI-generated solution using {model_config.name}"
+            ),
             confidence=ConfidenceLevel.HIGH,
             diff=None,  # Could be generated later
             applicable_range=None,  # Could be calculated from request context
         )
 
-        reasoning = (
-            f"Routed to {model_config.name} ({model_config.description}) "
-            f"for {request.type.value} task: {description}"
-        )
+        # Build reasoning (hide model details if clean UX enabled)
+        if settings.clean_user_experience:
+            reasoning = f"Generated {request.type.value} solution: {description}"
+        else:
+            reasoning = (
+                f"Routed to {model_config.name} ({model_config.description}) "
+                f"for {request.type.value} task: {description}"
+            )
 
         return AgentResponse(
             agent_id=self.AGENT_ID,
@@ -117,23 +136,394 @@ class SimpleReasonerEngine:
             },
         )
 
-    def _build_system_prompt(self, task_type: TaskType) -> str:
-        """Build system prompt based on task type."""
-        prompts = {
-            TaskType.CODE_GENERATION: "You are an expert programmer. Generate clean, well-documented code based on the user's requirements.",  # noqa: E501
-            TaskType.BUG_FIX: "You are a debugging expert. Analyze the code and provide a fixed version with explanations.",  # noqa: E501
-            TaskType.REFACTOR: "You are a code quality expert. Refactor the code to improve readability, maintainability, and performance.",  # noqa: E501
-            TaskType.TEST_GENERATION: "You are a testing expert. Generate comprehensive unit tests for the provided code.",  # noqa: E501
-            TaskType.DOCUMENTATION: "You are a technical writer. Generate clear, comprehensive documentation.",  # noqa: E501
+    def _detect_user_mood(self, description: str, content: str) -> dict:
+        """
+        Detect user's emotional state from language patterns.
+
+        Returns dict with:
+        - mood: frustrated/stressed/happy/neutral/excited
+        - intensity: 1-10 (how strong the emotion is)
+        - needs_support: bool (requires empathetic response)
+        """
+        user_text = f"{description} {content}".strip().lower()
+
+        # Frustration indicators
+        frustrated_markers = [
+            "doesn't work",
+            "not working",
+            "broken",
+            "fails",
+            "error",
+            "wrong",
+            "stuck",
+            "help!",
+            "frustrated",
+            "wtf",
+            "damn",
+            "ugh",
+            "argh",
+            "why won't",
+            "keeps failing",
+            "still not",
+            "tried everything",
+        ]
+
+        # Stress indicators
+        stressed_markers = [
+            "urgent",
+            "asap",
+            "deadline",
+            "quickly",
+            "hurry",
+            "rush",
+            "critical",
+            "important",
+            "need this now",
+            "running out of time",
+        ]
+
+        # Happy/positive indicators
+        happy_markers = [
+            "thanks",
+            "thank you",
+            "awesome",
+            "great",
+            "love",
+            "perfect",
+            "amazing",
+            "excellent",
+            "appreciate",
+            "helpful",
+            "cool",
+            "nice",
+        ]
+
+        # Excited/eager indicators
+        excited_markers = [
+            "excited",
+            "can't wait",
+            "eager",
+            "looking forward",
+            "awesome",
+            "finally",
+            "yes!",
+            "wow",
+            "fantastic",
+        ]
+
+        # Count emotional markers
+        frustrated_count = sum(1 for m in frustrated_markers if m in user_text)
+        stressed_count = sum(1 for m in stressed_markers if m in user_text)
+        happy_count = sum(1 for m in happy_markers if m in user_text)
+        excited_count = sum(1 for m in excited_markers if m in user_text)
+
+        # Determine primary mood
+        if frustrated_count > 0:
+            mood = "frustrated"
+            intensity = min(10, frustrated_count * 3)
+            needs_support = True
+        elif stressed_count > 0:
+            mood = "stressed"
+            intensity = min(10, stressed_count * 3)
+            needs_support = True
+        elif happy_count > 0:
+            mood = "happy"
+            intensity = min(10, happy_count * 2)
+            needs_support = False
+        elif excited_count > 0:
+            mood = "excited"
+            intensity = min(10, excited_count * 2)
+            needs_support = False
+        else:
+            mood = "neutral"
+            intensity = 5
+            needs_support = False
+
+        return {
+            "mood": mood,
+            "intensity": intensity,
+            "needs_support": needs_support,
         }
-        return prompts.get(
-            task_type,
-            "You are a helpful AI assistant. Provide a clear and helpful response.",
+
+    def _analyze_user_style(self, description: str, content: str) -> dict:
+        """
+        Analyze user's communication style to adapt response personality.
+
+        Returns dict with style metrics (1-10 scale):
+        - brevity: How concise the user is
+        - formality: Professional vs casual tone
+        - detail_level: Depth of explanation needed
+        - mood: User's emotional state
+        - needs_support: Requires empathetic response
+        """
+        user_text = f"{description} {content}".strip()
+        word_count = len(user_text.split())
+
+        # Brevity: Shorter prompts = concise responses
+        brevity = 10 if word_count < 10 else (7 if word_count < 30 else 4)
+
+        # Formality: Check for casual markers
+        casual_markers = ["hi", "hey", "yo", "what's", "gonna", "wanna", "lol"]
+        formal_markers = ["please", "kindly", "could you", "would you", "regarding"]
+
+        casual_count = sum(1 for marker in casual_markers if marker in user_text.lower())
+        formal_count = sum(1 for marker in formal_markers if marker in user_text.lower())
+
+        if formal_count > casual_count:
+            formality = 8  # Professional
+        elif casual_count > 0:
+            formality = 3  # Casual
+        else:
+            formality = 5  # Neutral
+
+        # Detail level: More content = detailed response expected
+        detail_level = 3 if word_count < 10 else (6 if word_count < 50 else 8)
+
+        # Emoji preference cues
+        contains_emoji = any(ch in user_text for ch in "😀😁😂🤣😊😍🙌👍🔥✨🥲😅😉🤔🙏🎉🚀💡")
+        explicit_no_emoji = "no emoji" in user_text.lower() or "no emojis" in user_text.lower()
+        exclamations = user_text.count("!")
+
+        # Mood detection
+        mood_info = self._detect_user_mood(description, content)
+
+        return {
+            "brevity": brevity,
+            "formality": formality,
+            "detail_level": detail_level,
+            "mood": mood_info["mood"],
+            "mood_intensity": mood_info["intensity"],
+            "needs_support": mood_info["needs_support"],
+            "contains_emoji": contains_emoji,
+            "explicit_no_emoji": explicit_no_emoji,
+            "exclamations": exclamations,
+        }
+
+    def _emoji_policy(self, user_style: dict) -> dict:
+        """
+        Decide whether and how many emojis to use, based on settings and user style.
+
+        Returns:
+            {
+              "allow": bool,
+              "max": int,
+              "tone": "minimal"|"balanced"|"rich",
+            }
+        """
+        allow = getattr(settings, "emoji_enabled_default", True)
+        if user_style.get("explicit_no_emoji", False):
+            allow = False
+
+        # Reduce emoji usage in formal contexts
+        formality = user_style.get("formality", 5)
+        mood = user_style.get("mood", "neutral")
+        intensity = int(user_style.get("mood_intensity", 5))
+        has_user_emoji = user_style.get("contains_emoji", False)
+
+        style_pref = getattr(settings, "emoji_style_default", "auto")
+        base_max = int(getattr(settings, "emoji_max_per_response", 3))
+
+        # Compute max count
+        if not allow:
+            max_count = 0
+        else:
+            if style_pref == "minimal" or formality >= 7:
+                max_count = 0 if formality >= 8 else 1
+            elif style_pref == "rich" or (has_user_emoji and formality <= 4):
+                max_count = min(base_max + 1, 5)
+            else:
+                # auto: adapt to mood
+                if mood in ("happy", "excited"):
+                    max_count = min(base_max, 3)
+                elif mood in ("frustrated", "stressed"):
+                    # Keep gentle, avoid excess
+                    max_count = 1 if intensity >= 7 else 0
+                else:
+                    max_count = min(base_max, 2)
+
+        tone = "minimal" if max_count == 0 else ("balanced" if max_count <= 2 else "rich")
+
+        return {"allow": allow, "max": max_count, "tone": tone}
+
+    def _build_adaptive_chat_prompt(self, user_style: dict) -> str:
+        """
+        Build chat mode prompt with adaptive personality.
+
+        Base Personality Traits (1-10 scale):
+        - Warmth: 8 (empathetic, supportive)
+        - Clarity: 9 (concise, structured)
+        - Wit: 5 (light, situational)
+        - Humor: 3 (gentle, non-sarcastic)
+        - Humility: 7 (own mistakes, offer corrections)
+        - Patience: 8 (pace with the user)
+        - Encouragement: 8 (cheer progress, reduce friction)
+        - Proactivity: 7 (offer next steps)
+        - Collaboration: 9 (pair-programmer energy)
+
+        Adapts to user style:
+        - Short prompts → Brief, punchy responses
+        - Detailed prompts → Thorough explanations
+        - Casual tone → Relaxed, friendly
+        - Formal tone → Professional, precise
+        - Frustrated → Supportive, solution-focused
+        - Stressed → Calm, efficient
+        - Happy → Enthusiastic, engaging
+        """
+        brevity = user_style["brevity"]
+        formality = user_style["formality"]
+        detail_level = user_style["detail_level"]
+        mood = user_style.get("mood", "neutral")
+        # Whether user needs extra support is reflected in mood instruction
+        # (value not directly used here to avoid verbosity)
+        _ = user_style.get("needs_support", False)
+        emoji_cfg = self._emoji_policy(user_style)
+
+        # Build adaptive personality instructions
+        tone = (
+            "professional and precise"
+            if formality > 6
+            else ("friendly and relaxed" if formality < 4 else "balanced and conversational")
         )
 
-    def _build_user_prompt(
-        self, description: str, content: str, task_type: TaskType
+        length = (
+            "1-2 sentences"
+            if brevity > 7
+            else ("2-4 sentences" if detail_level < 5 else "3-5 sentences with details")
+        )
+
+        wit_level = "clever when appropriate" if brevity < 7 else "straightforward"
+
+        # Mood-based response adjustment
+        mood_guidance = {
+            "frustrated": (
+                "The user seems frustrated. Be EXTRA supportive and patient. "
+                "Acknowledge their struggle: 'I can see this is tricky.' "
+                "Focus on clear solutions. Offer to break down complex steps. "
+                "Stay encouraging: 'Let's tackle this together.'"
+            ),
+            "stressed": (
+                "The user seems stressed or under pressure. Be CALM and efficient. "
+                "Get straight to the solution without extra fluff. "
+                "Reassure them: 'I'll help you fix this quickly.' "
+                "Prioritize actionable steps."
+            ),
+            "happy": (
+                "The user seems happy or satisfied! Match their positive energy. "
+                "Be enthusiastic and engaging. Use upbeat language. "
+                "Celebrate their success: 'Nice! That's great progress!'"
+            ),
+            "excited": (
+                "The user seems excited! Match their enthusiasm. "
+                "Be energetic and encouraging. "
+                "Build on their momentum: 'Yes! Let's make this awesome!'"
+            ),
+            "neutral": "",
+        }
+
+        mood_instruction = mood_guidance.get(mood, "")
+
+        # Omni persona activation
+        omni_active = getattr(settings, "enable_omni_persona", True)
+        persona_name = "AuraIA OmniDev" if omni_active else "Assistant"
+
+        # Emoji usage rules
+        if emoji_cfg["allow"] and emoji_cfg["max"] > 0:
+            emoji_rule = (
+                "Emojis allowed as prosody (max "
+                f"{emoji_cfg['max']}). Avoid in code, file paths, URLs. "
+                "Use context-matched emojis: support (🙏), success (🎉), "
+                "momentum (🚀), idea (💡), celebration (✨), calm (🌿)."
+            )
+        else:
+            emoji_rule = "Do not use emojis in this response."
+
+        traits = (
+            "Traits: warm, clear, collaborative, patient, humble, proactive; "
+            "pair-programmer mindset; empower user with small, safe steps."
+        )
+
+        base_instruction = (
+            f"You are {persona_name}, a supportive engineering partner. "
+            f"Be {tone}. Keep responses to {length}. "
+            f"Be {wit_level} and highly responsive. MIRROR the user's style. "
+            f"{traits} {emoji_rule}"
+        )
+
+        if mood_instruction:
+            return f"{base_instruction}\n\nMOOD ADAPTATION: {mood_instruction}"
+        return base_instruction
+
+    def _build_system_prompt(
+        self, task_type: TaskType, description: str = "", content: str = ""
     ) -> str:
+        """Build system prompt with mode-specific focus and adaptive personality."""
+        prompts = {
+            # CODE FOCUS: Output code only, minimal explanation
+            TaskType.CODE_GENERATION: (
+                "You are a code generator. OUTPUT ONLY CODE with "
+                "brief inline comments. "
+                "No explanations, no markdown formatting around code blocks. "
+                "Be direct and implementation-focused."
+            ),
+            # DEBUG FOCUS: Show bug + fix, no theory
+            TaskType.BUG_FIX: (
+                "You are a debugger. FORMAT: 1) Identify the bug in 1 sentence. "
+                "2) Provide fixed code. 3) Add 1 sentence why the fix works. "
+                "Stay technical and focused."
+            ),
+            # REFACTOR FOCUS: Before/After comparison
+            TaskType.REFACTOR: (
+                "You are a code optimizer. FORMAT: 1) State the issue (1 line). "
+                "2) Show refactored code. 3) List improvements (max 3 bullet points). "
+                "Focus on the technical changes."
+            ),
+            # TEST FOCUS: Generate tests, minimal prose
+            TaskType.TEST_GENERATION: (
+                "You are a test engineer. OUTPUT: Test code with descriptive "
+                "test names. Include edge cases and assertions. "
+                "Keep explanations minimal."
+            ),
+            # DOCUMENTATION FOCUS: Concise technical explanation
+            TaskType.DOCUMENTATION: (
+                "You are a code explainer. FORMAT: 1) What it does (1 sentence). "
+                "2) Key logic (2-3 points). 3) Notable patterns or issues (1 line). "
+                "Stay technical, avoid verbosity."
+            ),
+        }
+
+        # For CHAT/GENERAL mode, use adaptive personality and optional external persona
+        if task_type not in prompts:
+            user_style = self._analyze_user_style(description, content)
+            base_prompt = self._build_adaptive_chat_prompt(user_style)
+
+            # Try to blend with external AuraIA_Persona engine if enabled
+            try:
+                omni_active = getattr(settings, "enable_omni_persona", True)
+                assets_dir = getattr(settings, "persona_assets_dir", None)
+                if omni_active and assets_dir:
+                    # local import; persona assets may be disabled
+                    from src.services import persona_adapter
+
+                    prepared = persona_adapter.prepare_chat_prompts(
+                        user_message=f"{description}\n\n{content}".strip(),
+                        persona_name="AuraIA OmniDev",
+                        sentiment=user_style.get("mood", "neutral"),
+                        empathy=0.7 if user_style.get("needs_support") else 0.4,
+                        archetype_weights=None,
+                    )
+                    persona_prompt = prepared.get("system_prompt", "").strip()
+                    if persona_prompt:
+                        # Merge: persona rules first, then adaptive style constraints
+                        return f"{persona_prompt}\n\n{base_prompt}".strip()
+            except Exception:  # noqa: BLE001
+                # Fallback to internal adaptive prompt only
+                pass
+
+            return base_prompt
+
+        return prompts[task_type]
+
+    def _build_user_prompt(self, description: str, content: str, _task_type: TaskType) -> str:
         """Build user prompt."""
         if content:
             return f"Task: {description}\n\n{content}"
@@ -161,9 +551,10 @@ class SimpleReasonerEngine:
         reasoning = textwrap.dedent(
             f"""
             Primary objective: {description}
-            Suggested adjustment focuses on readability and maintainability while keeping the  # noqa: E501
-            original intent intact. Confidence is derived from static analysis heuristics that  # noqa: E501
-            inspect the supplied code and task type.
+            Suggested adjustment focuses on readability and maintainability
+            while keeping the original intent intact.
+            Confidence is derived from static analysis heuristics that inspect
+            the supplied code and task type.
             """
         ).strip()
 
@@ -183,35 +574,12 @@ class SimpleReasonerEngine:
 
     def _build_code_snippet(self, content: str, task_type: TaskType) -> str:
         if content:
-            # For simple expressions like "1+1", try to evaluate or explain
-            if (
-                task_type == TaskType.CODE_GENERATION
-                and content.strip()
-                and len(content.strip()) < 100
-            ):  # noqa: E501
-                # Try to detect simple math expressions
-                import re
-
-                if re.match(r"^[\d\s+\-*/().]+$", content.strip()):
-                    try:
-                        result = eval(content.strip())
-                        return textwrap.dedent(
-                            f"""
-                            # Math calculation
-                            expression = "{content.strip()}"
-                            result = {result}
-                            print(f"{{expression}} = {{result}}")
-                            """
-                        ).strip()
-                    except Exception:
-                        pass
-
             # Return the improved/analyzed version of the content
             return textwrap.dedent(
                 f"""
                 # Suggested revision generated by Contextual Reasoner
                 # Task type: {task_type.value}
-                
+
 {content}
                 """
             ).strip()
@@ -263,10 +631,8 @@ class SimpleVerifierEngine:
         if self.llm_manager:
             try:
                 return await self._verify_with_llm(request, response)
-            except Exception as e:
-                ws_logger.warning(
-                    f"LLM verification failed, using fallback: {e}", exc_info=True
-                )
+            except Exception as e:  # noqa: BLE001
+                ws_logger.warning("LLM verification failed, using fallback: %s", e, exc_info=True)
                 # Fall through to basic verification
 
         # Fallback to basic verification
@@ -311,7 +677,9 @@ Verify this code and provide analysis.
 """
 
         # Call verifier model
-        verification_result = await self.llm_manager.generate(
+        llm = self.llm_manager
+        assert llm is not None
+        verification_result = await llm.generate(
             prompt=user_prompt.strip(),
             system_prompt=system_prompt,
             model=verifier_config.name,
@@ -338,9 +706,7 @@ Verify this code and provide analysis.
             "uses_llm": True,
         }
 
-        return VerificationSummary(
-            status=status, confidence=confidence, metadata=metadata
-        )
+        return VerificationSummary(status=status, confidence=confidence, metadata=metadata)
 
     async def _verify_fallback(
         self, request: TaskRequestPayload, response: AgentResponse
@@ -359,9 +725,7 @@ Verify this code and provide analysis.
             "uses_llm": False,
         }
 
-        return VerificationSummary(
-            status=status, confidence=confidence, metadata=metadata
-        )
+        return VerificationSummary(status=status, confidence=confidence, metadata=metadata)
 
 
 class TaskOrchestrator:
@@ -452,7 +816,7 @@ class TaskOrchestrator:
             "orchestrator_task_completed",
             extra={
                 "task_id": request.id,
-                "duration_ms": result.metrics["duration_ms"],
+                "duration_ms": round(duration_ms, 2),
                 "verification_status": (
                     verification_summary.status.value
                     if verification_summary
@@ -462,6 +826,29 @@ class TaskOrchestrator:
         )
 
         return result
+
+    # --- Helper proxies for tests (adaptive style/emoji/persona) ---
+    def _analyze_user_style(self, description: str, content: str) -> dict:  # pragma: no cover
+        """Expose reasoner's style analyzer for unit tests."""
+        return self._reasoner._analyze_user_style(  # type: ignore[attr-defined]
+            description, content
+        )
+
+    def _emoji_policy(self, user_style: dict) -> dict:  # pragma: no cover
+        """Expose reasoner's emoji policy for unit tests."""
+        return self._reasoner._emoji_policy(user_style)  # type: ignore[attr-defined]
+
+    def _build_adaptive_chat_prompt(self, user_style: dict) -> str:  # pragma: no cover
+        """Expose reasoner's adaptive chat prompt builder for unit tests."""
+        return self._reasoner._build_adaptive_chat_prompt(user_style)  # type: ignore[attr-defined]
+
+    def _build_system_prompt(  # pragma: no cover
+        self, task_type: TaskType, description: str = "", content: str = ""
+    ) -> str:
+        """Expose reasoner's system prompt generator for unit tests."""
+        return self._reasoner._build_system_prompt(  # type: ignore[attr-defined]
+            task_type, description, content
+        )
 
     async def execute_task(self, request: TaskRequestPayload) -> TaskSessionResult:
         """
@@ -476,11 +863,14 @@ class TaskOrchestrator:
             Complete task result with safety and composition
         """
         start_time = time.perf_counter()
-        pipeline_metadata = {
+        pipeline_metadata: Dict[str, Any] = {
             "stages": [],
             "models_used": [],
             "latencies": {},
         }
+        latencies = cast(Dict[str, float], pipeline_metadata["latencies"])  # type: ignore[index]
+        stages = cast(List[str], pipeline_metadata["stages"])  # type: ignore[index]
+        models_used = cast(List[str], pipeline_metadata["models_used"])  # type: ignore[index]
 
         ws_logger.info(
             "enhanced_task_execution_started",
@@ -498,32 +888,30 @@ class TaskOrchestrator:
                 context_snippets = await self.context_engine.get_context_snippets(
                     request.content, top_k=3
                 )
-                pipeline_metadata["latencies"]["context_retrieval"] = (
-                    time.perf_counter() - t0
-                )
-                pipeline_metadata["stages"].append("context_retrieval")
+                latencies["context_retrieval"] = time.perf_counter() - t0
+                stages.append("context_retrieval")
                 ws_logger.debug("Retrieved %d context snippets", len(context_snippets))
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001
                 ws_logger.warning("Context retrieval failed: %s", e)
 
         # Stage 2: Reasoning (System 1 Fast)
         t0 = time.perf_counter()
         agent_response = await self._reasoner.generate(request)
-        pipeline_metadata["latencies"]["reasoning"] = time.perf_counter() - t0
-        pipeline_metadata["stages"].append("reasoning")
+        latencies["reasoning"] = time.perf_counter() - t0
+        stages.append("reasoning")
 
         # Extract model used from metadata
         if hasattr(agent_response, "metadata") and agent_response.metadata:
             model = agent_response.metadata.get("selected_model", "unknown")
-            pipeline_metadata["models_used"].append(model)
+            models_used.append(model)
 
         # Stage 3: Verification (System 2 Deep)
         verification_summary = None
         if self._verifier:
             t0 = time.perf_counter()
             verification_summary = await self._verifier.verify(request, agent_response)
-            pipeline_metadata["latencies"]["verification"] = time.perf_counter() - t0
-            pipeline_metadata["stages"].append("verification")
+            latencies["verification"] = time.perf_counter() - t0
+            stages.append("verification")
 
         # Stage 4: Safety Check
         safety_result = None
@@ -532,8 +920,8 @@ class TaskOrchestrator:
                 t0 = time.perf_counter()
                 code_text = agent_response.suggestions[0].code
                 safety_result = await self.safety_layer.check_safety(code_text)
-                pipeline_metadata["latencies"]["safety"] = time.perf_counter() - t0
-                pipeline_metadata["stages"].append("safety")
+                latencies["safety"] = time.perf_counter() - t0
+                stages.append("safety")
                 pipeline_metadata["safety_passed"] = safety_result.get("safe", True)
 
                 if not safety_result.get("safe"):
@@ -542,7 +930,7 @@ class TaskOrchestrator:
                         request.id,
                         safety_result.get("reason", "Unknown"),
                     )
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001
                 ws_logger.error("Safety check failed: %s", e)
                 safety_result = {"safe": True, "raw": f"Error: {e}"}
 
@@ -565,31 +953,29 @@ class TaskOrchestrator:
                     safety_result=safety_result,
                 )
                 final_output = composition.get("final_text", system1_text)
-                pipeline_metadata["latencies"]["composition"] = time.perf_counter() - t0
-                pipeline_metadata["stages"].append("composition")
-                pipeline_metadata["models_used"].extend(
-                    composition.get("used_models", [])
-                )
+                latencies["composition"] = time.perf_counter() - t0
+                stages.append("composition")
+                models_used.extend(composition.get("used_models", []))
 
                 # Update the suggestion with composed output
                 if final_output and agent_response.suggestions:
                     agent_response.suggestions[0].code = final_output
 
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001
                 ws_logger.error("Output composition failed: %s", e)
 
         # Stage 6: Metrics Recording
         total_duration = time.perf_counter() - start_time
         if self.metrics_service:
             try:
-                for model in pipeline_metadata["models_used"]:
-                    model_latency = pipeline_metadata["latencies"].get("reasoning", 0.0)
+                for model in models_used:
+                    model_latency = latencies.get("reasoning", 0.0)
                     self.metrics_service.record_call(
                         model=model,
                         latency=model_latency,
                         success=bool(agent_response.suggestions),
                     )
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001
                 ws_logger.error("Metrics recording failed: %s", e)
 
         # Build final result
@@ -633,9 +1019,7 @@ class TaskOrchestrator:
         agent_response: AgentResponse,
         verification_summary: Optional[VerificationSummary],
     ) -> str:
-        primary_suggestion = (
-            agent_response.suggestions[0] if agent_response.suggestions else None
-        )
+        primary_suggestion = agent_response.suggestions[0] if agent_response.suggestions else None
         verification_text = "Verification skipped."
         if verification_summary:
             verification_text = (
@@ -650,8 +1034,7 @@ class TaskOrchestrator:
             )
 
         return (
-            "No actionable suggestions were produced by the orchestrator. "
-            f"{verification_text}"
+            "No actionable suggestions were produced by the orchestrator. " f"{verification_text}"
         )
 
 

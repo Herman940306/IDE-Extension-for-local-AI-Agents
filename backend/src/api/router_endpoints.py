@@ -132,27 +132,17 @@ async def route_task(request: RouteRequest, background_tasks: BackgroundTasks):
                     if agent_resp.metadata
                     else "unknown"
                 )
-                success = (
-                    agent_resp.suggestions is not None
-                    and len(agent_resp.suggestions) > 0
-                )
-                _metrics_service.record_call(
-                    model=model, latency=latency, success=success
-                )
+                success = agent_resp.suggestions is not None and len(agent_resp.suggestions) > 0
+                _metrics_service.record_call(model=model, latency=latency, success=success)
 
         # Check for auto-tune recommendations in background
         if _metrics_service:
-            background_tasks.add_task(
-                _check_autotune_recommendations, request.task_type
-            )
+            background_tasks.add_task(_check_autotune_recommendations, request.task_type)
 
         # Format response
         text = ""
         if result.responses and result.responses[0].response.suggestions:
-            text = (
-                result.responses[0].response.suggestions[0].code
-                or "No response generated"
-            )
+            text = result.responses[0].response.suggestions[0].code or "No response generated"
 
         return RouteResponse(
             text=text,

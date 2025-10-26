@@ -263,14 +263,10 @@ class TestMemoryServiceInitialization:
 
         # Check tables were created
         cursor = service.sqlite_conn.cursor()
-        cursor.execute(
-            "SELECT name FROM sqlite_master WHERE type='table' AND name='sessions'"
-        )
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='sessions'")
         assert cursor.fetchone() is not None
 
-        cursor.execute(
-            "SELECT name FROM sqlite_master WHERE type='table' AND name='messages'"
-        )
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='messages'")
         assert cursor.fetchone() is not None
 
         await service.close()
@@ -485,9 +481,7 @@ class TestMessageStorage:
 
         # Store messages of different types
         for i in range(5):
-            msg_type = (
-                MessageType.USER_QUERY if i % 2 == 0 else MessageType.AGENT_RESPONSE
-            )
+            msg_type = MessageType.USER_QUERY if i % 2 == 0 else MessageType.AGENT_RESPONSE
             message = Message(
                 id=f"filter-msg-{i}",
                 session_id=session_id,
@@ -874,8 +868,7 @@ class TestErrorHandling:
 
         assert len(history) == 2
         assert all(
-            msg.type in [MessageType.USER_QUERY, MessageType.AGENT_RESPONSE]
-            for msg in history
+            msg.type in [MessageType.USER_QUERY, MessageType.AGENT_RESPONSE] for msg in history
         )
 
 

@@ -5,9 +5,11 @@ Project Creator: Herman Swanepoel
 
 import asyncio
 import inspect
+import os
 import time
 import uuid
 from contextlib import asynccontextmanager
+from pathlib import Path
 from typing import Any, Awaitable, Dict, Optional, cast
 
 from celery.result import AsyncResult  # type: ignore
@@ -22,24 +24,18 @@ from prometheus_client import (
     generate_latest,
 )
 from pydantic import ValidationError
-
 from src.api.exception_handlers import register_exception_handlers
-from src.api.middleware import (
-    CorrelationIDMiddleware,
-    RateLimitMiddleware,
-    RequestSizeMiddleware,
-)
+from src.api.middleware import CorrelationIDMiddleware, RateLimitMiddleware, RequestSizeMiddleware
 from src.api.router_endpoints import init_router_endpoints
 from src.api.router_endpoints import router as router_api
 from src.core.config import get_settings
 from src.core.container import Container
 from src.core.logging import configure_logging, get_logger
-from src.models.session import (
-    TaskAcceptedPayload,
-    TaskRequestPayload,
-    TaskSessionResult,
-)
+from src.models.session import TaskAcceptedPayload, TaskRequestPayload, TaskSessionResult
 from src.services.connection_manager import ConnectionManager
+from src.services.llm_router import InteractionMode, LLMRouter
+from src.services.mode_manager import ModeManager, OperationMode
+from src.services.ollama_service import get_ollama_service
 from src.worker.celery_app import app as celery_app  # type: ignore
 
 # Configure structured logging
@@ -50,18 +46,72 @@ logger = get_logger(__name__)
 # Global services
 connection_manager = ConnectionManager()
 container: Optional[Container] = None
+mode_manager = ModeManager(default_mode=OperationMode.OFFLINE)
+llm_router: Optional[LLMRouter] = None
+
+
+def _load_openai_key_from_secure_folder() -> None:
+    """Load OPENAI_API_KEY from a local, git-ignored secure folder if not set.
+
+    Looks for a file named 'openai.key' in the workspace root folder:
+    '<repo_root>/AuraIA IDE Vision and Roadmap/openai.key'.
+    Only sets the environment variable if it isn't already set.
+    """
+    if os.environ.get("OPENAI_API_KEY"):
+        return
+
+    try:
+        # backend/src/main.py -> parents[0]=backend/src, [1]=backend, [2]=repo root
+        repo_root = Path(__file__).resolve().parents[2]
+        key_path = repo_root / "AuraIA IDE Vision and Roadmap" / "openai.key"
+
+        if not key_path.exists():
+            return
+
+        key_text = key_path.read_text(encoding="utf-8").strip()
+        if not key_text:
+            logger.warning("openai_key_file_empty", path=str(key_path))
+            return
+
+        # Use first non-empty line
+        first_line = next((ln.strip() for ln in key_text.splitlines() if ln.strip()), "")
+        if first_line.startswith("sk-"):
+            os.environ["OPENAI_API_KEY"] = first_line
+            logger.info("openai_api_key_loaded", source="secure_folder")
+        else:
+            logger.warning("openai_key_invalid_format", prefix=first_line[:5])
+    except Exception as e:
+        # Best-effort; don't crash startup if reading fails
+        logger.warning("openai_key_load_failed", error=str(e))
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan manager"""
-    global container
+    global container, llm_router
 
     logger.info("backend_starting", creator="Herman Swanepoel")
 
+    # Initialize Ollama service
+    ollama_service = get_ollama_service()
+    if ollama_service.ensure_ollama():
+        logger.info(
+            "ollama_connected",
+            version=ollama_service.version,
+            models=len(ollama_service.models),
+        )
+    else:
+        logger.warning(
+            "ollama_unavailable",
+            message="Ollama service not detected. AI features may be limited.",
+        )
+
     # Initialize DI container
+    # Load OpenAI key from secure local folder before wiring the container
+    _load_openai_key_from_secure_folder()
     local_container = Container()
     container = local_container
+    llm_router = local_container.llm_router()
     logger.info("container_initialized")
 
     # Initialize router endpoints with dependencies
@@ -128,6 +178,47 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.get("/health/openai", tags=["health"])  # simple diagnostics; no secrets leaked
+def openai_health() -> Dict[str, Any]:
+    """Check OpenAI availability and model access.
+
+    - Verifies OPENAI_API_KEY is present (but never returns it)
+    - Attempts to retrieve the configured model (gpt-4o-mini) metadata
+    """
+    key_present = bool(os.environ.get("OPENAI_API_KEY"))
+    if not key_present:
+        return {
+            "provider": "openai",
+            "available": False,
+            "reason": "no_api_key",
+        }
+
+    try:
+        import openai  # type: ignore
+
+        client = getattr(openai, "OpenAI")(api_key=os.environ.get("OPENAI_API_KEY"))
+        model_id = "gpt-4o-mini"
+        model = client.models.retrieve(model_id)
+
+        # model is a pydantic object; extract id safely
+        model_id_resolved = getattr(model, "id", model_id)
+
+        return {
+            "provider": "openai",
+            "available": True,
+            "model": model_id_resolved,
+            "mode": "online",
+        }
+    except Exception as e:  # noqa: BLE001 - expose for diagnostics only
+        logger.warning("openai_health_failed", error=str(e))
+        return {
+            "provider": "openai",
+            "available": False,
+            "error": str(e),
+        }
+
 
 # Add custom middleware (order matters: first added = last executed)
 # 1. Correlation ID (first to execute, adds ID to all requests)
@@ -275,9 +366,7 @@ async def get_job_status(job_id: str):
         else:
             status = state.lower()
 
-        info = (
-            result.info if isinstance(result.info, dict) else {"raw": str(result.info)}
-        )
+        info = result.info if isinstance(result.info, dict) else {"raw": str(result.info)}
         return {"job_id": job_id, "status": status, **info}
     else:
         async with job_lock:
@@ -308,9 +397,7 @@ async def prometheus_http_middleware(request, call_next):
 @app.get("/metrics", include_in_schema=False)
 def metrics_endpoint() -> Response:
     """Prometheus scrape endpoint"""
-    return Response(
-        generate_latest(APP_METRICS_REGISTRY), media_type=CONTENT_TYPE_LATEST
-    )
+    return Response(generate_latest(APP_METRICS_REGISTRY), media_type=CONTENT_TYPE_LATEST)
 
 
 @app.get(
@@ -391,6 +478,14 @@ async def health_check():
     except Exception:
         components["cache"] = {"enabled": False}
 
+    # Check Ollama service status
+    try:
+        ollama_service = get_ollama_service()
+        components["ollama"] = ollama_service.get_health_status()
+    except Exception as e:
+        components["ollama"] = {"available": False, "error": str(e)}
+        health_status["status"] = "degraded"
+
     return health_status
 
 
@@ -448,9 +543,7 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
                     await connection_manager.send_personal_message(
                         {
                             "type": "error",
-                            "payload": {
-                                "message": f"Unknown message type: {message_type}"
-                            },
+                            "payload": {"message": f"Unknown message type: {message_type}"},
                         },
                         client_id,
                     )
@@ -461,9 +554,7 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
             except RuntimeError as runtime_error:
                 message = str(runtime_error).lower()
                 disconnect_error = "disconnect message" in message
-                receive_after_disconnect = (
-                    "receive" in message and "disconnect" in message
-                )
+                receive_after_disconnect = "receive" in message and "disconnect" in message
 
                 if disconnect_error or receive_after_disconnect:
                     # Treat as clean disconnect without bubbling an exception to uvicorn
@@ -537,21 +628,75 @@ async def handle_task_request(client_id: str, payload: Dict):
             client_id,
         )
 
-        if container is None:
-            logger.error("orchestrator_unavailable", client_id=client_id)
+        if llm_router is None:
+            logger.error("llm_router_unavailable", client_id=client_id)
             await connection_manager.send_personal_message(
                 {
                     "type": "error",
                     "payload": {
-                        "message": "Task orchestrator unavailable",
+                        "message": "LLM Router unavailable",
                         "details": "Service container not initialized",
                     },
                 },
                 client_id,
             )
         else:
-            orchestrator = container.task_orchestrator()
-            result: TaskSessionResult = await orchestrator.execute(request_payload)
+            # Extract interaction mode from context metadata (default to CHAT)
+            # Check both context.metadata and context dict directly
+            if hasattr(request_payload.context, "metadata"):
+                mode_str = request_payload.context.metadata.get("interaction_mode", "chat")
+            elif isinstance(request_payload.context, dict):
+                mode_str = request_payload.context.get("interaction_mode", "chat")
+            else:
+                mode_str = "chat"
+
+            mode_str = str(mode_str).upper()
+            try:
+                interaction_mode = InteractionMode[mode_str]
+            except KeyError:
+                logger.warning(f"Unknown interaction mode: {mode_str}, defaulting to CHAT")
+                interaction_mode = InteractionMode.CHAT
+
+            # Generate response using LLM router
+            prompt = request_payload.content or request_payload.description
+
+            # Convert context to dict (handle both FieldInfo and TaskContextPayload)
+            if hasattr(request_payload.context, "model_dump"):
+                context_dict = request_payload.context.model_dump()
+            elif isinstance(request_payload.context, dict):
+                context_dict = request_payload.context
+            else:
+                context_dict = {}
+
+            response_data = await llm_router.generate_response(
+                prompt=prompt,
+                interaction_mode=interaction_mode,
+                context=context_dict,
+            )
+
+            # Extract text from response data
+            response_str = response_data.get("content", "No response generated")
+            if not isinstance(response_str, str):
+                response_str = str(response_str)
+
+            # Create summary (first 100 chars)
+            if len(response_str) > 100:
+                summary = response_str[0:100] + "..."
+            else:
+                summary = response_str
+
+            # Build result payload
+            result = TaskSessionResult(
+                task_id=request_payload.id,
+                status="completed",
+                summary=summary,
+                responses=[],
+                metrics={
+                    "interaction_mode": interaction_mode.value,
+                    "response_length": len(response_str),
+                    "full_response": response_str,
+                },
+            )
 
             await connection_manager.send_personal_message(
                 {
@@ -585,15 +730,26 @@ async def handle_ping(client_id: str):
 
 async def handle_mode_change(client_id: str, payload: Dict):
     """Handle mode change request (offline/online)"""
-    mode = payload.get("mode", "offline")
-    logger.info("mode_changed", client_id=client_id, mode=mode)
+    mode_str = payload.get("mode", "local").lower()
+
+    # Map frontend terms to backend OperationMode
+    if mode_str in ["local", "offline"]:
+        target_mode = OperationMode.OFFLINE
+    elif mode_str in ["cloud", "online"]:
+        target_mode = OperationMode.ONLINE
+    else:
+        target_mode = OperationMode.OFFLINE
+
+    result = await mode_manager.set_mode(target_mode)
+
+    logger.info("mode_changed", client_id=client_id, mode=result["mode"], changed=result["changed"])
 
     await connection_manager.send_personal_message(
         {
             "type": "mode_changed",
             "payload": {
-                "mode": mode,
-                "message": f"Mode changed to {mode}",
+                "mode": result["mode"],
+                "message": result["message"],
                 "timestamp": asyncio.get_event_loop().time(),
             },
         },
@@ -607,9 +763,7 @@ if __name__ == "__main__":
     logger.info("server_starting", creator="Herman Swanepoel")
 
     # Use fully qualified module path so it works whether run as module or script
-    uvicorn.run(
-        "src.main:app", host="0.0.0.0", port=8000, reload=True, log_level="info"
-    )
+    uvicorn.run("src.main:app", host="0.0.0.0", port=8000, reload=True, log_level="info")
 
 
 # Add rate limiting middleware after app initialization
@@ -622,4 +776,5 @@ async def configure_rate_limiting():
 
     limiter = container.rate_limiter()
     if limiter._enabled:
+        app.add_middleware(RateLimitMiddleware, rate_limiter=limiter, enabled=True)
         app.add_middleware(RateLimitMiddleware, rate_limiter=limiter, enabled=True)

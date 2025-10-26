@@ -205,17 +205,13 @@ class TestOpenAIProviderComprehensive:
         mock_module = Mock()
         mock_client_instance = Mock()
         mock_client_instance.chat.completions.create = AsyncMock(
-            return_value=Mock(
-                choices=[Mock(message=Mock(content="Response with system"))]
-            )
+            return_value=Mock(choices=[Mock(message=Mock(content="Response with system"))])
         )
         mock_module.AsyncOpenAI = Mock(return_value=mock_client_instance)
         mock_import.return_value = mock_module
 
         provider = OpenAIProvider(api_key="test-key", model="gpt-4")
-        result = await provider.generate(
-            "User prompt", system_prompt="System instructions"
-        )
+        result = await provider.generate("User prompt", system_prompt="System instructions")
 
         assert result == "Response with system"
         call_args = mock_client_instance.chat.completions.create.call_args
@@ -429,9 +425,7 @@ class TestAnthropicProviderComprehensive:
         mock_import.return_value = mock_module
 
         provider = AnthropicProvider(api_key="test-key", model="claude-3")
-        result = await provider.generate(
-            "User prompt", system_prompt="System instructions"
-        )
+        result = await provider.generate("User prompt", system_prompt="System instructions")
 
         assert result == "System response"
         call_args = mock_client_instance.messages.create.call_args

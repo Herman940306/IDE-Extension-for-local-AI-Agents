@@ -105,9 +105,7 @@ def add(a: int, b: int) -> int:
 
         # May have semantic duplication smells, but no structural smells
         structural_smells = [
-            s
-            for s in smells
-            if s.smell_type in ["god_class", "long_function", "complex_function"]
+            s for s in smells if s.smell_type in ["god_class", "long_function", "complex_function"]
         ]
         assert len(structural_smells) == 0
 
@@ -190,9 +188,7 @@ def function2():
         embedding1 = [1.0] + [0.0] * 383
         embedding2 = [0.0] * 383 + [1.0]
 
-        detector.embeddings_service.embed_code = AsyncMock(
-            side_effect=[embedding1, embedding2]
-        )
+        detector.embeddings_service.embed_code = AsyncMock(side_effect=[embedding1, embedding2])
 
         code = """
 def function1():

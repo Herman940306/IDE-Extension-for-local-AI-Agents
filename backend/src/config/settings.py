@@ -111,6 +111,19 @@ class Settings(BaseSettings):
     enable_predictive_caching: bool = True
     enable_continual_learning: bool = False
 
+    # UI/UX Configuration
+    show_model_names_in_responses: bool = False  # Hide model routing details from user
+    show_system_feedback: bool = False  # Hide backend processing logs from user
+    clean_user_experience: bool = True  # Only show user-AI conversation
+
+    # Persona & Emoji (Chat UX)
+    enable_omni_persona: bool = True  # Enable AuraIA OmniDev persona in chat
+    emoji_enabled_default: bool = True  # Allow emojis in chat responses
+    emoji_max_per_response: int = 3  # Hard cap per response (prosody, not decoration)
+    emoji_style_default: str = "auto"  # auto|minimal|rich
+    # Path to persona assets (emoji library, persona JSONs)
+    persona_assets_dir: str = "../AuraIA_Persona"
+
 
 @lru_cache()
 def get_settings() -> Settings:

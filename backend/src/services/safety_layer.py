@@ -75,9 +75,7 @@ class SafetyLayer:
 
             # Parse response
             response_upper = response_text.upper()
-            is_safe = (
-                "UNSAFE" not in response_upper and "DANGEROUS" not in response_upper
-            )
+            is_safe = "UNSAFE" not in response_upper and "DANGEROUS" not in response_upper
 
             # Extract reason if unsafe
             reason = ""
@@ -124,9 +122,7 @@ OUTPUT TO REVIEW:
 
 ASSESSMENT:"""
 
-    async def check_code_security(
-        self, code: str, language: str = "python"
-    ) -> Dict[str, Any]:
+    async def check_code_security(self, code: str, language: str = "python") -> Dict[str, Any]:
         """
         Specialized security check for code snippets.
 

@@ -56,9 +56,7 @@ class TestRouterV2EndToEnd:
                 assert "system2_verification" in metadata["pipeline_stages"]
                 assert "safety_check" in metadata["pipeline_stages"]
 
-            print(
-                f"✅ Code generation test passed - Latency: {metadata['latency']:.2f}s"
-            )
+            print(f"✅ Code generation test passed - Latency: {metadata['latency']:.2f}s")
 
     @pytest.mark.asyncio
     async def test_refactoring_task(self):
@@ -212,9 +210,7 @@ def process_data(items, filter_func, transform_func):
             assert summary["avg_latency"] > 0
             assert summary["models_tracked"] > 0
 
-            print(
-                f"✅ Metrics tracking test passed - Total calls: {summary['total_calls']}"
-            )
+            print(f"✅ Metrics tracking test passed - Total calls: {summary['total_calls']}")
 
     @pytest.mark.asyncio
     async def test_metrics_models_endpoint(self):
@@ -229,9 +225,7 @@ def process_data(items, filter_func, transform_func):
             # Should have at least one model tracked
             assert len(data["models"]) > 0
 
-            print(
-                f"✅ Per-model metrics test passed - Models tracked: {len(data['models'])}"
-            )
+            print(f"✅ Per-model metrics test passed - Models tracked: {len(data['models'])}")
 
     @pytest.mark.asyncio
     async def test_autotune_recommendations(self):
@@ -250,9 +244,7 @@ def process_data(items, filter_func, transform_func):
             assert "recommendations" in data
             # Recommendations list can be empty if all models performing well
 
-            print(
-                f"✅ Auto-tune test passed - Recommendations: {len(data['recommendations'])}"
-            )
+            print(f"✅ Auto-tune test passed - Recommendations: {len(data['recommendations'])}")
 
     @pytest.mark.asyncio
     async def test_safety_check_detection(self):
