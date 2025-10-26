@@ -48,6 +48,7 @@ class CrewAIAdapter(AgentAdapter):
         self.llm: Optional[Any] = None
         self.doc_agent: Optional[Any] = None
         self.test_agent: Optional[Any] = None
+        self.bug_agent: Optional[Any] = None
         self.crew: Optional[Any] = None
         self.agent_id: str = self.config.metadata.get("agent_id", "crewai_adapter")
         self._crewai_deps: Optional[CrewAIDependencies] = None
@@ -102,6 +103,24 @@ class CrewAIAdapter(AgentAdapter):
                         You are a senior test engineer with expertise in unit testing,
                         integration testing, and test-driven development. You write
                         test cases that cover edge conditions and reduce regressions.
+                        """
+                    ).strip(),
+                    llm=self.llm,
+                    verbose=self.config.metadata.get("verbose", False),
+                    allow_delegation=False,
+                )
+
+            if Capability.BUG_DETECTION in self.config.capabilities:
+                self.bug_agent = self._crewai_deps.agent_cls(
+                    role="Bug Detection Specialist",
+                    goal="Identify bugs, security vulnerabilities, and code quality issues.",
+                    backstory=textwrap.dedent(
+                        """
+                        You are an expert security analyst and code reviewer with deep
+                        knowledge of common vulnerabilities, bug patterns, and best
+                        practices. You identify security issues like SQL injection, XSS,
+                        command injection, hardcoded secrets, and logic errors. You
+                        provide clear explanations and actionable fixes for all issues.
                         """
                     ).strip(),
                     llm=self.llm,
@@ -250,6 +269,21 @@ class CrewAIAdapter(AgentAdapter):
                 )
             )
 
+        if task.type == TaskType.BUG_DETECTION and self.bug_agent:
+            agents.append(self.bug_agent)
+            crew_tasks.append(
+                self._create_crewai_task(
+                    agent=self.bug_agent,
+                    task=task,
+                    context=context,
+                    expected_output=(
+                        "Detailed analysis of bugs, security vulnerabilities, and code "
+                        "quality issues with severity levels, descriptions, and recommended "
+                        "fixes for each issue found."
+                    ),
+                )
+            )
+
         if not agents:
             return None
 
@@ -354,6 +388,8 @@ class CrewAIAdapter(AgentAdapter):
             return f"Documentation updates for {context.file_path}"
         if task_type == TaskType.TEST_GENERATION:
             return f"Test coverage recommendations for {context.file_path}"
+        if task_type == TaskType.BUG_DETECTION:
+            return f"Bug and security analysis for {context.file_path}"
         return f"CrewAI suggestion for {context.file_path}"
 
     def _extract_reasoning(self, task_output: Any) -> List[str]:
@@ -420,6 +456,7 @@ class CrewAIAdapter(AgentAdapter):
         self.llm = None
         self.doc_agent = None
         self.test_agent = None
+        self.bug_agent = None
         self.crew = None
         await super().shutdown()
 
@@ -487,3 +524,20 @@ class CrewAITestAgent(CrewAIAdapter):
             metadata={"model": "codellama:7b", "verbose": False},
         )
         super().__init__(config)
+
+
+class CrewAIBugAgent(CrewAIAdapter):
+    """Specialised CrewAI adapter for bug detection and security analysis."""
+
+    def __init__(self):
+        config = AgentConfig(
+            name="CrewAI Bug Agent",
+            description="Detects bugs, security vulnerabilities, and code quality issues using CrewAI",
+            capabilities=[Capability.BUG_DETECTION],
+            enabled=True,
+            max_concurrent=2,
+            timeout=60,
+            metadata={"model": "codellama:7b", "verbose": False},
+        )
+        super().__init__(config)
+

@@ -350,3 +350,128 @@ async def test_execute_task_returns_placeholder_when_capability_missing(
     assert response.confidence == 0.35
     assert "CrewAI adapter does not provide an agent" in response.reasoning
 ```
+
+
+@pytest.mark.asyncio
+async def test_execute_bug_detection_task() -> None:
+    """Bug detection task should invoke the bug agent when capability is present."""
+    
+    config = AgentConfig(
+        name="CrewAI Bug Adapter",
+        description="Bug detection adapter",
+        capabilities=[Capability.BUG_DETECTION],
+        enabled=True,
+        max_concurrent=2,
+        timeout=60,
+        metadata={"model": "codellama:7b", "verbose": False},
+    )
+    
+    adapter = CrewAIAdapter(config)
+    dependencies = _build_dependencies(DummyAsyncCrew)
+    
+    bug_task = Task(
+        id="task-bug-1",
+        type=TaskType.BUG_DETECTION,
+        content="Identify potential bugs and security issues",
+        priority=Priority.HIGH,
+        description="Analyse code for bugs and vulnerabilities",
+    )
+    
+    code_context = CodeContext(
+        file_path="/workspace/vulnerable.py",
+        language="python",
+        code='import os\n\ndef run_command(cmd):\n    os.system(cmd)  # Command injection risk',
+        workspace_path="/workspace",
+        cursor_position={"line": 1, "character": 0},
+        git_branch="main",
+    )
+    
+    tasks_output = [
+        SimpleNamespace(
+            raw="""ISSUE: Command Injection Vulnerability
+SEVERITY: High
+DESCRIPTION: Using os.system() with unsanitized input allows command injection
+FIX: Use subprocess with argument list instead""",
+            summary="Found security vulnerability",
+            description="Command injection in run_command",
+            agent="Bug Detection Specialist",
+        )
+    ]
+    
+    global ASYNC_CREW_RESULT_FACTORY, ASYNC_CREW_LAST_INSTANCE
+    ASYNC_CREW_RESULT_FACTORY = lambda: DummyResult(
+        raw="Security analysis complete",
+        tasks_output=tasks_output,
+        token_usage=SimpleNamespace(model_dump=lambda: {"total_tokens": 100}),
+    )
+    ASYNC_CREW_LAST_INSTANCE = None
+    
+    try:
+        with patch.object(
+            CrewAIAdapter,
+            "_load_crewai_dependencies",
+            return_value=dependencies,
+        ), patch.object(
+            CrewAIAdapter,
+            "_load_ollama_client",
+            return_value=DummyLLM,
+        ):
+            await adapter.initialize()
+            assert adapter.bug_agent is not None, "Bug agent should be initialized"
+            
+            response = await adapter.execute_task(bug_task, code_context)
+    finally:
+        ASYNC_CREW_RESULT_FACTORY = None
+        ASYNC_CREW_LAST_INSTANCE = None
+    
+    assert response.suggestions, "Expected bug detection suggestions"
+    assert response.metadata["crew_agents"] == ["Bug Detection Specialist"]
+    assert "Command Injection" in response.suggestions[0].code or "Command Injection" in tasks_output[0].raw
+    
+    crew_instance = ASYNC_CREW_LAST_INSTANCE
+    assert crew_instance is not None
+    assert crew_instance.kickoff_async_called is True
+
+
+@pytest.mark.asyncio
+async def test_crewai_bug_agent_initialization() -> None:
+    """CrewAIBugAgent should initialize with BUG_DETECTION capability."""
+    from src.adapters.crewai_adapter import CrewAIBugAgent
+    
+    bug_agent = CrewAIBugAgent()
+    
+    assert bug_agent.config.name == "CrewAI Bug Agent"
+    assert Capability.BUG_DETECTION in bug_agent.config.capabilities
+    assert bug_agent.config.enabled is True
+    assert bug_agent.config.max_concurrent == 2
+    assert bug_agent.config.timeout == 60
+
+
+@pytest.mark.asyncio
+async def test_adapter_initialization_with_bug_capability() -> None:
+    """CrewAI adapter should initialize bug_agent when BUG_DETECTION capability is present."""
+    
+    config = AgentConfig(
+        name="Test Adapter",
+        description="Test adapter with bug detection",
+        capabilities=[Capability.BUG_DETECTION],
+        enabled=True,
+    )
+    
+    adapter = CrewAIAdapter(config)
+    dependencies = _build_dependencies(DummyAsyncCrew)
+    
+    with patch.object(
+        CrewAIAdapter,
+        "_load_crewai_dependencies",
+        return_value=dependencies,
+    ), patch.object(
+        CrewAIAdapter,
+        "_load_ollama_client",
+        return_value=DummyLLM,
+    ):
+        await adapter.initialize()
+    
+    assert adapter.bug_agent is not None
+    assert adapter.bug_agent.role == "Bug Detection Specialist"
+    assert adapter.is_initialized is True
