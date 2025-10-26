@@ -10,7 +10,7 @@ import uuid
 from typing import List, Optional, Union
 
 from src.adapters.base_adapter import AgentAdapter, AgentConfig, Capability
-from src.adapters.crewai_adapter import CrewAIDocAgent
+from src.adapters.crewai_adapter import CREWAI_DEPENDENCIES_AVAILABLE, CrewAIDocAgent
 from src.models import (
     AgentResponse,
     CodeContext,
@@ -49,7 +49,13 @@ class DocAgent(AgentAdapter):
         super().__init__(config)
 
         self.llm_manager = llm_manager
-        self.crewai_adapter = crewai_adapter or CrewAIDocAgent()
+        self.crewai_adapter: Optional[CrewAIDocAgent]
+        if crewai_adapter is not None:
+            self.crewai_adapter = crewai_adapter
+        elif CREWAI_DEPENDENCIES_AVAILABLE:
+            self.crewai_adapter = CrewAIDocAgent()
+        else:
+            self.crewai_adapter = None
 
         logger.info(
             "✓ DocAgent initialized",
@@ -63,8 +69,18 @@ class DocAgent(AgentAdapter):
         if self.is_initialized:
             return
 
-        if self.crewai_adapter and not self.crewai_adapter.is_initialized:
-            await self.crewai_adapter.initialize()
+        if self._can_use_crewai():
+            adapter = self.crewai_adapter
+            if adapter and not adapter.is_initialized:
+                try:
+                    await adapter.initialize()
+                except RuntimeError as exc:
+                    logger.warning(
+                        "CrewAI adapter unavailable; continuing without CrewAI "
+                        "integration",
+                        extra={"error": str(exc)},
+                    )
+                    self.crewai_adapter = None
 
         self.is_initialized = True
         logger.info("✓ DocAgent ready")
@@ -118,8 +134,10 @@ class DocAgent(AgentAdapter):
             if self.llm_manager:
                 await self.llm_manager.generate("ping", max_tokens=8)
 
-            if self.crewai_adapter:
-                return await self.crewai_adapter.health_check()
+            if self._can_use_crewai():
+                adapter = self.crewai_adapter
+                if adapter:
+                    return await adapter.health_check()
 
             return True
         except Exception as exc:  # pragma: no cover - defensive guard
@@ -127,9 +145,17 @@ class DocAgent(AgentAdapter):
             return False
 
     async def shutdown(self) -> None:
-        if self.crewai_adapter:
-            await self.crewai_adapter.shutdown()
+        adapter = self.crewai_adapter
+        if adapter:
+            await adapter.shutdown()
         await super().shutdown()
+
+    def _can_use_crewai(self) -> bool:
+        """Check whether CrewAI integration is available and ready."""
+        return bool(
+            self.crewai_adapter
+            and getattr(self.crewai_adapter, "dependencies_available", False)
+        )
 
     def _determine_doc_type(self, task: Task, context: CodeContext) -> str:
         """Determine what type of documentation to generate"""
@@ -157,7 +183,9 @@ class DocAgent(AgentAdapter):
 
         return suggestions
 
-    async def _generate_python_docstrings(self, context: CodeContext) -> List[Suggestion]:
+    async def _generate_python_docstrings(
+        self, context: CodeContext
+    ) -> List[Suggestion]:
         """Generate Python docstrings"""
         if not context.code:
             return []
@@ -204,7 +232,9 @@ class DocAgent(AgentAdapter):
             return self._create_class_docstring(node)
         return '    """TODO: Add docstring"""\n'
 
-    def _create_function_docstring(self, node: Union[ast.FunctionDef, ast.AsyncFunctionDef]) -> str:
+    def _create_function_docstring(
+        self, node: Union[ast.FunctionDef, ast.AsyncFunctionDef]
+    ) -> str:
         """Create docstring for a function"""
         # Extract parameters
         params = []
@@ -354,21 +384,23 @@ class DocAgent(AgentAdapter):
     async def _generate_readme(self, context: CodeContext) -> List[Suggestion]:
         """Generate README documentation"""
         # Use CrewAI for comprehensive README generation
-        if self.crewai_adapter:
-            task = Task(
-                id="readme_gen",
-                type=TaskType.DOCUMENTATION,
-                content=context.code or context.surrounding_code or "",
-                description="Generate comprehensive README documentation",
-                priority=Priority.HIGH,
-                context={
-                    "file_path": context.file_path,
-                    "language": context.language,
-                },
-                metadata={"doc_type": "readme"},
-            )
-            response = await self.crewai_adapter.execute_task(task, context)
-            return response.suggestions
+        if self._can_use_crewai():
+            adapter = self.crewai_adapter
+            if adapter:
+                task = Task(
+                    id="readme_gen",
+                    type=TaskType.DOCUMENTATION,
+                    content=context.code or context.surrounding_code or "",
+                    description="Generate comprehensive README documentation",
+                    priority=Priority.HIGH,
+                    context={
+                        "file_path": context.file_path,
+                        "language": context.language,
+                    },
+                    metadata={"doc_type": "readme"},
+                )
+                response = await adapter.execute_task(task, context)
+                return response.suggestions
 
         # Fallback: Generate basic README template
         readme = self._create_readme_template(context)
@@ -387,7 +419,9 @@ class DocAgent(AgentAdapter):
     def _create_readme_template(self, context: CodeContext) -> str:
         """Create basic README template"""
         file_name = context.file_path.split("/")[-1]
-        project_name = file_name.replace(".py", "").replace(".js", "").replace(".ts", "").title()
+        project_name = (
+            file_name.replace(".py", "").replace(".js", "").replace(".ts", "").title()
+        )
 
         readme = f"""# {project_name}
 
@@ -445,23 +479,39 @@ Project Creator: Herman Swanepoel
     async def _generate_api_docs(self, context: CodeContext) -> List[Suggestion]:
         """Generate API documentation"""
         # Use CrewAI for comprehensive API docs
-        if self.crewai_adapter:
-            task = Task(
-                id="api_docs_gen",
-                type=TaskType.DOCUMENTATION,
-                content=context.code or context.surrounding_code or "",
-                description="Generate comprehensive API documentation",
-                priority=Priority.HIGH,
-                context={
-                    "file_path": context.file_path,
-                    "language": context.language,
-                },
-                metadata={"doc_type": "api"},
-            )
-            response = await self.crewai_adapter.execute_task(task, context)
-            return response.suggestions
+        if self._can_use_crewai():
+            adapter = self.crewai_adapter
+            if adapter:
+                task = Task(
+                    id="api_docs_gen",
+                    type=TaskType.DOCUMENTATION,
+                    content=context.code or context.surrounding_code or "",
+                    description="Generate comprehensive API documentation",
+                    priority=Priority.HIGH,
+                    context={
+                        "file_path": context.file_path,
+                        "language": context.language,
+                    },
+                    metadata={"doc_type": "api"},
+                )
+                response = await adapter.execute_task(task, context)
+                return response.suggestions
 
-        return []
+        summary = (
+            f"# API Overview\n\nThis module `{context.file_path}` provides core "
+            "functionality. Document key functions and classes here.\n"
+        )
+
+        return [
+            Suggestion(
+                id=f"api_docs_{uuid.uuid4().hex[:8]}",
+                code=summary,
+                description="Outline API documentation structure",
+                confidence=ConfidenceLevel.LOW,
+                diff=None,
+                applicable_range=None,
+            )
+        ]
 
     async def _generate_comments(self, context: CodeContext) -> List[Suggestion]:
         """Generate inline code comments"""
@@ -548,30 +598,51 @@ Project Creator: Herman Swanepoel
     async def _execute_general_documentation(
         self, task: Task, context: CodeContext
     ) -> AgentResponse:
-        if self.crewai_adapter:
-            crew_response = await self.crewai_adapter.execute_task(task, context)
-            suggestions = crew_response.suggestions
-            confidence = self._calculate_confidence(suggestions)
-            metadata = {
-                "task_id": task.id,
-                "source": "crewai",
-                **getattr(crew_response, "metadata", {}),
-            }
+        if self._can_use_crewai():
+            adapter = self.crewai_adapter
+            if adapter:
+                crew_response = await adapter.execute_task(task, context)
+                suggestions = crew_response.suggestions
+                confidence = self._calculate_confidence(suggestions)
+                metadata = {
+                    "task_id": task.id,
+                    "source": "crewai",
+                    **getattr(crew_response, "metadata", {}),
+                }
 
-            return AgentResponse(
-                agent_id="doc_agent",
-                agent_name=self.config.name,
-                suggestions=suggestions,
-                confidence=confidence,
-                reasoning="Delegated documentation generation to CrewAI workflow",
-                metadata=metadata,
-            )
+                return AgentResponse(
+                    agent_id="doc_agent",
+                    agent_name=self.config.name,
+                    suggestions=suggestions,
+                    confidence=confidence,
+                    reasoning="Delegated documentation generation to CrewAI workflow",
+                    metadata=metadata,
+                )
 
         return AgentResponse(
             agent_id="doc_agent",
             agent_name=self.config.name,
-            suggestions=[],
-            confidence=0.0,
-            reasoning="No documentation strategy available for this task",
-            metadata={"task_id": task.id, "error": "unsupported_doc_type"},
+            suggestions=[
+                Suggestion(
+                    id=f"doc_outline_{uuid.uuid4().hex[:8]}",
+                    code=(
+                        "## Documentation Outline\n\n1. Summary\n2. Key Functions\n"
+                        "3. Usage Examples\n4. Next Steps\n"
+                    ),
+                    description="Provide manual documentation outline",
+                    confidence=ConfidenceLevel.LOW,
+                    diff=None,
+                    applicable_range=None,
+                )
+            ],
+            confidence=0.2,
+            reasoning=(
+                "CrewAI integration disabled; no documentation strategy available "
+                "for this task"
+            ),
+            metadata={
+                "task_id": task.id,
+                "error": "unsupported_doc_type",
+                "crewai_enabled": False,
+            },
         )

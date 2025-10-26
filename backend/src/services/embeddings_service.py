@@ -7,10 +7,21 @@ import asyncio
 import hashlib
 import logging
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, cast
 
-import chromadb
-from chromadb.config import Settings
+# Optional dependency: chromadb. Import lazily/defensively so the backend can
+# start in a minimal environment where vector DB is not installed.
+try:  # pragma: no cover - environment dependent
+    import importlib
+
+    chromadb = importlib.import_module("chromadb")  # type: ignore
+    from chromadb.config import Settings  # type: ignore
+
+    CHROMADB_AVAILABLE = True
+except Exception:  # pragma: no cover - handled gracefully at runtime
+    chromadb = None  # type: ignore
+    Settings = None  # type: ignore
+    CHROMADB_AVAILABLE = False
 
 # Avoid heavy import at module load; will be imported lazily in initialize()
 SentenceTransformer = None  # type: ignore
@@ -69,28 +80,44 @@ class EmbeddingsService:
 
                 # Load model in thread pool to avoid blocking
                 loop = asyncio.get_event_loop()
+                # Cast lazily assigned SentenceTransformer (type checker appeasement)
+                ST = cast(Any, SentenceTransformer)
                 self.model = await loop.run_in_executor(
-                    None, lambda: SentenceTransformer(self.model_name)
+                    None,
+                    lambda: ST(self.model_name),
                 )
             else:
                 # Ollama provider: no local model to load
                 self.model = None
 
-            # Initialize ChromaDB
-            self.chroma_client = chromadb.Client(
-                Settings(
-                    persist_directory=self.chroma_persist_dir,
-                    anonymized_telemetry=False,
+            # Initialize ChromaDB if available; otherwise run in ephemeral/no-op mode
+            if CHROMADB_AVAILABLE and chromadb and Settings:
+                self.chroma_client = chromadb.Client(  # type: ignore[call-arg]
+                    Settings(  # type: ignore[call-arg]
+                        persist_directory=self.chroma_persist_dir,
+                        anonymized_telemetry=False,
+                    )
                 )
-            )
 
-            # Get or create collection
-            # mypy: chroma_client is initialized above; keep assert for clarity
-            assert self.chroma_client is not None
-            self.collection = self.chroma_client.get_or_create_collection(
-                name=self.collection_name,
-                metadata={"description": "Code embeddings for semantic search"},
-            )
+                # Get or create collection
+                assert self.chroma_client is not None
+                self.collection = self.chroma_client.get_or_create_collection(
+                    name=self.collection_name,
+                    metadata={"description": "Code embeddings for semantic search"},
+                )
+            else:
+                # Operate without persistent vector DB
+                self.chroma_client = None
+                self.collection = None
+                logger.warning(
+                    "chroma_unavailable",
+                    extra={
+                        "message": (
+                            "ChromaDB not installed; embeddings persistence disabled"
+                        ),
+                        "persist_dir": self.chroma_persist_dir,
+                    },
+                )
 
             self.is_initialized = True
             logger.info("✓ Embeddings service initialized successfully")
@@ -99,7 +126,11 @@ class EmbeddingsService:
             logger.error(f"Failed to initialize embeddings service: {e}")
             raise
 
-    async def embed_code(self, code: str, metadata: Optional[Dict[str, Any]] = None) -> List[float]:
+    async def embed_code(
+        self,
+        code: str,
+        metadata: Optional[Dict[str, Any]] = None,
+    ) -> List[float]:
         """
         Generate embedding for code snippet
 
@@ -168,7 +199,9 @@ class EmbeddingsService:
                 model = self.model
                 embeddings = await loop.run_in_executor(
                     None,
-                    lambda: model.encode(code_snippets, convert_to_numpy=True, batch_size=32),
+                    lambda: model.encode(
+                        code_snippets, convert_to_numpy=True, batch_size=32
+                    ),
                 )
                 return [emb.tolist() for emb in embeddings]
             else:
@@ -187,7 +220,7 @@ class EmbeddingsService:
     async def embed_codebase(
         self,
         workspace_path: str,
-        file_extensions: List[str] = None,
+        file_extensions: Optional[List[str]] = None,
     ) -> int:
         """
         Generate embeddings for entire codebase
@@ -267,15 +300,14 @@ class EmbeddingsService:
             # Generate embeddings in batch (much faster)
             embeddings = await self.embed_code_batch(contents)
 
-            # Store all in ChromaDB
-            # Guard collection for type checker
-            assert self.collection is not None
-            self.collection.upsert(
-                ids=file_ids,
-                embeddings=embeddings,
-                documents=contents,
-                metadatas=metadatas,
-            )
+            # Store all in ChromaDB if available; otherwise no-op
+            if self.collection is not None:
+                self.collection.upsert(
+                    ids=file_ids,
+                    embeddings=embeddings,
+                    documents=contents,
+                    metadatas=metadatas,
+                )
 
         except Exception as e:
             logger.error(f"Failed to process file batch: {e}")
@@ -286,20 +318,20 @@ class EmbeddingsService:
                     file_id = self._generate_file_id(str(file_path))
                     embedding = await self.embed_code(content)
 
-                    assert self.collection is not None
-                    self.collection.upsert(
-                        ids=[file_id],
-                        embeddings=[embedding],
-                        documents=[content],
-                        metadatas=[
-                            {
-                                "file_path": str(file_path),
-                                "file_name": file_path.name,
-                                "extension": file_path.suffix,
-                                "size": len(content),
-                            }
-                        ],
-                    )
+                    if self.collection is not None:
+                        self.collection.upsert(
+                            ids=[file_id],
+                            embeddings=[embedding],
+                            documents=[content],
+                            metadatas=[
+                                {
+                                    "file_path": str(file_path),
+                                    "file_name": file_path.name,
+                                    "extension": file_path.suffix,
+                                    "size": len(content),
+                                }
+                            ],
+                        )
                 except Exception as e2:
                     logger.warning(f"Failed to process {file_path}: {e2}")
 
@@ -329,8 +361,10 @@ class EmbeddingsService:
             if file_extension:
                 where = {"extension": file_extension}
 
-            # Search in ChromaDB
-            assert self.collection is not None
+            # Search in ChromaDB if available; otherwise return empty
+            if self.collection is None:
+                return []
+
             results = self.collection.query(
                 query_embeddings=[query_embedding], n_results=top_k, where=where
             )
@@ -344,7 +378,9 @@ class EmbeddingsService:
                             "code": results["documents"][0][i],
                             "metadata": results["metadatas"][0][i],
                             "distance": (
-                                results["distances"][0][i] if "distances" in results else None
+                                results["distances"][0][i]
+                                if "distances" in results
+                                else None
                             ),
                         }
                     )
@@ -371,20 +407,20 @@ class EmbeddingsService:
             embedding = await self.embed_code(content)
 
             path_obj = Path(file_path)
-            assert self.collection is not None
-            self.collection.upsert(
-                ids=[file_id],
-                embeddings=[embedding],
-                documents=[content],
-                metadatas=[
-                    {
-                        "file_path": file_path,
-                        "file_name": path_obj.name,
-                        "extension": path_obj.suffix,
-                        "size": len(content),
-                    }
-                ],
-            )
+            if self.collection is not None:
+                self.collection.upsert(
+                    ids=[file_id],
+                    embeddings=[embedding],
+                    documents=[content],
+                    metadatas=[
+                        {
+                            "file_path": file_path,
+                            "file_name": path_obj.name,
+                            "extension": path_obj.suffix,
+                            "size": len(content),
+                        }
+                    ],
+                )
 
             logger.debug(f"Updated embedding for {file_path}")
 
@@ -404,8 +440,8 @@ class EmbeddingsService:
 
         try:
             file_id = self._generate_file_id(file_path)
-            assert self.collection is not None
-            self.collection.delete(ids=[file_id])
+            if self.collection is not None:
+                self.collection.delete(ids=[file_id])
             logger.debug(f"Deleted embedding for {file_path}")
 
         except Exception as e:
@@ -423,18 +459,18 @@ class EmbeddingsService:
         Returns:
             Statistics dictionary
         """
-        if not self.is_initialized or not self.collection:
+        if not self.is_initialized:
             return {"initialized": False}
 
         try:
-            assert self.collection is not None
-            count = self.collection.count()
+            count = self.collection.count() if self.collection is not None else 0
             return {
                 "initialized": True,
                 "model": self.model_name,
                 "collection": self.collection_name,
                 "total_embeddings": count,
                 "persist_directory": self.chroma_persist_dir,
+                "chroma_available": CHROMADB_AVAILABLE,
             }
         except Exception as e:
             logger.error(f"Failed to get stats: {e}")

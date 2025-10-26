@@ -91,25 +91,25 @@ function App() {
     const handleAgentResponse = (payload: TaskSessionResultPayload) => {
       // Extract actual suggestions from the response
       let content = "";
-      
+
       if (payload.responses && payload.responses.length > 0) {
         // Get all suggestions from responses
         const suggestions = payload.responses
           .filter(r => r.response?.suggestions && r.response.suggestions.length > 0)
           .flatMap(r => r.response.suggestions);
-        
+
         if (suggestions.length > 0) {
           content = suggestions
             .map(s => `${s.description || ''}\n\`\`\`\n${s.code || ''}\n\`\`\``)
             .join('\n\n');
         }
       }
-      
+
       // Fallback to reasoning/summary if no suggestions
       if (!content) {
         content = payload.reasoning || payload.summary || "Response received";
       }
-      
+
       const newMsg = {
         role: "assistant" as const,
         content: content,
@@ -260,27 +260,27 @@ function App() {
     } else {
       setIsListening(true);
       setBanner({ type: "info", message: "Listening... Speak now" });
-      
+
       const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
       const recognition = new SpeechRecognition();
       recognition.continuous = false;
       recognition.interimResults = false;
-      
+
       recognition.onresult = (event: any) => {
         const transcript = event.results[0][0].transcript;
         setInput(prev => prev + (prev ? ' ' : '') + transcript);
         setIsListening(false);
       };
-      
+
       recognition.onerror = () => {
         setIsListening(false);
         setBanner({ type: "error", message: "Voice input error" });
       };
-      
+
       recognition.onend = () => {
         setIsListening(false);
       };
-      
+
       recognition.start();
     }
   };
@@ -355,7 +355,7 @@ function App() {
             <div className="logo-text">AuraIA</div>
             <div className="logo-tagline">The Future Beside You</div>
           </div>
-          
+
           <button className="new-chat-btn" onClick={startNewChat}>
             <span>+</span> New chat
           </button>
@@ -403,7 +403,7 @@ function App() {
 
       <main className="main-content">
         <header className="header">
-          <h1>AuraIA</h1>
+          <h1 className="brand-title text-gradient breathing">AuraIA</h1>
           <div className="header-controls">
             <div className="mode-selector">
               <button
@@ -516,8 +516,8 @@ function App() {
               style={{ display: 'none' }}
               multiple
             />
-            <button 
-              className="attach-btn" 
+            <button
+              className="attach-btn"
               onClick={handleFileAttach}
               title="Attach files"
             >
@@ -536,7 +536,7 @@ function App() {
               onChange={(e) => setInput(e.target.value)}
               onKeyPress={(e) => e.key === "Enter" && handleSend()}
             />
-            <button 
+            <button
               className={`voice-btn ${isListening ? 'listening' : ''}`}
               onClick={toggleVoiceInput}
               title={isListening ? "Stop listening" : "Start voice input"}

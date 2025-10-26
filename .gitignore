@@ -115,3 +115,6 @@ coverage.xml
 *.tmp
 *.temp
 .cache/
+
+# Local-only project vision and roadmap
+/AuraIA IDE Vision and Roadmap/

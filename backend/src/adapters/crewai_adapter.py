@@ -4,15 +4,45 @@ Project Creator: Herman Swanepoel
 """
 
 import asyncio
+import importlib
 import textwrap
 from typing import Any, List, Optional
 
-from crewai import Agent, Crew, Process
-from crewai import Task as CrewTask
-from langchain.llms import Ollama
 from src.adapters.adapter_utils import AdapterUtils
 from src.adapters.base_adapter import AgentAdapter, AgentConfig, Capability
 from src.models import AgentResponse, CodeContext, Suggestion, Task
+
+CREWAI_DEPENDENCIES_AVAILABLE = True
+
+Agent: Any = None
+Crew: Any = None
+Process: Any = None
+CrewTask: Any = None
+Ollama: Any = None
+
+try:  # Optional dependency loaded lazily to avoid hard requirement
+    crewai_module = importlib.import_module("crewai")
+    Agent = getattr(crewai_module, "Agent", None)
+    Crew = getattr(crewai_module, "Crew", None)
+    Process = getattr(crewai_module, "Process", None)
+    CrewTask = getattr(crewai_module, "Task", None)
+    if not all([Agent, Crew, Process, CrewTask]):
+        CREWAI_DEPENDENCIES_AVAILABLE = False
+except ImportError:  # pragma: no cover - optional path
+    CREWAI_DEPENDENCIES_AVAILABLE = False
+
+try:  # Optional dependency loaded lazily to avoid hard requirement
+    langchain_module = importlib.import_module("langchain_community.llms")
+    Ollama = getattr(langchain_module, "Ollama", None)
+    if Ollama is None:
+        CREWAI_DEPENDENCIES_AVAILABLE = False
+except ImportError:  # pragma: no cover - optional path
+    CREWAI_DEPENDENCIES_AVAILABLE = False
+
+MISSING_DEPENDENCIES_MESSAGE = (
+    "CrewAI adapter requires optional dependencies `crewai` and `langchain`. "
+    "Install them to enable CrewAI integration."
+)
 
 
 class CrewAIAdapter(AgentAdapter):
@@ -31,19 +61,25 @@ class CrewAIAdapter(AgentAdapter):
             config: Agent configuration
         """
         super().__init__(config)
-        self.llm: Optional[Ollama] = None
-        self.doc_agent: Optional[Agent] = None
-        self.test_agent: Optional[Agent] = None
-        self.crew: Optional[Crew] = None
+        self._dependencies_available = CREWAI_DEPENDENCIES_AVAILABLE
+        self.llm: Optional[Any] = None
+        self.doc_agent: Optional[Any] = None
+        self.test_agent: Optional[Any] = None
+        self.crew: Optional[Any] = None
         self.agent_id: str = self.config.metadata.get("agent_id", "crewai_adapter")
 
     async def initialize(self) -> None:
         """Initialize CrewAI agents and crew"""
+        if not self._dependencies_available:
+            raise RuntimeError(MISSING_DEPENDENCIES_MESSAGE)
+
         try:
             # Initialize LLM
             self.llm = Ollama(
                 model=self.config.metadata.get("model", "codellama:7b"),
-                base_url=self.config.metadata.get("ollama_url", "http://localhost:11434"),
+                base_url=self.config.metadata.get(
+                    "ollama_url", "http://localhost:11434"
+                ),
             )
 
             # Create Doc Agent
@@ -96,6 +132,16 @@ class CrewAIAdapter(AgentAdapter):
         Returns:
             AgentResponse with suggestions
         """
+        if not self._dependencies_available:
+            return AgentResponse(
+                agent_id=self.agent_id,
+                agent_name=self.config.name,
+                suggestions=[],
+                confidence=0.0,
+                reasoning=MISSING_DEPENDENCIES_MESSAGE,
+                metadata={"task_id": task.id, "error": "crewai_dependencies_missing"},
+            )
+
         if not self.is_initialized:
             await self.initialize()
 
@@ -141,7 +187,12 @@ class CrewAIAdapter(AgentAdapter):
                 metadata={"task_id": task.id, "error": str(e)},
             )
 
-    def _convert_to_crew_task(self, task: Task, context: CodeContext) -> CrewTask:
+    @property
+    def dependencies_available(self) -> bool:
+        """Expose whether optional CrewAI dependencies are ready for use."""
+        return self._dependencies_available
+
+    def _convert_to_crew_task(self, task: Task, context: CodeContext) -> Any:
         """
         Convert our task format to CrewAI task format
 
@@ -183,7 +234,7 @@ Please provide your response in the following format:
             expected_output="Detailed analysis and actionable suggestions or generated content",  # noqa: E501
         )
 
-    def _select_agents(self, task: Task) -> List[Agent]:
+    def _select_agents(self, task: Task) -> List[Any]:
         """
         Select appropriate agents for the task
 
@@ -272,7 +323,9 @@ Please provide your response in the following format:
                     r"([^\n]+)\n```", result_text[: result_text.find(code)]
                 )
                 description = (
-                    description_match.group(1) if description_match else f"Suggestion {i+1}"
+                    description_match.group(1)
+                    if description_match
+                    else f"Suggestion {i+1}"
                 )
 
                 suggestions.append(
@@ -300,7 +353,9 @@ Please provide your response in the following format:
 
         return suggestions
 
-    def _calculate_confidence(self, result_text: str, suggestions: List[Suggestion]) -> float:
+    def _calculate_confidence(
+        self, result_text: str, suggestions: List[Suggestion]
+    ) -> float:
         """
         Calculate confidence score based on result quality
 
@@ -326,7 +381,10 @@ Please provide your response in the following format:
             confidence += 0.1
 
         # Increase confidence if result has reasoning
-        if any(keyword in result_text.lower() for keyword in ["because", "reason", "analysis"]):
+        if any(
+            keyword in result_text.lower()
+            for keyword in ["because", "reason", "analysis"]
+        ):
             confidence += 0.1
 
         return min(confidence, 1.0)
@@ -337,6 +395,9 @@ Please provide your response in the following format:
 
     async def health_check(self) -> bool:
         """Check if adapter is healthy"""
+        if not self._dependencies_available:
+            return False
+
         try:
             if not self.is_initialized:
                 return False

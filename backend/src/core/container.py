@@ -7,7 +7,11 @@ from __future__ import annotations
 
 from dependency_injector import containers, providers
 from src.adapters.base_adapter import AdapterRegistry, AgentConfig, Capability
-from src.adapters.crewai_adapter import CrewAIDocAgent, CrewAITestAgent
+from src.adapters.crewai_adapter import (
+    CREWAI_DEPENDENCIES_AVAILABLE,
+    CrewAIDocAgent,
+    CrewAITestAgent,
+)
 from src.agents.bug_agent import BugAgent
 from src.agents.doc_agent import DocAgent
 from src.agents.refactor_agent import RefactorAgent
@@ -29,7 +33,7 @@ from src.services.llm_router import LLMRouter
 from src.services.memory_service import MemoryConfig, MemoryService, StorageBackend
 from src.services.metrics_service import MetricsService
 from src.services.mode_manager import ModeManager, OperationMode
-from src.services.ollama_service import OllamaService
+from src.services.ollama_service import get_ollama_service
 from src.services.output_composer import OutputComposer
 from src.services.predictive_cache_manager import PredictiveCacheManager
 from src.services.prompt_templates import PromptTemplates
@@ -219,13 +223,17 @@ class Container(containers.DeclarativeContainer):
         ),
     )
 
-    ollama_service = providers.Singleton(OllamaService)
+    # Reuse the already initialized singleton OllamaService to ensure
+    # availability status and models detected during app lifespan are visible
+    # to all consumers (e.g., LLMRouter) instead of constructing a fresh instance.
+    ollama_service = providers.Object(get_ollama_service())
 
     llm_router = providers.Singleton(
         LLMRouter,
         mode_manager=mode_manager,
         ollama_service=ollama_service,
         openai_api_key=config.provided.llm.api_key,
+        default_local_model=config.provided.llm.default_model,
     )
 
     connection_manager = providers.Singleton(ConnectionManager)
@@ -260,8 +268,16 @@ class Container(containers.DeclarativeContainer):
 
     adapter_registry = providers.Singleton(AdapterRegistry)
 
-    crewai_doc_agent = providers.Singleton(CrewAIDocAgent)
-    crewai_test_agent = providers.Singleton(CrewAITestAgent)
+    crewai_doc_agent = (
+        providers.Singleton(CrewAIDocAgent)
+        if CREWAI_DEPENDENCIES_AVAILABLE
+        else providers.Object(None)
+    )
+    crewai_test_agent = (
+        providers.Singleton(CrewAITestAgent)
+        if CREWAI_DEPENDENCIES_AVAILABLE
+        else providers.Object(None)
+    )
 
     refactor_agent_config = providers.Singleton(
         AgentConfig,

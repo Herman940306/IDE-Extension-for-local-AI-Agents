@@ -30,10 +30,12 @@ class LLMRouter:
         mode_manager: ModeManager,
         ollama_service: OllamaService,
         openai_api_key: Optional[str] = None,
+        default_local_model: Optional[str] = None,
     ):
         self.mode_manager = mode_manager
         self.ollama_service = ollama_service
         self.openai_api_key = openai_api_key or os.environ.get("OPENAI_API_KEY")
+        self.default_local_model = default_local_model
 
         # System prompts for different modes
         self.system_prompts = {
@@ -91,9 +93,13 @@ class LLMRouter:
         system_prompt = self.system_prompts[interaction_mode]
 
         if current_mode == OperationMode.OFFLINE:
-            return await self._generate_local(prompt, system_prompt, interaction_mode, context)
+            return await self._generate_local(
+                prompt, system_prompt, interaction_mode, context
+            )
         else:
-            return await self._generate_cloud(prompt, system_prompt, interaction_mode, context)
+            return await self._generate_cloud(
+                prompt, system_prompt, interaction_mode, context
+            )
 
     async def _generate_local(
         self,
@@ -115,8 +121,7 @@ class LLMRouter:
             }
 
         try:
-            # Use the first available model
-            model = self.ollama_service.models[0] if self.ollama_service.models else "llama2"
+            model = self._choose_local_model()
 
             # Combine system prompt and user prompt
             full_prompt = f"{system_prompt}\n\nUser: {prompt}\n\nAssistant:"
@@ -275,3 +280,34 @@ class LLMRouter:
         }
 
         return responses.get(interaction_mode, "Mock response")
+
+    def _choose_local_model(self) -> str:
+        """Select the most appropriate local model for generation."""
+
+        available_models = self.ollama_service.models
+
+        if self.default_local_model:
+            if self.default_local_model in available_models:
+                return self.default_local_model
+
+            # Allow using short names without tag suffix if there is an exact match ignoring suffixes
+            for candidate in available_models:
+                if candidate.startswith(self.default_local_model):
+                    logger.info(
+                        "llm_router_local_model_match",
+                        requested=self.default_local_model,
+                        selected=candidate,
+                    )
+                    return candidate
+
+            logger.warning(
+                "llm_router_local_model_unavailable",
+                requested=self.default_local_model,
+                available=available_models,
+            )
+
+        if available_models:
+            return available_models[0]
+
+        logger.warning("llm_router_no_local_models")
+        return "llama2"
