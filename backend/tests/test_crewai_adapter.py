@@ -349,7 +349,6 @@ async def test_execute_task_returns_placeholder_when_capability_missing(
     assert response.suggestions == []
     assert response.confidence == 0.35
     assert "CrewAI adapter does not provide an agent" in response.reasoning
-```
 
 
 @pytest.mark.asyncio
