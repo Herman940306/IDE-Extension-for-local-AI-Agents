@@ -37,3 +37,12 @@ repos:
       - id: mypy
         args: ["--config-file=mypy.ini"]
         additional_dependencies: []
+
+  - repo: local
+    hooks:
+      - id: block-confidential-paths
+        name: Block commits to confidential folder
+        description: Prevent committing files under 'AuraIA IDE Vision and Roadmap/'
+        language: pygrep
+        entry: .
+        files: ^AuraIA IDE Vision and Roadmap/
