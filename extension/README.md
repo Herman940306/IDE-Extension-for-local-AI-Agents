@@ -47,7 +47,7 @@ npm run watch
 ## Documentation
 
 - Project Overview: [docs/overview.md](../docs/overview.md)
-- Product Requirements (PRD): [AuraIA_PRD.md](../AuraIA IDE Vision and Roadmap/AuraIA_PRD.md)
+- Product Requirements (PRD): Internal document (local-only)
 
 ## Packaging
 
