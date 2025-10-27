@@ -55,3 +55,9 @@ The project is stable and fully functional for end-to-end testing. The backend s
 1. **Start the Backend**: Use the VS Code Task **`Tasks: Run Task > Python: Run API (Uvicorn)`**.
 2. **Start the Frontend**: In a new terminal, navigate to `frontend` and run `npm run dev`.
 3. **Interact**: Open the frontend URL (e.g., `http://127.0.0.1:5288`) and begin interacting with AuraIA.
+
+
+## Documentation
+
+- Overview: [docs/overview.md](docs/overview.md)
+- Product Requirements (PRD): Internal document (local-only; not included in the public repo)
