@@ -81,5 +81,9 @@
   },
   "dependencies": {
     "ws": "^8.14.0"
+  },
+  "galleryBanner": {
+    "color": "#0b1320",
+    "theme": "dark"
   }
 }

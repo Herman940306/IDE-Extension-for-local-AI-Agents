@@ -1,5 +1,7 @@
 # Aura AI Assistant - VS Code Extension
 
+![AuraIA Logo](images/AuraIA_logo.jpg)
+
 **Project Creator:** Herman Swanepoel
 
 ## Features
@@ -41,6 +43,11 @@ npm run watch
 
 - Backend running: <http://127.0.0.1:8001>
 - WebSocket: `ws://127.0.0.1:8001/ws`
+
+## Documentation
+
+- Project Overview: [docs/overview.md](../docs/overview.md)
+- Product Requirements (PRD): [AuraIA_PRD.md](../AuraIA IDE Vision and Roadmap/AuraIA_PRD.md)
 
 ## Packaging
 
