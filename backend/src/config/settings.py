@@ -110,6 +110,16 @@ class Settings(BaseSettings):
     enable_cognitive_traces: bool = True
     enable_predictive_caching: bool = True
     enable_continual_learning: bool = False
+    experimental_rag_v2_enabled: bool = False
+    rag_v2_code_top_k: int = 5
+    rag_v2_min_relevance: float = 0.0
+    rag_v2_memory_message_limit: int = 20
+    rag_v2_chain_type: str = "stuff"
+    hybrid_fusion_enabled: bool = False
+    fusion_weight_bm25: float = 0.4
+    fusion_weight_vector: float = 0.6
+    reranker_model: str = "bge-reranker-large"
+    relevance_threshold: float = 0.7
 
     # UI/UX Configuration
     show_model_names_in_responses: bool = False  # Hide model routing details from user

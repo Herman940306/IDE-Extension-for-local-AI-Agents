@@ -25,13 +25,23 @@ from prometheus_client import (
 )
 from pydantic import ValidationError
 from src.api.exception_handlers import register_exception_handlers
-from src.api.middleware import CorrelationIDMiddleware, RateLimitMiddleware, RequestSizeMiddleware
+from src.api.middleware import (
+    CorrelationIDMiddleware,
+    RateLimitMiddleware,
+    RequestSizeMiddleware,
+)
 from src.api.router_endpoints import init_router_endpoints
 from src.api.router_endpoints import router as router_api
 from src.core.config import get_settings
 from src.core.container import Container
 from src.core.logging import configure_logging, get_logger
-from src.models.session import TaskAcceptedPayload, TaskRequestPayload, TaskSessionResult
+
+# Imports for debug/config endpoints will be added when endpoints are defined
+from src.models.session import (
+    TaskAcceptedPayload,
+    TaskRequestPayload,
+    TaskSessionResult,
+)
 from src.services.connection_manager import ConnectionManager
 from src.services.llm_router import InteractionMode, LLMRouter
 from src.services.mode_manager import ModeManager, OperationMode
@@ -48,6 +58,25 @@ connection_manager = ConnectionManager()
 container: Optional[Container] = None
 mode_manager = ModeManager(default_mode=OperationMode.OFFLINE)
 llm_router: Optional[LLMRouter] = None
+
+APP_START_TIME = time.time()
+
+
+def _format_duration(seconds: float) -> str:
+    total_seconds = int(max(0, seconds))
+    days, remainder = divmod(total_seconds, 86_400)
+    hours, remainder = divmod(remainder, 3_600)
+    minutes, secs = divmod(remainder, 60)
+    parts: list[str] = []
+    if days:
+        parts.append(f"{days}d")
+    if hours:
+        parts.append(f"{hours}h")
+    if minutes:
+        parts.append(f"{minutes}m")
+    if secs or not parts:
+        parts.append(f"{secs}s")
+    return " ".join(parts)
 
 
 def _load_openai_key_from_secure_folder() -> None:
@@ -121,6 +150,69 @@ async def lifespan(app: FastAPI):
     )
     logger.info("router_endpoints_initialized")
 
+    # Initialize embeddings and kick off background indexing + file watcher hooks
+    try:
+        embeddings = local_container.embeddings_service()
+        await embeddings.initialize()
+
+        workspace_root = settings.workspace.root_path
+        # Start initial indexing in the background (non-blocking)
+
+        async def _embed_workspace() -> None:
+            try:
+                await embeddings.embed_codebase(workspace_root)
+                logger.info("initial_codebase_indexing_completed")
+            except Exception as e:
+                logger.warning("initial_codebase_indexing_failed", error=str(e))
+
+        asyncio.create_task(_embed_workspace())
+
+        # Register file change callback to keep embeddings up-to-date (debounced)
+        ctx_mgr = local_container.context_manager()
+
+        _pending_changes: dict[str, str] = {}
+        _flush_task: Optional[asyncio.Task] = None
+        _debounce_seconds = 0.2
+
+        def _schedule_flush() -> None:
+            nonlocal _flush_task
+            if _flush_task and not _flush_task.done():
+                return
+
+            async def _flush() -> None:
+                await asyncio.sleep(_debounce_seconds)
+                changes = dict(_pending_changes)
+                _pending_changes.clear()
+                for rel_path, event_type in changes.items():
+                    abs_path = str(Path(workspace_root) / rel_path)
+                    try:
+                        if event_type == "deleted":
+                            await embeddings.delete_file_embedding(abs_path)
+                        else:
+                            try:
+                                content = Path(abs_path).read_text(encoding="utf-8")
+                            except Exception:
+                                content = ""
+                            await embeddings.update_file_embedding(abs_path, content)
+                    except Exception as e:
+                        logger.debug("embedding_update_failed", error=str(e))
+
+            _flush_task = asyncio.create_task(_flush())
+
+        def _on_change(rel_path: str, event_type: str) -> None:
+            # Coalesce multiple events per file; prefer 'deleted' once seen
+            prev = _pending_changes.get(rel_path)
+            if prev == "deleted":
+                pass
+            else:
+                _pending_changes[rel_path] = event_type
+            _schedule_flush()
+
+        ctx_mgr.register_file_change_callback(_on_change)
+        logger.info("embedding_indexing_hooks_initialized")
+    except Exception as e:
+        logger.warning("embedding_indexing_init_failed", error=str(e))
+
     try:
         redis = local_container.redis_client()
         if inspect.isawaitable(redis):
@@ -180,6 +272,138 @@ app.add_middleware(
 )
 
 
+@app.get("/debug/rag_trace", tags=["health"])  # lightweight debug snapshot
+def get_rag_trace(limit: int = 200) -> Dict[str, Any]:
+    try:
+        from src.services.retrieval.trace import retrieval_trace_buffer as _buf
+
+        traces = _buf.snapshot(limit=limit)
+        return {"count": len(traces), "items": traces}
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@app.get("/config/rag", tags=["health"])  # expose effective RAG config
+def get_rag_config() -> Dict[str, Any]:
+    try:
+        rag_cfg = {
+            "experimental_rag_v2_enabled": settings.experimental_rag_v2_enabled,
+            "hybrid_fusion_enabled": getattr(settings, "hybrid_fusion_enabled", False),
+            "fusion_weight_vector": getattr(settings, "fusion_weight_vector", 0.6),
+            "fusion_weight_bm25": getattr(settings, "fusion_weight_bm25", 0.4),
+            "reranker_model": getattr(settings, "reranker_model", None),
+            "relevance_threshold": getattr(settings, "relevance_threshold", 0.5),
+            "rag_v2_code_top_k": getattr(settings, "rag_v2_code_top_k", 8),
+        }
+        return rag_cfg
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@app.get("/debug/rag_overview", tags=["health"])  # aggregated retrieval stats
+def get_rag_overview(limit: int = 400) -> Dict[str, Any]:
+    try:
+        from src.services.retrieval.trace import retrieval_trace_buffer as _buf
+
+        items = _buf.snapshot(limit=limit)
+        if not items:
+            return {"count": 0, "means": {}, "top_files": []}
+
+        def _avg(values: list[float]) -> float:
+            return sum(values) / len(values) if values else 0.0
+
+        vec = [float(it.get("vector_score", 0.0)) for it in items]
+        lex = [float(it.get("lexical_score", 0.0)) for it in items]
+        fus = [float(it.get("fusion_score", 0.0)) for it in items]
+
+        # Aggregate by file
+        by_file: dict[str, list[float]] = {}
+        for it in items:
+            f = str(it.get("file") or "unknown")
+            by_file.setdefault(f, []).append(float(it.get("fusion_score", 0.0)))
+
+        top_files = sorted(
+            (
+                {"file": f, "mean_fusion": _avg(scores), "count": len(scores)}
+                for f, scores in by_file.items()
+            ),
+            key=lambda x: cast(float, x["mean_fusion"]),
+            reverse=True,
+        )[:20]
+
+        return {
+            "count": len(items),
+            "means": {
+                "vector": round(_avg(vec), 4),
+                "lexical": round(_avg(lex), 4),
+                "fusion": round(_avg(fus), 4),
+            },
+            "top_files": top_files,
+        }
+    except Exception as e:  # pragma: no cover - defensive
+        return {"error": str(e)}
+
+
+@app.get("/debug/rag_overview_page", tags=["health"], response_class=Response)
+def rag_overview_page() -> Response:
+    """Simple HTML page that fetches /debug/rag_overview and renders it."""
+    html = (
+        "<!DOCTYPE html>\n"
+        "<html lang='en'>\n"
+        "<head>\n"
+        "  <meta charset='UTF-8'/>\n"
+        "  <meta name='viewport' content='width=device-width, initial-scale=1.0'/>\n"
+        "  <title>RAG Overview</title>\n"
+        "  <style>\n"
+        "    body{font-family:Segoe UI,Arial,sans-serif;margin:20px;}\n"
+        "    table{border-collapse:collapse;}\n"
+        "    th,td{border:1px solid #ddd;padding:8px;}\n"
+        "    th{background:#f4f6f8;text-align:left;}\n"
+        "    code{background:#f2f2f2;padding:2px 4px;border-radius:3px;}\n"
+        "  </style>\n"
+        "</head>\n"
+        "<body>\n"
+        "  <h2>RAG v2 Retrieval Overview</h2>\n"
+        "  <p>Raw: <code>/debug/rag_overview</code></p>\n"
+        "  <div id='summary'>Loading…</div>\n"
+        "  <h3>Top Files by Mean Fusion</h3>\n"
+        "  <table id='files'>\n"
+        "    <thead><tr><th>File</th><th>Mean Fusion</th><th>Count</th></tr></thead>\n"
+        "    <tbody></tbody>\n"
+        "  </table>\n"
+        "  <script>\n"
+        "async function load(){\n"
+        "  try{\n"
+        "    const res = await fetch('/debug/rag_overview');\n"
+        "    const data = await res.json();\n"
+        "    const s = document.getElementById('summary');\n"
+        "    if(data.error){ s.textContent = 'Error: ' + data.error; return; }\n"
+        "    const means = data.means || {};\n"
+        "    s.innerHTML = '<b>Items:</b> ' + data.count +\n"
+        "      ' &nbsp; | &nbsp; <b>Means</b> — Vector: ' + (means.vector ?? 0) +\n"
+        "      ', Lexical: ' + (means.lexical ?? 0) + ', Fusion: ' +\n"
+        "      (means.fusion ?? 0);\n"
+        "    const tbody = document.querySelector('#files tbody');\n"
+        "    tbody.innerHTML='';\n"
+        "    (data.top_files||[]).forEach(row=>{\n"
+        "      const tr = document.createElement('tr');\n"
+        "      tr.innerHTML = '<td>' + row.file + '</td><td>' +\n"
+        "        Number(row.mean_fusion).toFixed(4) + '</td><td>' +\n"
+        "        row.count + '</td>';\n"
+        "      tbody.appendChild(tr);\n"
+        "    });\n"
+        "  }catch(e){\n"
+        "    document.getElementById('summary').textContent = 'Error: ' + e;\n"
+        "  }\n"
+        "}\n"
+        "load();\n"
+        "setInterval(load, 5000);\n"
+        "  </script>\n"
+        "</body></html>\n"
+    )
+    return Response(content=html, media_type="text/html")
+
+
 @app.get("/health/openai", tags=["health"])  # simple diagnostics; no secrets leaked
 def openai_health() -> Dict[str, Any]:
     """Check OpenAI availability and model access.
@@ -198,7 +422,7 @@ def openai_health() -> Dict[str, Any]:
     try:
         import openai  # type: ignore
 
-        client = getattr(openai, "OpenAI")(api_key=os.environ.get("OPENAI_API_KEY"))
+        client = openai.OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
         model_id = "gpt-4o-mini"
         model = client.models.retrieve(model_id)
 
@@ -247,6 +471,26 @@ REQUEST_LATENCY = Histogram(
     "HTTP request duration in seconds",
     labelnames=["method", "path", "status_code"],
     buckets=(0.05, 0.1, 0.2, 0.5, 1, 2, 5, 10),
+    registry=APP_METRICS_REGISTRY,
+)
+
+# Retrieval/RAG metrics
+RETRIEVAL_DOCS_CONSIDERED = Counter(
+    "retrieval_docs_considered_total",
+    "Total documents considered in retrieval",
+    labelnames=["stage"],
+    registry=APP_METRICS_REGISTRY,
+)
+RETRIEVAL_DOCS_KEPT = Counter(
+    "retrieval_docs_kept_total",
+    "Total documents kept after reranker/threshold",
+    labelnames=["stage"],
+    registry=APP_METRICS_REGISTRY,
+)
+RETRIEVAL_TOPK_MEAN_FUSION_SCORE = Gauge(
+    "retrieval_topk_mean_fusion_score",
+    "Mean fusion score for top-k kept documents",
+    labelnames=["stage"],
     registry=APP_METRICS_REGISTRY,
 )
 
@@ -312,6 +556,18 @@ async def _run_long_job(job_id: str, job_type: str, duration: float) -> None:
         JOBS_IN_PROGRESS.labels(job_type=job_type).dec()
 
 
+def _summarize_jobs() -> Dict[str, Any]:
+    summary: Dict[str, Any] = {
+        "total": len(job_store),
+        "by_status": {},
+    }
+    for job in job_store.values():
+        status = str(job.get("status", "unknown"))
+        status_counts = summary["by_status"]
+        status_counts[status] = status_counts.get(status, 0) + 1
+    return summary
+
+
 @app.post("/jobs/long", tags=["jobs"], status_code=202)
 async def create_long_job(
     background: BackgroundTasks,
@@ -332,7 +588,10 @@ async def create_long_job(
         # Local import to avoid startup overhead when Celery is disabled
         from src.worker.celery_app import long_job_task
 
-        result = long_job_task.delay(duration=duration, job_type=job_type)
+        result = long_job_task.delay(  # type: ignore[attr-defined]
+            duration=duration,
+            job_type=job_type,
+        )
         return {"job_id": result.id, "status": "queued", "engine": "celery"}
     else:
         # In-process background task
@@ -487,6 +746,129 @@ async def health_check():
         health_status["status"] = "degraded"
 
     return health_status
+
+
+@app.get("/api/status", tags=["health"])
+async def api_status() -> Dict[str, Any]:
+    uptime_seconds = time.time() - APP_START_TIME
+    issues: list[str] = []
+
+    redis_status: Dict[str, Any] = {"status": "disabled"}
+    cache_stats: Dict[str, Any] = {"enabled": False}
+    metrics_summary: Dict[str, Any] = {}
+    rate_limit_status: Dict[str, Any] = {"enabled": False}
+
+    if container is not None:
+        try:
+            redis_client = container.redis_client()
+            if inspect.isawaitable(redis_client):
+                redis_client = await cast(Awaitable[Any], redis_client)
+
+            if redis_client is None:
+                redis_status = {"status": "disabled"}
+            else:
+                try:
+                    ping = redis_client.ping()
+                    if inspect.isawaitable(ping):
+                        await ping
+                    redis_status = {"status": "healthy"}
+                except Exception as exc:  # noqa: BLE001 - status reporting
+                    redis_status = {
+                        "status": "unhealthy",
+                        "error": str(exc),
+                    }
+                    issues.append("redis_unhealthy")
+        except Exception as exc:  # noqa: BLE001 - status reporting
+            redis_status = {
+                "status": "error",
+                "error": str(exc),
+            }
+            issues.append("redis_error")
+
+        try:
+            cache_service = container.response_cache()
+            cache_stats = await cache_service.get_stats()
+        except Exception as exc:  # noqa: BLE001 - status reporting
+            cache_stats = {"enabled": False, "error": str(exc)}
+            issues.append("cache_stats_error")
+
+        try:
+            metrics_service = container.metrics_service()
+            report = metrics_service.get_performance_report()
+            metrics_summary = report.get("summary", {})
+        except Exception as exc:  # noqa: BLE001 - status reporting
+            metrics_summary = {"error": str(exc)}
+            issues.append("metrics_unavailable")
+
+        try:
+            limiter = container.rate_limiter()
+            rate_limit_status = {
+                "enabled": getattr(limiter, "_enabled", False),
+                "default_limit": getattr(limiter, "default_limit", None),
+                "default_window": getattr(limiter, "default_window", None),
+            }
+        except Exception as exc:  # noqa: BLE001 - status reporting
+            rate_limit_status = {"enabled": False, "error": str(exc)}
+            issues.append("rate_limit_error")
+
+    try:
+        ollama_service = get_ollama_service()
+        ollama_status = ollama_service.get_health_status()
+        if not ollama_status.get("available", False):
+            issues.append("ollama_unavailable")
+    except Exception as exc:  # noqa: BLE001 - status reporting
+        ollama_status = {"available": False, "error": str(exc)}
+        issues.append("ollama_error")
+
+    mode_info = mode_manager.get_mode_info()
+    privacy_info = mode_manager.get_privacy_status()
+
+    llm_status = {
+        "router_initialized": llm_router is not None,
+        "default_local_model": getattr(llm_router, "default_local_model", None),
+        "openai_configured": bool(
+            os.environ.get("OPENAI_API_KEY") or getattr(llm_router, "openai_api_key", None)
+        ),
+        "interaction_modes": [mode.value for mode in InteractionMode],
+        "mode": mode_info.get("current_mode"),
+    }
+
+    connections_info = {
+        "active": connection_manager.get_connection_count(),
+    }
+
+    jobs_info = _summarize_jobs()
+
+    openai_status = {
+        "configured": llm_status["openai_configured"],
+        "cloud_calls_allowed": mode_manager.can_use_cloud_api(),
+    }
+
+    overall_status = "ready" if not issues else "degraded"
+
+    return {
+        "status": overall_status,
+        "issues": issues,
+        "timestamp": time.time(),
+        "service": {
+            "name": settings.app_name,
+            "version": settings.version,
+            "uptime_seconds": uptime_seconds,
+            "uptime_human": _format_duration(uptime_seconds),
+        },
+        "mode": mode_info,
+        "privacy": privacy_info,
+        "connections": connections_info,
+        "jobs": jobs_info,
+        "metrics": metrics_summary,
+        "cache": cache_stats,
+        "rate_limit": rate_limit_status,
+        "dependencies": {
+            "redis": redis_status,
+            "ollama": ollama_status,
+            "openai": openai_status,
+        },
+    }
 
 
 @app.websocket("/ws/{client_id}")
@@ -742,7 +1124,12 @@ async def handle_mode_change(client_id: str, payload: Dict):
 
     result = await mode_manager.set_mode(target_mode)
 
-    logger.info("mode_changed", client_id=client_id, mode=result["mode"], changed=result["changed"])
+    logger.info(
+        "mode_changed",
+        client_id=client_id,
+        mode=result["mode"],
+        changed=result["changed"],
+    )
 
     await connection_manager.send_personal_message(
         {

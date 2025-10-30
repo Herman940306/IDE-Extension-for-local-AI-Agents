@@ -76,8 +76,7 @@ class DocAgent(AgentAdapter):
                     await adapter.initialize()
                 except RuntimeError as exc:
                     logger.warning(
-                        "CrewAI adapter unavailable; continuing without CrewAI "
-                        "integration",
+                        "CrewAI adapter unavailable; continuing without CrewAI " "integration",
                         extra={"error": str(exc)},
                     )
                     self.crewai_adapter = None
@@ -153,8 +152,7 @@ class DocAgent(AgentAdapter):
     def _can_use_crewai(self) -> bool:
         """Check whether CrewAI integration is available and ready."""
         return bool(
-            self.crewai_adapter
-            and getattr(self.crewai_adapter, "dependencies_available", False)
+            self.crewai_adapter and getattr(self.crewai_adapter, "dependencies_available", False)
         )
 
     def _determine_doc_type(self, task: Task, context: CodeContext) -> str:
@@ -183,9 +181,7 @@ class DocAgent(AgentAdapter):
 
         return suggestions
 
-    async def _generate_python_docstrings(
-        self, context: CodeContext
-    ) -> List[Suggestion]:
+    async def _generate_python_docstrings(self, context: CodeContext) -> List[Suggestion]:
         """Generate Python docstrings"""
         if not context.code:
             return []
@@ -232,9 +228,7 @@ class DocAgent(AgentAdapter):
             return self._create_class_docstring(node)
         return '    """TODO: Add docstring"""\n'
 
-    def _create_function_docstring(
-        self, node: Union[ast.FunctionDef, ast.AsyncFunctionDef]
-    ) -> str:
+    def _create_function_docstring(self, node: Union[ast.FunctionDef, ast.AsyncFunctionDef]) -> str:
         """Create docstring for a function"""
         # Extract parameters
         params = []
@@ -419,9 +413,7 @@ class DocAgent(AgentAdapter):
     def _create_readme_template(self, context: CodeContext) -> str:
         """Create basic README template"""
         file_name = context.file_path.split("/")[-1]
-        project_name = (
-            file_name.replace(".py", "").replace(".js", "").replace(".ts", "").title()
-        )
+        project_name = file_name.replace(".py", "").replace(".js", "").replace(".ts", "").title()
 
         readme = f"""# {project_name}
 
@@ -637,8 +629,7 @@ Project Creator: Herman Swanepoel
             ],
             confidence=0.2,
             reasoning=(
-                "CrewAI integration disabled; no documentation strategy available "
-                "for this task"
+                "CrewAI integration disabled; no documentation strategy available " "for this task"
             ),
             metadata={
                 "task_id": task.id,

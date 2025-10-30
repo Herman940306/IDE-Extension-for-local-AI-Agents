@@ -25,7 +25,7 @@ from src.orchestrator.multi_model_router import MultiModelRouter
 from src.orchestrator.task_router import TaskRouter
 from src.services.code_smell_detector import CodeSmellDetector
 from src.services.connection_manager import ConnectionManager
-from src.services.context_engine import ContextEngine
+from src.services.context import ContextEngine, GraphStore
 from src.services.context_manager import ContextManager
 from src.services.embeddings_service import EmbeddingsService
 from src.services.llm_manager import LLMManager, LLMProvider
@@ -39,6 +39,7 @@ from src.services.predictive_cache_manager import PredictiveCacheManager
 from src.services.prompt_templates import PromptTemplates
 from src.services.rate_limiter import RateLimiter
 from src.services.response_cache import ResponseCache
+from src.services.retrieval import build_retriever_dict
 from src.services.safety_layer import SafetyLayer
 from src.services.semantic_search import SemanticSearchService
 from src.services.task_orchestrator import TaskOrchestrator
@@ -110,6 +111,10 @@ class Container(containers.DeclarativeContainer):
         ollama_model_name=config.provided.embeddings.ollama_model_name,
     )
 
+    metrics_service = providers.Singleton(
+        MetricsService,
+    )
+
     code_smell_detector = providers.Singleton(
         CodeSmellDetector,
         embeddings_service=embeddings_service,
@@ -118,6 +123,7 @@ class Container(containers.DeclarativeContainer):
     semantic_search = providers.Singleton(
         SemanticSearchService,
         embeddings_service=embeddings_service,
+        metrics_service=metrics_service,
     )
 
     context_manager = providers.Singleton(
@@ -158,14 +164,22 @@ class Container(containers.DeclarativeContainer):
     )
 
     # Context Engine for semantic search
+    context_graph_store = providers.Singleton(GraphStore)
+
     context_engine = providers.Singleton(
         ContextEngine,
         llm_manager=llm_manager,
+        graph_store=context_graph_store,
+        enabled=config.provided.context_enabled,
+        merge_weights=config.provided.context_merge_weights,
     )
 
-    # Metrics Service for performance tracking
-    metrics_service = providers.Singleton(
-        MetricsService,
+    rag_retrievers = providers.Callable(
+        lambda enabled, search: build_retriever_dict(
+            semantic_search=search if enabled else None,
+        ),
+        config.provided.experimental_rag_v2_enabled,
+        semantic_search=semantic_search,
     )
 
     task_orchestrator = providers.Singleton(
@@ -176,6 +190,7 @@ class Container(containers.DeclarativeContainer):
         output_composer=output_composer,
         context_engine=context_engine,
         metrics_service=metrics_service,
+        rag_retrievers=rag_retrievers,
     )
 
     memory_backend = providers.Callable(

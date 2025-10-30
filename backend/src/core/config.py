@@ -137,6 +137,22 @@ class ModeSettings(BaseSettings):
     default_mode: str = "offline"
 
 
+class RagV2Settings(BaseSettings):
+    """Experimental RAG v2 configuration placeholders."""
+
+    model_config = SettingsConfigDict(env_prefix="RAG_V2_", extra="allow")
+
+    code_top_k: int = 5
+    code_min_relevance: float = 0.0
+    memory_message_limit: int = 20
+    chain_type: str = "stuff"
+    hybrid_fusion_enabled: bool = False
+    fusion_weight_bm25: float = 0.4
+    fusion_weight_vector: float = 0.6
+    reranker_model: str = "bge-reranker-large"
+    relevance_threshold: float = 0.7
+
+
 class AppSettings(BaseSettings):
     """Application settings"""
 
@@ -152,6 +168,14 @@ class AppSettings(BaseSettings):
     log_level: str = "INFO"
     max_request_size: int = 10 * 1024 * 1024  # 10MB
     cors_allowed_origins: list[str] = ["http://localhost:3000", "http://localhost:5173"]
+    experimental_rag_v2_enabled: bool = False
+    context_enabled: bool = False
+    context_merge_weights: dict[str, float] = {
+        "retriever": 0.5,
+        "graph": 0.3,
+        "memory": 0.2,
+    }
+    context_graph_db_path: str = "./data/context/context.db"
 
     # Component settings
     database: DatabaseSettings = DatabaseSettings()
@@ -164,6 +188,7 @@ class AppSettings(BaseSettings):
     observability: ObservabilitySettings = ObservabilitySettings()
     predictive_cache: PredictiveCacheSettings = PredictiveCacheSettings()
     mode: ModeSettings = ModeSettings()
+    rag_v2: RagV2Settings = RagV2Settings()
 
     # Background processing (Celery)
     # These are optional and default to Redis when not provided

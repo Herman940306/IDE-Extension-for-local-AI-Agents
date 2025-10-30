@@ -18,6 +18,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.1.0] - 2025-10-30
+
+### 🎉 Added - RAG v2 Enhancements and Observability
+
+- Hybrid fusion retrieval with optional BM25 lexical scoring and vector relevance
+- Optional reranker integration (Cross-Encoder) with graceful fallback
+- Retrieval trace buffer and debug endpoint: `GET /debug/rag_trace`
+- RAG config endpoint: `GET /config/rag`
+- Prometheus metrics for retrieval:
+  - `retrieval_docs_considered_total{stage="rag_v2"}`
+  - `retrieval_docs_kept_total{stage="rag_v2"}`
+  - `retrieval_topk_mean_fusion_score{stage="rag_v2"}`
+- Debounced file watcher updates to reduce redundant embedding writes
+
+### 🔧 Changed (RAG v2)
+
+- `task_orchestrator.py`: Added retrieval stats in pipeline metadata
+- `main.py`: Added Prometheus metrics and debounced watcher batching
+
+### 🧪 Tests (RAG v2)
+
+- Integration test: watcher-triggered embedding updates
+- Unit tests for hybrid fusion and reranker threshold preserved
+
+### 📝 Docs (RAG v2)
+
+- README updated with RAG v2 flags, endpoints, and troubleshooting
+
+---
+
 ## [2.0.0] - 2025-10-25
 
 ### 🎉 Added - Complete AuraIA Router Integration (OMNIDEVGOD v2.0)
@@ -28,19 +58,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Uses Phi3:mini for harmful content detection
   - Code security analysis (SQL injection, command injection, etc.)
   - Fail-safe design with async integration
-  
+
 - **Output Composer** (`output_composer.py`) - Tone enhancement and response composition
   - Uses Gemma3:12B (premium) / Gemma3:4B (light) for tone
   - Applies AuraIA personality: calm, elegant, human-centric
   - Preserves technical accuracy and code blocks
   - Error response composition
-  
+
 - **Context Engine** (`context_engine.py`) - Semantic search and session memory
   - Uses Nomic-Embed-Text for embeddings
   - Cosine similarity matching with Top-K retrieval
   - Persistent context storage (.aura_embed_cache.json)
   - Semantic search across project context
-  
+
 - **Metrics Service** (`metrics_service.py`) - Performance tracking and auto-tuning
   - Per-model metrics: latency, success rate, call count
   - Auto-tune recommendations with thresholds
@@ -58,7 +88,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 #### **Enhanced Pipeline (6 Stages)**
 
 ```
-Input → Context Retrieval → System 1 Fast → System 2 Verify 
+Input → Context Retrieval → System 1 Fast → System 2 Verify
       → Safety Check → Output Composition → Metrics → Final Output
 ```
 
@@ -68,15 +98,15 @@ Input → Context Retrieval → System 1 Fast → System 2 Verify
   - Stage-by-stage latency tracking
   - Comprehensive metadata logging
   - Graceful degradation if services unavailable
-  
+
 - **DI Container** - Added 4 new singleton providers
   - `safety_layer`, `output_composer`, `context_engine`, `metrics_service`
   - Enhanced `task_orchestrator` wiring with all services
-  
+
 - **Main Application** - Registered router endpoints
   - FastAPI router integration
   - Service initialization in lifespan
-  
+
 - **Multi-Model Router** - Fixed TaskType enum compatibility
   - Changed `REFACTORING` → `REFACTOR` for consistency
 
@@ -252,5 +282,5 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on proposing changes and a
 
 ---
 
-**Project Creator:** Herman Swanepoel  
+**Project Creator:** Herman Swanepoel
 **Repository:** [IDE-Extension-for-local-AI-Agents](https://github.com/Herman940306/IDE-Extension-for-local-AI-Agents)
