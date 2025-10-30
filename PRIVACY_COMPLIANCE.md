@@ -1,7 +1,7 @@
 # AuraIA Privacy Impact Assessment
 
-**Version:** 1.0  
-**Last Updated:** 2025-10-19  
+**Version:** 1.0
+**Last Updated:** 2025-10-19
 **Prepared By:** Privacy & Compliance Team
 
 ## 1. Overview
@@ -88,10 +88,10 @@ Effective immediately and for all contributors and automation:
 
 - The directory `AuraIA IDE Vision and Roadmap/` and all of its contents are treated as Confidential and must NEVER be uploaded, transmitted, packaged, or published outside the local machine unless the owner explicitly approves per-change.
 - Technical safeguards in place:
-	- `.gitignore` excludes `AuraIA IDE Vision and Roadmap/` so it is not added to Git.
-	- `.dockerignore` excludes the folder from Docker build contexts and images.
-	- `.pre-commit-config.yaml` contains a blocking rule that fails commits touching this path.
-	- VS Code extension packaging only includes files under `extension/`; confidential docs are outside and never bundled. `.vscodeignore` additionally filters extension packaging.
+ 	- `.gitignore` excludes `AuraIA IDE Vision and Roadmap/` so it is not added to Git.
+ 	- `.dockerignore` excludes the folder from Docker build contexts and images.
+ 	- `.pre-commit-config.yaml` contains a blocking rule that fails commits touching this path.
+ 	- VS Code extension packaging only includes files under `extension/`; confidential docs are outside and never bundled. `.vscodeignore` additionally filters extension packaging.
 - Cloud features (telemetry, cloud LLMs) are opt-in and disabled by default. No file contents from this folder are ever sent to any remote endpoint.
 - Any task requiring sharing these materials must include explicit written approval in the pull request description or issue comment.
 

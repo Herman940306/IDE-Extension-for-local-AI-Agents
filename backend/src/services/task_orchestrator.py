@@ -10,7 +10,8 @@ from __future__ import annotations
 import asyncio
 import textwrap
 import time
-from typing import Any, Dict, List, Optional, cast
+from collections import OrderedDict
+from typing import Any, Dict, List, Optional, Tuple, cast
 
 from src.config.settings import get_settings
 from src.models.response import AgentResponse, ConfidenceLevel, Suggestion
@@ -24,6 +25,11 @@ from src.models.session import (
 from src.models.task import TaskType
 from src.orchestrator.multi_model_router import MultiModelRouter
 from src.services.connection_manager import logger as ws_logger
+
+# build_retriever_dict imported earlier; keep single import to avoid redefinition
+from src.services.memory_service import MemoryService, get_memory_service
+from src.services.retrieval.helpers import build_retriever_dict
+from src.services.retrieval.trace import RetrievalDocTrace, retrieval_trace_buffer
 
 settings = get_settings()
 
@@ -745,6 +751,8 @@ class TaskOrchestrator:
         output_composer=None,
         context_engine=None,
         metrics_service=None,
+        rag_retrievers: Optional[Dict[str, Any]] = None,
+        memory_service: Optional[MemoryService] = None,
     ):
         """
         Initialize orchestrator with full service pipeline.
@@ -758,6 +766,7 @@ class TaskOrchestrator:
             output_composer: Output composition service
             context_engine: Context and embedding service
             metrics_service: Performance metrics service
+            rag_retrievers: Optional LangChain retriever bundle for experimental RAG v2
         """
         self.router = router or MultiModelRouter()
         self.llm_manager = llm_manager
@@ -771,6 +780,25 @@ class TaskOrchestrator:
         self.output_composer = output_composer
         self.context_engine = context_engine
         self.metrics_service = metrics_service
+        self._rag_retrievers = rag_retrievers
+        self._memory_service = memory_service
+        self._rag_enabled = bool(settings.experimental_rag_v2_enabled and rag_retrievers)
+
+        if settings.experimental_rag_v2_enabled:
+            if self._rag_enabled:
+                ws_logger.info(
+                    "experimental_rag_v2_active",
+                    extra={"rag_stage": "langchain_retriever"},
+                )
+            else:
+                ws_logger.warning(
+                    "experimental_rag_v2_unavailable",
+                    extra={"reason": "missing_retrievers"},
+                )
+        self._token_cache: Dict[str, List[str]] = {}
+        self._token_cache_max = 1000
+        self._retrieval_cache: Optional[OrderedDict[str, List[str]]] = None
+        self._retrieval_cache_cap = 100
 
     async def execute(self, request: TaskRequestPayload) -> TaskSessionResult:
         """Process a task request and return an aggregated session result."""
@@ -868,9 +896,18 @@ class TaskOrchestrator:
             "models_used": [],
             "latencies": {},
         }
-        latencies = cast(Dict[str, float], pipeline_metadata["latencies"])  # type: ignore[index]
-        stages = cast(List[str], pipeline_metadata["stages"])  # type: ignore[index]
-        models_used = cast(List[str], pipeline_metadata["models_used"])  # type: ignore[index]
+        latencies = cast(
+            Dict[str, float],
+            pipeline_metadata["latencies"],
+        )  # type: ignore[index]
+        stages = cast(
+            List[str],
+            pipeline_metadata["stages"],
+        )  # type: ignore[index]
+        models_used = cast(
+            List[str],
+            pipeline_metadata["models_used"],
+        )  # type: ignore[index]
 
         ws_logger.info(
             "enhanced_task_execution_started",
@@ -881,8 +918,297 @@ class TaskOrchestrator:
         )
 
         # Stage 1: Context Retrieval (if context engine available)
-        context_snippets = []
-        if self.context_engine and request.content:
+        context_snippets: List[str] = []
+        context_source: Optional[str] = None
+        if self._retrieval_cache is None:
+            self._retrieval_cache = OrderedDict()
+
+        if self._rag_enabled and request.content:
+            try:
+                # Start with retrievers provided by DI (typically includes 'code')
+                retrievers: Dict[str, Any] = dict(self._rag_retrievers or {})
+
+                # If a memory service is available and we can infer a session_id,
+                # augment with memory retriever
+                session_id: Optional[str] = None
+                try:
+                    # Prefer explicit metadata session_id if provided
+                    session_id = (request.metadata or {}).get("session_id") or (
+                        (
+                            getattr(request, "context", None)
+                            and getattr(request.context, "metadata", {})
+                            or {}
+                        ).get("session_id")
+                    )
+                except Exception:  # noqa: BLE001
+                    session_id = None
+
+                # Resolve a memory service if possible (injected or singleton)
+                mem_service = self._memory_service
+                if mem_service is None and session_id:
+                    try:
+                        mem_service = await get_memory_service()
+                    except Exception:  # pragma: no cover - optional dependency
+                        mem_service = None
+
+                if mem_service and session_id:
+                    # Build only the memory retriever to avoid duplicating code
+                    # retriever
+                    mem_retr = build_retriever_dict(
+                        memory_service=mem_service, session_id=session_id
+                    ).get("memory")
+                    if mem_retr is not None:
+                        retrievers.setdefault("memory", mem_retr)
+
+                if "code" not in retrievers:
+                    raise RuntimeError("LangChain code retriever is not configured")
+
+                t0 = time.perf_counter()
+
+                # Simple retrieval cache key to avoid recomputation in rapid repeats
+                key = "|".join(
+                    [
+                        request.content,
+                        str(getattr(settings, "fusion_weight_vector", 0.6)),
+                        str(getattr(settings, "fusion_weight_bm25", 0.4)),
+                        str(getattr(settings, "hybrid_fusion_enabled", False)),
+                        str(getattr(settings, "relevance_threshold", 0.0)),
+                        str(bool(getattr(settings, "reranker_model", ""))),
+                        str(getattr(settings, "rag_v2_code_top_k", 5)),
+                    ]
+                )
+
+                cached = self._retrieval_cache.get(key)
+                if cached is not None:
+                    context_snippets = cached
+                else:
+                    # Fetch from available retrievers (code + optional memory)
+                    code_docs = await retrievers["code"].aget_relevant_documents(request.content)
+
+                    mem_docs: List[Any] = []
+                    if retrievers.get("memory") is not None:
+                        try:
+                            mem_retr = retrievers["memory"]
+                            mem_docs = await mem_retr.aget_relevant_documents(request.content)
+                        except Exception as mem_err:  # noqa: BLE001
+                            ws_logger.warning("Memory retriever failed: %s", mem_err)
+
+                    # Optional hybrid fusion + reranking for code documents
+                    def _tokenize(text: str) -> List[str]:
+                        return [t for t in text.lower().split() if t]
+
+                    def _lexical_overlap(query: str, doc: str) -> float:
+                        q = _tokenize(query)
+                        d = _tokenize(doc)
+                        if not q or not d:
+                            return 0.0
+                        inter = len(set(q) & set(d))
+                        # normalized overlap proxy
+                        return inter / max(len(set(q)), 1)
+
+                    def _vector_score(doc: Any) -> float:
+                        try:
+                            meta = getattr(doc, "metadata", {}) or {}
+                            score = float(meta.get("relevance", 0.0) or 0.0)
+                            return max(0.0, min(1.0, score))
+                        except Exception:
+                            return 0.0
+
+                    ranked_code: List[Tuple[float, Any]] = []
+                    w_bm25 = getattr(settings, "fusion_weight_bm25", 0.4)
+                    w_vec = getattr(settings, "fusion_weight_vector", 0.6)
+                    use_hybrid = bool(getattr(settings, "hybrid_fusion_enabled", False))
+                    # Optional BM25 scoring if library is available
+                    bm25_scores: Optional[List[float]] = None
+                    max_bm25: float = 1.0
+                    code_texts: List[str] = [getattr(d, "page_content", "") for d in code_docs]
+                    if use_hybrid:
+                        try:  # pragma: no cover - optional dependency
+                            from rank_bm25 import BM25Okapi  # type: ignore
+
+                            corpus = [_tokenize(txt) for txt in code_texts]
+                            bm25 = BM25Okapi(corpus)
+                            q_tokens = _tokenize(request.content)
+                            bm25_arr = bm25.get_scores(q_tokens)
+                            bm25_scores = [float(s) for s in bm25_arr]
+                            max_bm25 = max(max(bm25_scores) if bm25_scores else 1.0, 1.0)
+                        except Exception:  # noqa: BLE001
+                            bm25_scores = None
+
+                    for idx, d in enumerate(code_docs):
+                        v = _vector_score(d)
+                        doc_text = code_texts[idx]
+                        if use_hybrid:
+                            if bm25_scores is not None:
+                                lex = bm25_scores[idx] / max_bm25 if max_bm25 > 0 else 0.0
+                            else:
+                                lex = _lexical_overlap(request.content, doc_text)
+                        else:
+                            lex = 0.0
+                        score = (w_vec * v) + (w_bm25 * lex) if use_hybrid else v
+                        ranked_code.append((score, d))
+                        # Trace each candidate prior to filtering (mark as considered)
+                        try:
+                            retrieval_trace_buffer.append(
+                                RetrievalDocTrace(
+                                    file=(getattr(d, "metadata", {}) or {}).get("file")
+                                    or (getattr(d, "metadata", {}) or {}).get("source"),
+                                    vector_score=v,
+                                    lexical_score=lex,
+                                    fusion_score=score,
+                                    kept_after_threshold=False,
+                                    extras={
+                                        "id": ((getattr(d, "metadata", {}) or {}).get("id")),
+                                        "stage": "rag_v2",
+                                        "event": "considered",
+                                    },
+                                )
+                            )
+                        except Exception:  # noqa: BLE001
+                            pass
+
+                    # Reranker toggle: honor relevance_threshold when enabled
+                    reranker_on = bool(getattr(settings, "reranker_model", ""))
+                    threshold = float(getattr(settings, "relevance_threshold", 0.0) or 0.0)
+                    if reranker_on:
+                        # Optional cross-encoder reranker blending
+                        ce_scores: Optional[List[float]] = None
+                        try:  # pragma: no cover - optional dependency
+                            model_name = str(getattr(settings, "reranker_model", ""))
+                            if model_name.lower().startswith("cross-encoder"):
+                                from sentence_transformers import (
+                                    CrossEncoder,
+                                )  # type: ignore  # noqa: E501
+
+                                loop = asyncio.get_event_loop()
+                                ce = await loop.run_in_executor(
+                                    None, lambda: CrossEncoder(model_name)
+                                )
+                                pairs = [(request.content, t) for t in code_texts]
+                                # Predict in executor to avoid blocking
+                                raw_scores = await loop.run_in_executor(
+                                    None, lambda: ce.predict(pairs)
+                                )
+                                # Normalize to 0..1
+                                try:
+                                    raw_list = [float(x) for x in raw_scores]
+                                    mn, mx = min(raw_list), max(raw_list)
+                                    span = (mx - mn) or 1.0
+                                    ce_scores = [(x - mn) / span for x in raw_list]
+                                except Exception:  # noqa: BLE001
+                                    ce_scores = None
+                        except Exception:  # noqa: BLE001
+                            ce_scores = None
+
+                        if ce_scores is not None:
+                            # Blend CE score into fusion score then threshold
+                            blended: List[Tuple[float, Any]] = []
+                            for i, (s, d) in enumerate(ranked_code):
+                                ce_s = ce_scores[i] if i < len(ce_scores) else 0.0
+                                new_s = 0.5 * s + 0.5 * ce_s
+                                blended.append((new_s, d))
+                            ranked_code = [(s, d) for (s, d) in blended if s >= threshold]
+                        else:
+                            ranked_code = [(s, d) for (s, d) in ranked_code if s >= threshold]
+
+                    # Sort by score desc and clip to top_k
+                    ranked_code.sort(key=lambda x: x[0], reverse=True)
+                    top_k = int(getattr(settings, "rag_v2_code_top_k", 5) or 5)
+                    ranked_code = ranked_code[:top_k]
+
+                    # Observability: compute kept/filtered counts and mean fusion
+                    considered_count = len(code_docs)
+                    kept_count = len(ranked_code)
+                    filtered_count = max(considered_count - kept_count, 0)
+                    mean_fusion = (
+                        sum(s for (s, _d) in ranked_code) / kept_count if kept_count else 0.0
+                    )
+
+                    # Build final snippets: code (reranked) + memory (as-is)
+                    context_snippets = [
+                        getattr(d, "page_content", "")
+                        for (s, d) in ranked_code
+                        if getattr(d, "page_content", "")
+                    ]
+                    # Trace kept documents after thresholding/top-k
+                    try:
+                        for s, d in ranked_code:
+                            retrieval_trace_buffer.append(
+                                RetrievalDocTrace(
+                                    file=(getattr(d, "metadata", {}) or {}).get("file")
+                                    or (getattr(d, "metadata", {}) or {}).get("source"),
+                                    vector_score=_vector_score(d),
+                                    lexical_score=(
+                                        _lexical_overlap(
+                                            request.content,
+                                            getattr(d, "page_content", ""),
+                                        )
+                                        if use_hybrid and bm25_scores is None
+                                        else 0.0
+                                    ),
+                                    fusion_score=s,
+                                    kept_after_threshold=True,
+                                    extras={
+                                        "id": ((getattr(d, "metadata", {}) or {}).get("id")),
+                                        "stage": "rag_v2",
+                                        "event": "kept",
+                                    },
+                                )
+                            )
+                    except Exception:  # noqa: BLE001
+                        pass
+                    context_snippets.extend(
+                        [
+                            getattr(doc, "page_content", "")
+                            for doc in mem_docs
+                            if getattr(doc, "page_content", "")
+                        ]
+                    )
+                    # Populate cache
+                    self._retrieval_cache[key] = context_snippets
+                    # Enforce simple LRU capacity
+                    cap = getattr(self, "_retrieval_cache_cap", 100)
+                    while len(self._retrieval_cache) > cap:
+                        self._retrieval_cache.popitem(last=False)
+
+                    # Attach retrieval stats
+                    try:
+                        pipeline_metadata["retrieval_stats"] = {
+                            "considered": considered_count,
+                            "kept": kept_count,
+                            "filtered": filtered_count,
+                            "topk_mean_fusion": round(mean_fusion, 4),
+                        }
+                    except Exception:  # noqa: BLE001
+                        pass
+                    # Export to Prometheus if available
+                    try:  # pragma: no cover - optional
+                        from src.main import (
+                            RETRIEVAL_DOCS_CONSIDERED,
+                            RETRIEVAL_DOCS_KEPT,
+                            RETRIEVAL_TOPK_MEAN_FUSION_SCORE,
+                        )
+
+                        RETRIEVAL_DOCS_CONSIDERED.labels(stage="rag_v2").inc(considered_count)
+                        RETRIEVAL_DOCS_KEPT.labels(stage="rag_v2").inc(kept_count)
+                        RETRIEVAL_TOPK_MEAN_FUSION_SCORE.labels(stage="rag_v2").set(
+                            float(mean_fusion)
+                        )
+                    except Exception:  # noqa: BLE001
+                        pass
+
+                latencies["context_retrieval"] = time.perf_counter() - t0
+                stages.append("rag_v2_retrieval")
+                context_source = "rag_v2"
+                pipeline_metadata["retriever"] = context_source
+                ws_logger.debug(
+                    "Retrieved %d context snippets via LangChain retrievers",
+                    len(context_snippets),
+                )
+            except Exception as e:  # noqa: BLE001
+                ws_logger.warning("LangChain context retrieval failed: %s", e)
+
+        if not context_snippets and self.context_engine and request.content:
             try:
                 t0 = time.perf_counter()
                 context_snippets = await self.context_engine.get_context_snippets(
@@ -890,9 +1216,20 @@ class TaskOrchestrator:
                 )
                 latencies["context_retrieval"] = time.perf_counter() - t0
                 stages.append("context_retrieval")
+                context_source = "context_engine"
+                pipeline_metadata["retriever"] = context_source
                 ws_logger.debug("Retrieved %d context snippets", len(context_snippets))
             except Exception as e:  # noqa: BLE001
                 ws_logger.warning("Context retrieval failed: %s", e)
+
+        if context_snippets and context_source:
+            request.metadata.setdefault("retrieval", {})
+            request.metadata["retrieval"].update(
+                {
+                    "source": context_source,
+                    "snippet_count": len(context_snippets),
+                }
+            )
 
         # Stage 2: Reasoning (System 1 Fast)
         t0 = time.perf_counter()

@@ -11,6 +11,7 @@ from collections import OrderedDict
 from typing import Any, Dict, List, Optional
 
 from src.services.embeddings_service import EmbeddingsService
+from src.services.metrics_service import MetricsService
 
 logger = logging.getLogger(__name__)
 
@@ -30,6 +31,8 @@ class SearchCache:
         self.timestamps: Dict[str, float] = {}
         self.maxsize = maxsize
         self.ttl = ttl
+        self.hits = 0
+        self.misses = 0
 
     def get(self, key: str) -> Optional[Any]:
         """Get cached result if not expired"""
@@ -37,11 +40,12 @@ class SearchCache:
             if time.time() - self.timestamps[key] < self.ttl:
                 # Move to end (most recently used)
                 self.cache.move_to_end(key)
+                self.hits += 1
                 return self.cache[key]
-            else:
-                # Expired, remove
-                del self.cache[key]
-                del self.timestamps[key]
+            # Expired, remove and treat as miss
+            del self.cache[key]
+            del self.timestamps[key]
+        self.misses += 1
         return None
 
     def put(self, key: str, value: Any) -> None:
@@ -61,6 +65,13 @@ class SearchCache:
         """Clear cache"""
         self.cache.clear()
         self.timestamps.clear()
+        self.hits = 0
+        self.misses = 0
+
+    def hit_rate(self) -> float:
+        """Return cache hit rate."""
+        total = self.hits + self.misses
+        return (self.hits / total) if total else 0.0
 
 
 class SemanticSearchService:
@@ -68,7 +79,11 @@ class SemanticSearchService:
     Semantic code search with caching and relevance scoring
     """
 
-    def __init__(self, embeddings_service: EmbeddingsService):
+    def __init__(
+        self,
+        embeddings_service: EmbeddingsService,
+        metrics_service: Optional[MetricsService] = None,
+    ):
         """
         Initialize semantic search service
 
@@ -78,6 +93,27 @@ class SemanticSearchService:
         self.embeddings_service = embeddings_service
         self.search_cache = SearchCache(maxsize=100, ttl=300.0)  # 5 min TTL
         self.embedding_cache = SearchCache(maxsize=500, ttl=600.0)  # 10 min TTL
+        self.metrics_service = metrics_service
+
+    def _record_metric(
+        self,
+        model: str,
+        latency: float,
+        success: bool,
+        error: Optional[str] = None,
+    ) -> None:
+        """Best-effort guard around metrics recording."""
+        if not self.metrics_service:
+            return
+        try:
+            self.metrics_service.record_call(
+                model=model,
+                latency=latency,
+                success=success,
+                error=error,
+            )
+        except Exception:  # pragma: no cover - metrics failures should not break search
+            logger.debug("metrics_record_failed", exc_info=True)
 
     async def search(
         self,
@@ -99,38 +135,66 @@ class SemanticSearchService:
             List of search results with relevance scores
         """
         # Generate cache key
-        cache_key = self._generate_cache_key(query, top_k, file_extension, min_relevance)
+        cache_key = self._generate_cache_key(
+            query,
+            top_k,
+            file_extension,
+            min_relevance,
+        )
 
         # Check cache
         cached_result = self.search_cache.get(cache_key)
         if cached_result is not None:
             logger.debug(f"Cache hit for query: {query[:50]}")
+            self._record_metric("semantic_search.cache_hit", 0.0, True)
             return cached_result
 
         # Perform search
-        results = await self.embeddings_service.find_similar_code(
-            query=query,
-            top_k=top_k * 2,  # Get more results for filtering
-            file_extension=file_extension,
-        )
+        start_time = time.perf_counter()
+        try:
+            results = await self.embeddings_service.find_similar_code(
+                query=query,
+                top_k=top_k * 2,  # Get more results for filtering
+                file_extension=file_extension,
+            )
 
-        # Calculate relevance scores and filter
-        scored_results = []
-        for result in results:
-            relevance = self._calculate_relevance(result, query)
-            if relevance >= min_relevance:
-                result["relevance"] = relevance
-                scored_results.append(result)
+            # Calculate relevance scores and filter
+            scored_results = []
+            for result in results:
+                relevance = self._calculate_relevance(result, query)
+                if relevance >= min_relevance:
+                    result["relevance"] = relevance
+                    scored_results.append(result)
 
-        # Sort by relevance and limit
-        scored_results.sort(key=lambda x: x["relevance"], reverse=True)
-        final_results = scored_results[:top_k]
+            # Sort by relevance and limit
+            scored_results.sort(key=lambda x: x["relevance"], reverse=True)
+            final_results = scored_results[:top_k]
 
-        # Cache results
-        self.search_cache.put(cache_key, final_results)
+            # Cache results
+            self.search_cache.put(cache_key, final_results)
 
-        logger.debug(f"Search completed: {len(final_results)} results for '{query[:50]}'")
-        return final_results
+            latency = time.perf_counter() - start_time
+            self._record_metric(
+                "semantic_search.query",
+                latency,
+                success=bool(final_results),
+            )
+
+            logger.debug(
+                "Search completed: %d results for '%s'",
+                len(final_results),
+                query[:50],
+            )
+            return final_results
+        except Exception as exc:
+            latency = time.perf_counter() - start_time
+            self._record_metric(
+                "semantic_search.query",
+                latency,
+                success=False,
+                error=str(exc),
+            )
+            raise
 
     async def search_by_function(self, function_name: str, top_k: int = 5) -> List[Dict[str, Any]]:
         """
@@ -474,10 +538,5 @@ class SemanticSearchService:
             "embedding_cache_size": len(self.embedding_cache.cache),
             "search_cache_maxsize": self.search_cache.maxsize,
             "search_cache_ttl": self.search_cache.ttl,
-            "cache_hit_rate": self._calculate_cache_hit_rate(),
+            "cache_hit_rate": round(self.search_cache.hit_rate(), 3),
         }
-
-    def _calculate_cache_hit_rate(self) -> float:
-        """Calculate cache hit rate (placeholder for future implementation)"""
-        # This would require tracking hits/misses
-        return 0.0

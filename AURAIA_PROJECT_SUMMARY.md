@@ -1,7 +1,5 @@
 # AuraIA: A Next-Generation Cognitive AI Partner for VS Code
 
-![AuraIA Logo](assets/AuraIA_logo.jpg)
-
 AuraIA is not just another AI assistant; it is a sophisticated, privacy-first cognitive architecture designed to serve as a true coding partner. Built with a clear vision and a defined personality, AuraIA aims to provide developers with a calm, insightful, and supportive assistant that deeply understands the context of their work.
 
 At its core, AuraIA operates on a multi-layered model routing system inspired by dual-process cognitive theory ("System 1" and "System 2" thinking). This allows it to be both incredibly fast for simple tasks and deeply analytical for complex ones, ensuring a fluid and intuitive developer experience. All of this is achieved with a local-first approach that respects user privacy, keeping your code on your machine by default.
@@ -55,35 +53,3 @@ The project is stable and fully functional for end-to-end testing. The backend s
 1. **Start the Backend**: Use the VS Code Task **`Tasks: Run Task > Python: Run API (Uvicorn)`**.
 2. **Start the Frontend**: In a new terminal, navigate to `frontend` and run `npm run dev`.
 3. **Interact**: Open the frontend URL (e.g., `http://127.0.0.1:5288`) and begin interacting with AuraIA.
-
-## Documentation
-
-* Overview: [docs/overview.md](docs/overview.md)
-* Product Requirements (PRD): Internal document (local-only; not included in the public repo)
-
-## RAG v2 configuration and observability
-
-RAG v2 is available behind feature flags and integrates hybrid fusion retrieval, optional reranking, and lightweight observability.
-
-* Flags (environment or settings):
-  * `experimental_rag_v2_enabled`: Enable the RAG v2 pipeline
-  * `hybrid_fusion_enabled`: Combine vector relevance with lexical (BM25 or proxy)
-  * `fusion_weight_vector`: Weight for vector relevance (default 0.6)
-  * `fusion_weight_bm25`: Weight for lexical relevance (default 0.4)
-  * `reranker_model`: Optional Cross-Encoder model id; if unavailable, falls back
-  * `relevance_threshold`: Threshold applied to the final score (0..1)
-  * `rag_v2_code_top_k`: Number of code snippets to keep (default 8)
-
-* Endpoints:
-  * `GET /debug/rag_trace` — recent retrieval traces (per-document scores)
-  * `GET /config/rag` — effective RAG configuration values
-
-* Prometheus metrics:
-  * `retrieval_docs_considered_total{stage="rag_v2"}`
-  * `retrieval_docs_kept_total{stage="rag_v2"}`
-  * `retrieval_topk_mean_fusion_score{stage="rag_v2"}`
-
-Notes:
-* BM25 is used if `rank_bm25` is installed; otherwise a lexical-overlap proxy is used.
-* Cross-Encoder reranker is used if `sentence-transformers` CrossEncoder is available and `reranker_model` starts with `cross-encoder`.
-* File watcher updates to embeddings are debounced to reduce redundant writes.

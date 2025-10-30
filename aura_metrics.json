@@ -18,5 +18,15 @@
     "success_rate": 1.0,
     "last_used": 1761394714.6994903,
     "errors": []
+  },
+  "semantic_search.query": {
+    "calls": 1,
+    "total_latency": 3.979999746661633e-05,
+    "avg_latency": 3.979999746661633e-05,
+    "success_count": 1,
+    "error_count": 0,
+    "success_rate": 1.0,
+    "last_used": 1761576211.8313825,
+    "errors": []
   }
 }

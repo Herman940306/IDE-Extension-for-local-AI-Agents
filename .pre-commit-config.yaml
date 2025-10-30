@@ -12,11 +12,7 @@ repos:
       - id: black
         args: ["--line-length=88"]
 
-  - repo: https://github.com/pre-commit/mirrors-pytest
-    rev: v1.0.0
-    hooks:
-      - id: pytest
-        args: ["-q", "--maxfail=1", "--disable-warnings"]
+  # Removed pytest mirror hook due to upstream deprecation/404; run tests in CI instead
 
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.6.0
@@ -43,6 +39,6 @@ repos:
       - id: block-confidential-paths
         name: Block commits to confidential folder
         description: Prevent committing files under 'AuraIA IDE Vision and Roadmap/'
-        language: pygrep
-        entry: .
-        files: ^AuraIA IDE Vision and Roadmap/
+        language: python
+        entry: python scripts/hooks/block_confidential_paths.py
+        pass_filenames: true

@@ -112,9 +112,7 @@ class EmbeddingsService:
                 logger.warning(
                     "chroma_unavailable",
                     extra={
-                        "message": (
-                            "ChromaDB not installed; embeddings persistence disabled"
-                        ),
+                        "message": ("ChromaDB not installed; embeddings persistence disabled"),
                         "persist_dir": self.chroma_persist_dir,
                     },
                 )
@@ -199,9 +197,7 @@ class EmbeddingsService:
                 model = self.model
                 embeddings = await loop.run_in_executor(
                     None,
-                    lambda: model.encode(
-                        code_snippets, convert_to_numpy=True, batch_size=32
-                    ),
+                    lambda: model.encode(code_snippets, convert_to_numpy=True, batch_size=32),
                 )
                 return [emb.tolist() for emb in embeddings]
             else:
@@ -378,9 +374,7 @@ class EmbeddingsService:
                             "code": results["documents"][0][i],
                             "metadata": results["metadatas"][0][i],
                             "distance": (
-                                results["distances"][0][i]
-                                if "distances" in results
-                                else None
+                                results["distances"][0][i] if "distances" in results else None
                             ),
                         }
                     )
