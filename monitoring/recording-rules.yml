@@ -7,9 +7,9 @@ groups:
       - record: http_requests:rate5m
         expr: sum(rate(http_requests_total[5m]))
 
-      # FastAPI-specific request rate (if metric exists)
+      # Backend request rate alias (FastAPI middleware is exporting http_requests_total)
       - record: fastapi_requests:rate5m
-        expr: sum(rate(fastapi_requests_total[5m]))
+        expr: sum(rate(http_requests_total[5m]))
 
       # Pre-aggregate histogram buckets for latency quantiles
       - record: job:http_request_duration_seconds_bucket:rate5m

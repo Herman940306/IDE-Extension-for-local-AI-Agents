@@ -4,7 +4,15 @@
 }
 
 # Use SERVER_DOMAIN if set, else default to localhost
+
 {$SERVER_DOMAIN:localhost} {
+	# Prometheus metrics via caddy-prometheus plugin disabled (plugin not available in base image)
+	# If you need Caddy metrics, enable a custom build and re-add the block below.
+	# prometheus {
+	#     address :9180
+	#     path /metrics
+	# }
+
 	encode zstd gzip
 
 	# Access logging (rotated files)
@@ -44,5 +52,3 @@
 		respond "AURAIA API Gateway online" 200
 	}
 }
-
-# (metrics endpoint removed in this image-only setup)

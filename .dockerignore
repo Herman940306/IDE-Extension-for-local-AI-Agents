@@ -8,6 +8,46 @@ AuraIA IDE Vision and Roadmap/
 node_modules/
 **/node_modules/
 .venv/
+**/.venv/
 venv/
 __pycache__/
 *.log
+
+# Trunk CLI and plugins (can include symlinks/sockets that break context)
+.trunk/
+**/.trunk/
+
+# Python caches and coverage
+*.py[cod]
+*$py.class
+.pytest_cache/
+**/.pytest_cache/
+.mypy_cache/
+**/.mypy_cache/
+.ruff_cache/
+**/.ruff_cache/
+.tox/
+**/.tox/
+.coverage*
+coverage/
+**/coverage/
+htmlcov/
+**/htmlcov/
+dist/
+**/dist/
+build/
+**/build/
+
+# Frontend build outputs
+frontend/.next/
+frontend/dist/
+**/.cache/
+
+# IDE/editor
+.vscode/
+.idea/
+
+# Env files and secrets
+.env
+**/.env
+*.env

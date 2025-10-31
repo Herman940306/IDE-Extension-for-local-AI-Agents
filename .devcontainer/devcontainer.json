@@ -1,0 +1,40 @@
+{
+  "name": "IDE extension aura IA",
+  "dockerComposeFile": [
+    "../docker-compose.yml",
+    "../docker-compose.dev.yml"
+  ],
+  "service": "backend",
+  "workspaceFolder": "/workspaces/IDE-extension-aura-IA",
+  "shutdownAction": "stopCompose",
+  "features": {
+    "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {
+      "moby": false,
+      "username": "auraai"
+    }
+  },
+  "postCreateCommand": "python -m pip install --upgrade --no-warn-script-location pip && ( [ -S /var/run/docker.sock ] && chmod 666 /var/run/docker.sock || true )",
+  "forwardPorts": [8001, 6379, 9100, 9090, 3000, 11434],
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "python.defaultInterpreterPath": "/usr/local/bin/python",
+        "python.analysis.extraPaths": [
+          "/workspaces/IDE-extension-aura-IA/backend/src"
+        ],
+        "python.testing.pytestArgs": [
+          "/workspaces/IDE-extension-aura-IA/backend/tests"
+        ],
+        "python.testing.unittestEnabled": false,
+        "python.testing.pytestEnabled": true,
+        "python.formatting.provider": "black"
+      },
+      "extensions": [
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "ms-azuretools.vscode-docker",
+        "esbenp.prettier-vscode"
+      ]
+    }
+  }
+}

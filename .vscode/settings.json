@@ -6,8 +6,8 @@
     "source.fixAll": "explicit"
   },
   "diffEditor.codeLens": true,
-  "python.defaultInterpreterPath": ".venv/Scripts/python.exe",
-  "python.pythonPath": ".venv/Scripts/python.exe",
+  "python.defaultInterpreterPath": "${workspaceFolder}/backend/.venv/bin/python",
+  "python.pythonPath": "${workspaceFolder}/backend/.venv/bin/python",
   "[python]": {
     "editor.defaultFormatter": "ms-python.black-formatter",
     "editor.formatOnSave": true,
@@ -215,5 +215,9 @@
     "**/node_modules/**": true,
     "**/.venv/**": true,
     "**/logs/**": true
-  }
+  },
+  "docker.host": "unix:///var/run/docker.sock",
+  "docker.context": "default",
+  "docker.defaultContextPath": "${workspaceFolder}",
+  "docker.containers.label": "com.docker.compose.project=${workspaceFolderBasename}"
 }

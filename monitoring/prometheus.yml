@@ -31,22 +31,37 @@ scrape_configs:
       - targets:
           - prometheus:9090
 
+  - job_name: "redis"
+    metrics_path: /metrics
+    static_configs:
+      - targets:
+          - redis_exporter:9121
+
   - job_name: "celery-worker"
-    metrics_path: /
+    metrics_path: /metrics
     scheme: http
     static_configs:
       - targets:
           - celery_worker:9100
 
+
+
+  - job_name: "caddy"
+    metrics_path: /metrics
+    scheme: http
+    static_configs:
+      - targets:
+          - caddy:9180
+
 # Caddy metrics disabled (using official image without prometheus plugin)
 
-# Optional: GPU metrics (uncomment the exporter you use)
-# - job_name: "nvidia-gpu-exporter"
-#   static_configs:
-#     - targets:
-#         - nvidia_gpu_exporter:9835  # nvidia-smi exporter default port
+  # Optional: GPU metrics (exporters enabled via docker compose --profile gpu)
+  - job_name: "nvidia-gpu-exporter"
+    static_configs:
+      - targets:
+          - nvidia_gpu_exporter:9835  # nvidia-smi exporter default port
 
-# - job_name: "dcgm"
-#   static_configs:
-#     - targets:
-#         - dcgm-exporter:9400        # NVIDIA DCGM exporter default port
+  - job_name: "dcgm"
+    static_configs:
+      - targets:
+          - dcgm-exporter:9400        # NVIDIA DCGM exporter default port

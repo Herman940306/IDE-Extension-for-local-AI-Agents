@@ -1,21 +1,58 @@
 version: "3.9"
 
-# Development override: expose selected service ports for local debugging
-# Usage:
-#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+# Development overrides:
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
+#
+# Highlights:
+# - backend & celery reuse a dedicated dev Dockerfile with CPU-friendly torch wheels
+# - bind-mount the entire repo for hot reload and live editing from the host
+# - ports remain aligned with production to minimise config drift
 
 services:
   backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile.dev
+    command: uvicorn src.main:app --host 0.0.0.0 --port 8001 --reload
+    working_dir: /workspaces/IDE-extension-aura-IA/backend
+    volumes:
+      - .:/workspaces/IDE-extension-aura-IA:delegated
+      - backend_state:/var/lib/auraia
+      - backend_logs:/var/log/auraia
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      PYTHONPATH: /workspaces/IDE-extension-aura-IA/backend
+      LOG_LEVEL: ${LOG_LEVEL:-DEBUG}
+      NVIDIA_VISIBLE_DEVICES: all
+      NVIDIA_DRIVER_CAPABILITIES: compute,utility
+    env_file:
+      - ./backend/.env
     ports:
       - "8001:8001"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - capabilities: ["gpu"]
 
-  grafana:
+  celery_worker:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile.dev
+    working_dir: /workspaces/IDE-extension-aura-IA/backend
+    command: celery -A src.worker.celery_app:app worker --loglevel=info --concurrency=2
+    volumes:
+      - .:/workspaces/IDE-extension-aura-IA:delegated
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      PYTHONPATH: /workspaces/IDE-extension-aura-IA/backend
+      AURAIA_USE_CELERY: "true"
+      CELERY_BROKER_URL: ${CELERY_BROKER_URL:-redis://redis:6379/0}
+      CELERY_RESULT_BACKEND: ${CELERY_RESULT_BACKEND:-redis://redis:6379/0}
+    env_file:
+      - ./backend/.env
     ports:
-      - "3000:3000"
-
-  prometheus:
-    ports:
-      - "9090:9090"
+      - "9100:9100"
 
   redis:
     ports:
@@ -24,3 +61,16 @@ services:
   ollama:
     ports:
       - "11434:11434"
+
+  prometheus:
+    ports:
+      - "9090:9090"
+
+  grafana:
+    ports:
+      - "3000:3000"
+
+  caddy:
+    ports:
+      - "80:80"
+      - "443:443"

@@ -1,6 +1,6 @@
 # Monitoring & Observability Guide
 
-**Project Creator:** Herman Swanepoel  
+**Project Creator:** Herman Swanepoel
 **Backend:** [http://127.0.0.1:8001](http://127.0.0.1:8001)
 
 ---
@@ -232,7 +232,7 @@ wscat -c ws://127.0.0.1:8001/ws/monitor
 - [x] Health endpoint available
 - [x] Error handling standardized
 - [ ] Log aggregation (optional)
-- [ ] Metrics dashboard (optional)
+- [x] Metrics dashboard (Grafana provisioning + Prometheus exporters)
 - [x] Alerting system (Prometheus + Grafana contact points)
 - [x] Secret scanning automation (`secret-scan.yml` + manual response playbook)
 
@@ -251,8 +251,8 @@ wscat -c ws://127.0.0.1:8001/ws/monitor
 
 ---
 
-**Status:** ✅ Monitoring stack active  
-**Logs:** Structured JSON with correlation IDs  
+**Status:** ✅ Monitoring stack active
+**Logs:** Structured JSON with correlation IDs
 **Health:** [http://127.0.0.1:8001/health](http://127.0.0.1:8001/health)
 
 ---
@@ -262,18 +262,27 @@ wscat -c ws://127.0.0.1:8001/ws/monitor
 ### Prometheus jobs (examples)
 
 ```
-  - job_name: 'backend-worker'
+  - job_name: 'api'
     static_configs:
-      - targets: ['backend-worker:9100']
+      - targets: ['backend:8001']
 
+  - job_name: 'celery-worker'
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['celery_worker:9100']
+
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['redis_exporter:9121']
+
+  - job_name: 'caddy'
+    static_configs:
+      - targets: ['caddy:9180']
+
+  # Optional GPU exporters (enable when GPU hosts are present)
   - job_name: 'gpu'
     static_configs:
       - targets: ['dcgm-exporter:9400']
-
-  # If API exposes /metrics (via exporter or middleware)
-  - job_name: 'api'
-    static_configs:
-      - targets: ['backend-api:8001']
 ```
 
 ### What to track
@@ -310,3 +319,37 @@ wscat -c ws://127.0.0.1:8001/ws/monitor
     - VRAM high/critical for DCGM and nvidia-smi exporters
     - p95 and p99 HTTP latency thresholds
     - Backend availability and 5xx error rate
+
+  ---
+
+  ## Quick start (local monitoring stack)
+
+  1) Start core services (backend, redis, prometheus, grafana, redis_exporter):
+
+  ```bash
+  docker compose up -d backend redis prometheus grafana redis_exporter
+  ```
+
+  2) Check Prometheus targets:
+
+  ```bash
+  $BROWSER http://localhost:9090/targets
+  ```
+
+  3) Open Grafana (provisioned dashboards load automatically):
+
+  ```bash
+  $BROWSER http://localhost:3000/
+  ```
+
+  4) Optional GPU metrics (requires NVIDIA drivers):
+
+  ```bash
+  docker compose --profile gpu up -d nvidia_gpu_exporter dcgm-exporter
+  ```
+
+  Dashboards provisioned:
+
+  - monitoring/dashboards/overview.json
+  - monitoring/dashboards/jobs_and_http_metrics.json
+  - monitoring/dashboards/gpu_vram_and_latency.json (when GPU exporters enabled)

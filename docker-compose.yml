@@ -17,6 +17,8 @@ services:
     networks:
       - auraia
 
+
+
   ollama:
     image: ollama/ollama:0.3.12
     restart: unless-stopped
@@ -26,11 +28,18 @@ services:
       - ollama_models:/root/.ollama
     environment:
       - OLLAMA_KEEPALIVE=1h
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
     healthcheck:
       test: ["CMD", "ollama", "--version"]
       interval: 30s
       timeout: 10s
       retries: 5
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - capabilities: ["gpu"]
     networks:
       - auraia
 
@@ -140,6 +149,57 @@ services:
     networks:
       - auraia
 
+  # Redis Exporter for Prometheus metrics (maps to job "redis")
+  redis_exporter:
+    image: oliver006/redis_exporter:latest
+    restart: unless-stopped
+    environment:
+      - REDIS_ADDR=redis://redis:6379
+    ports:
+      - "9121:9121"
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - auraia
+
+  # Optional GPU metrics exporters (enable with: docker compose --profile gpu up -d)
+  # NVIDIA SMI exporter (prometheus-community)
+  nvidia_gpu_exporter:
+    profiles: ["gpu"]
+    image: quay.io/prometheuscommunity/nvidia_gpu_exporter:0.4.0
+    restart: unless-stopped
+    ports:
+      - "9835:9835"
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=utility,compute
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - capabilities: ["gpu"]
+    networks:
+      - auraia
+
+  # NVIDIA DCGM exporter (preferred on servers)
+  dcgm-exporter:
+    profiles: ["gpu"]
+    image: nvcr.io/nvidia/k8s/dcgm-exporter:3.3.5-3.1.8-ubuntu22.04
+    restart: unless-stopped
+    ports:
+      - "9400:9400"
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=utility,compute
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - capabilities: ["gpu"]
+    networks:
+      - auraia
+
   caddy:
     image: caddy:2.8.4
     container_name: auraia_caddy
@@ -149,6 +209,7 @@ services:
     ports:
       - "80:80"
       - "443:443"
+      - "9180:9180"
     volumes:
       - ./monitoring/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data

@@ -9,12 +9,16 @@ import hashlib
 import json
 import logging
 from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, TYPE_CHECKING
 
-try:
-    from redis.asyncio import Redis
-except ImportError:
-    Redis = None
+# Avoid assigning to a type at runtime for optional dependency
+if TYPE_CHECKING:  # pragma: no cover - typing only
+    from redis.asyncio import Redis as RedisClient
+else:
+
+    class RedisClient:  # minimal runtime placeholder
+        pass
+
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +28,7 @@ class ResponseCache:
 
     def __init__(
         self,
-        redis_client: Optional[Redis],
+        redis_client: Optional[RedisClient],
         default_ttl: int = 3600,
         key_prefix: str = "llm_cache",
     ) -> None:
@@ -68,6 +72,8 @@ class ResponseCache:
             return None
 
         try:
+            # Help type checker: redis is guaranteed when enabled
+            assert self.redis is not None
             cache_key = self._generate_cache_key(prompt, model, context_params)
 
             cached_data = await self.redis.get(cache_key)
@@ -126,6 +132,8 @@ class ResponseCache:
             return False
 
         try:
+            # Help type checker: redis is guaranteed when enabled
+            assert self.redis is not None
             cache_key = self._generate_cache_key(prompt, model, context_params)
             ttl_seconds = ttl if ttl is not None else self.default_ttl
 
@@ -225,6 +233,8 @@ class ResponseCache:
             pattern = f"{self.key_prefix}:*"
             keys = []
 
+            # Help type checker: redis is guaranteed when enabled
+            assert self.redis is not None
             async for key in self.redis.scan_iter(match=pattern):
                 keys.append(key)
 

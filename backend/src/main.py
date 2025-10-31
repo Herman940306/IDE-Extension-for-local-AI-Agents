@@ -25,12 +25,9 @@ from prometheus_client import (
     generate_latest,
 )
 from pydantic import ValidationError
+
 from src.api.exception_handlers import register_exception_handlers
-from src.api.middleware import (
-    CorrelationIDMiddleware,
-    RateLimitMiddleware,
-    RequestSizeMiddleware,
-)
+from src.api.middleware import CorrelationIDMiddleware, RateLimitMiddleware, RequestSizeMiddleware
 from src.api.router_endpoints import init_router_endpoints
 from src.api.router_endpoints import router as router_api
 from src.core.config import get_settings
@@ -38,11 +35,7 @@ from src.core.container import Container
 from src.core.logging import configure_logging, get_logger
 
 # Imports for debug/config endpoints will be added when endpoints are defined
-from src.models.session import (
-    TaskAcceptedPayload,
-    TaskRequestPayload,
-    TaskSessionResult,
-)
+from src.models.session import TaskAcceptedPayload, TaskRequestPayload, TaskSessionResult
 from src.services.connection_manager import ConnectionManager
 from src.services.llm_router import InteractionMode, LLMRouter
 from src.services.mode_manager import ModeManager, OperationMode
@@ -413,6 +406,7 @@ async def debug_embed(sample: str = "def add(a,b): return a+b") -> Dict[str, Any
     # 1) Direct Ollama call
     try:
         import httpx  # local import to avoid global dependency at import time
+
         from src.core.config import get_settings as _get_settings
 
         _s = _get_settings()
@@ -559,6 +553,53 @@ def openai_health() -> Dict[str, Any]:
         return {
             "provider": "openai",
             "available": False,
+            "error": str(e),
+        }
+
+
+@app.get("/health/gpu", tags=["health"])
+def gpu_health() -> Dict[str, Any]:
+    """Check PyTorch CUDA availability and GPU device info.
+
+    Returns:
+    - torch_version: installed PyTorch version
+    - cuda_available: whether CUDA is available
+    - cuda_version: CUDA runtime version (if available)
+    - device_count: number of GPU devices
+    - devices: list of GPU device names and properties
+    """
+    try:
+        import torch
+
+        cuda_available = torch.cuda.is_available()
+        result: Dict[str, Any] = {
+            "torch_version": torch.__version__,
+            "cuda_available": cuda_available,
+            "device_count": torch.cuda.device_count() if cuda_available else 0,
+        }
+
+        if cuda_available:
+            result["cuda_version"] = torch.version.cuda
+            devices = []
+            for i in range(torch.cuda.device_count()):
+                props = torch.cuda.get_device_properties(i)
+                devices.append(
+                    {
+                        "index": i,
+                        "name": torch.cuda.get_device_name(i),
+                        "total_memory_mb": round(props.total_memory / (1024**2), 2),
+                        "compute_capability": f"{props.major}.{props.minor}",
+                    }
+                )
+            result["devices"] = devices
+        else:
+            result["devices"] = []
+
+        return result
+    except Exception as e:  # noqa: BLE001 - expose for diagnostics
+        logger.warning("gpu_health_check_failed", error=str(e))
+        return {
+            "cuda_available": False,
             "error": str(e),
         }
 
@@ -759,7 +800,9 @@ async def prometheus_http_middleware(request, call_next):
     start = time.perf_counter()
     response = await call_next(request)
     elapsed = time.perf_counter() - start
-    path = request.url.path
+    route = request.scope.get("route")
+    path_template = getattr(route, "path", None) if route else None
+    path = path_template or request.url.path
     method = request.method
     status = str(response.status_code)
     # record

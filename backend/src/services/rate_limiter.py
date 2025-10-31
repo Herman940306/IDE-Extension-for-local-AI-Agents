@@ -7,12 +7,16 @@ Redis-based rate limiter using sliding window algorithm.
 
 import logging
 import time
-from typing import Optional, Tuple
+from typing import Optional, Tuple, TYPE_CHECKING
 
-try:
-    from redis.asyncio import Redis
-except ImportError:
-    Redis = None
+# Avoid assigning to a type at runtime for optional dependency
+if TYPE_CHECKING:  # pragma: no cover - typing only
+    from redis.asyncio import Redis as RedisClient
+else:
+
+    class RedisClient:  # minimal runtime placeholder
+        pass
+
 
 logger = logging.getLogger(__name__)
 
@@ -22,7 +26,7 @@ class RateLimiter:
 
     def __init__(
         self,
-        redis_client: Optional[Redis],
+        redis_client: Optional[RedisClient],
         default_limit: int = 100,
         default_window: int = 60,
     ) -> None:
@@ -79,6 +83,8 @@ class RateLimiter:
             redis_key = f"rate_limit:{key}"
 
             # Use pipeline for atomic operations
+            # Help type checker: redis is guaranteed when enabled
+            assert self.redis is not None
             pipe = self.redis.pipeline()
 
             # Remove expired entries
@@ -136,6 +142,8 @@ class RateLimiter:
 
         try:
             redis_key = f"rate_limit:{key}"
+            # Help type checker: redis is guaranteed when enabled
+            assert self.redis is not None
             await self.redis.delete(redis_key)
 
             logger.info(f"Rate limit reset for key: {key}", extra={"key": key})

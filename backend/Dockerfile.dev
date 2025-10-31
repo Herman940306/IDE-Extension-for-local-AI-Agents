@@ -1,0 +1,41 @@
+# Development image for AuraIA backend
+# - Installs all Python dependencies with CPU-friendly PyTorch wheels
+# - Keeps tooling needed for interactive debugging and hot reload
+# - Leaves application code to be mounted in at runtime via docker-compose.dev.yml
+
+FROM python:3.11-slim AS base
+
+ARG PYTORCH_INDEX_URL=https://download.pytorch.org/whl/cu121
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+  PYTHONUNBUFFERED=1 \
+  PIP_NO_CACHE_DIR=1 \
+  PIP_DISABLE_PIP_VERSION_CHECK=1
+
+# Install build tooling and common diagnostics that help while iterating
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends \
+  build-essential \
+  curl \
+  git \
+  && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /workspace
+
+# Layer requirements first so Docker can cache the dependency install step
+COPY backend/requirements.txt /tmp/requirements.txt
+# Install CUDA-enabled PyTorch first so downstream deps (e.g., sentence-transformers) link against it
+RUN python -m pip install --upgrade pip \
+  && python -m pip install --no-cache-dir --index-url "${PYTORCH_INDEX_URL}" torch torchvision torchaudio \
+  && python -m pip install --no-cache-dir -r /tmp/requirements.txt
+
+# Create a non-root user that matches the production image to avoid permission surprises
+RUN adduser --disabled-password --gecos "" auraai \
+  && chown -R auraai:auraai /workspace
+
+USER auraai
+ENV PATH="/home/auraai/.local/bin:${PATH}"
+
+USER root
+# Default command is overridden in docker-compose.dev.yml to enable hot reload
+CMD ["python", "-m", "uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8001"]

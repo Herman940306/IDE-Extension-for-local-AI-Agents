@@ -7,16 +7,18 @@ import asyncio
 import importlib
 import textwrap
 import warnings
-from typing import Any, List, Optional
+from typing import Any, List, Optional, cast
 
 from src.adapters.adapter_utils import AdapterUtils
 from src.adapters.base_adapter import AgentAdapter, AgentConfig, Capability
 from src.models import AgentResponse, CodeContext, Suggestion, Task
 
-PydWarn: Any
+PydWarn: Any = None
 try:
-    # Use a broad Any to avoid strict typing on optional dependency
-    from pydantic.warnings import PydanticDeprecatedSince20 as PydWarn  # type: ignore[assignment]
+    # Import into a temporary name to avoid mypy no-redef warning
+    from pydantic.warnings import PydanticDeprecatedSince20 as _PydWarn  # type: ignore
+
+    PydWarn = cast(Any, _PydWarn)
 except ImportError:  # pragma: no cover - fallback for unexpected versions
     PydWarn = None
 

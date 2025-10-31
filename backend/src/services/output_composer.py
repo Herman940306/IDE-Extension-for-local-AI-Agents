@@ -127,6 +127,8 @@ class OutputComposer:
         system_prompt = self._build_tone_system_prompt()
 
         try:
+            # Ensure LLM manager is available for mypy and runtime safety
+            assert self.llm_manager is not None, "LLM manager not configured"
             response_text = await self.llm_manager.generate(
                 prompt=prompt,
                 system_prompt=system_prompt,
@@ -211,7 +213,22 @@ Provide:
 
 Keep it brief and supportive."""
 
+        # If no LLM manager, provide graceful fallback without calling generate
+        if not self.llm_manager:
+            fallback = (
+                f"I encountered an issue: {error_message}\n\n"
+                f"Please check the logs for more details."
+            )
+            return {
+                "final_text": fallback,
+                "tone_raw": "",
+                "used_models": [],
+                "latency": 0.0,
+            }
+
         try:
+            # LLM manager is assured here, help mypy with an assertion
+            assert self.llm_manager is not None
             response = await self.llm_manager.generate(
                 prompt=prompt,
                 system_prompt=self._build_tone_system_prompt(),

@@ -14,7 +14,7 @@ groups:
             Check the container logs, recent deployments, and upstream dependencies.
 
       - alert: AuraIARedisDown
-        expr: up{job="auraia-backend", instance=~"redis:.*"} == 0
+        expr: up{job="redis"} == 0
         for: 2m
         labels:
           severity: critical
@@ -40,7 +40,7 @@ groups:
   - name: auraia-performance
     rules:
       - alert: AuraIABackendHighErrorRate
-        expr: increase(fastapi_requests_total{status=~"5.."}[5m]) / ignoring(status) increase(fastapi_requests_total[5m]) > 0.05
+        expr: increase(http_requests_total{status_code=~"5.."}[5m]) / ignoring(status_code) increase(http_requests_total[5m]) > 0.05
         for: 10m
         labels:
           severity: warning

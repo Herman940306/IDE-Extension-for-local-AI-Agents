@@ -4,7 +4,7 @@
     {
       "label": "Python: Run Tests",
       "type": "shell",
-      "command": "${workspaceFolder}/.venv/Scripts/python.exe",
+      "command": "${config:python.defaultInterpreterPath}",
       "args": ["-m", "pytest", "backend/tests", "-v"],
       "group": {
         "kind": "test",
@@ -19,7 +19,7 @@
     {
       "label": "Python: Format with Black",
       "type": "shell",
-      "command": "${workspaceFolder}/.venv/Scripts/python.exe",
+      "command": "${config:python.defaultInterpreterPath}",
       "args": ["-m", "black", "backend", "--line-length=100"],
       "group": "build",
       "presentation": {
@@ -31,7 +31,7 @@
     {
       "label": "Python: Lint with Flake8",
       "type": "shell",
-      "command": "${workspaceFolder}/.venv/Scripts/python.exe",
+      "command": "${config:python.defaultInterpreterPath}",
       "args": ["-m", "flake8", "backend"],
       "group": "build",
       "presentation": {
@@ -43,7 +43,7 @@
     {
       "label": "Python: Install Dependencies",
       "type": "shell",
-      "command": "${workspaceFolder}/.venv/Scripts/python.exe",
+      "command": "${config:python.defaultInterpreterPath}",
       "args": ["-m", "pip", "install", "-r", "backend/requirements.txt"],
       "group": "build",
       "presentation": {
@@ -55,7 +55,7 @@
     {
       "label": "Python: Run API (Uvicorn)",
       "type": "shell",
-      "command": "${workspaceFolder}/.venv/Scripts/python.exe",
+      "command": "${config:python.defaultInterpreterPath}",
       "args": [
         "-m",
         "uvicorn",
@@ -83,7 +83,7 @@
     {
       "label": "Python: Test Coverage",
       "type": "shell",
-      "command": "${workspaceFolder}/.venv/Scripts/python.exe",
+      "command": "${config:python.defaultInterpreterPath}",
       "args": [
         "-m",
         "pytest",
@@ -106,7 +106,7 @@
     {
       "label": "Python: Test Coverage (unit-only)",
       "type": "shell",
-      "command": "${workspaceFolder}/.venv/Scripts/python.exe",
+      "command": "${config:python.defaultInterpreterPath}",
       "args": [
         "-m",
         "pytest",
@@ -133,7 +133,7 @@
     {
       "label": "Python: Type Check (mypy)",
       "type": "shell",
-      "command": "${workspaceFolder}/.venv/Scripts/python.exe",
+      "command": "${config:python.defaultInterpreterPath}",
       "args": ["-m", "mypy", "backend/src"],
       "group": "build",
       "presentation": {
@@ -244,7 +244,30 @@
     {
       "label": "Backend: Run API (Uvicorn)",
       "type": "shell",
-      "command": ".\\.venv\\Scripts\\python -m uvicorn src.main:app --reload --host 127.0.0.1 --port 8001",
+      "command": "${workspaceFolder}/backend/.venv/bin/python",
+      "args": [
+        "-m",
+        "uvicorn",
+        "src.main:app",
+        "--reload",
+        "--host",
+        "127.0.0.1",
+        "--port",
+        "8001"
+      ],
+      "windows": {
+        "command": ".\\.venv\\Scripts\\python.exe",
+        "args": [
+          "-m",
+          "uvicorn",
+          "src.main:app",
+          "--reload",
+          "--host",
+          "127.0.0.1",
+          "--port",
+          "8001"
+        ]
+      },
       "options": {
         "cwd": "${workspaceFolder}/backend",
         "env": {
@@ -269,7 +292,30 @@
     {
       "label": "Backend: Run API (Uvicorn :8002)",
       "type": "shell",
-      "command": ".\\.venv\\Scripts\\python -m uvicorn src.main:app --reload --host 127.0.0.1 --port 8002",
+      "command": "${workspaceFolder}/backend/.venv/bin/python",
+      "args": [
+        "-m",
+        "uvicorn",
+        "src.main:app",
+        "--reload",
+        "--host",
+        "127.0.0.1",
+        "--port",
+        "8002"
+      ],
+      "windows": {
+        "command": ".\\.venv\\Scripts\\python.exe",
+        "args": [
+          "-m",
+          "uvicorn",
+          "src.main:app",
+          "--reload",
+          "--host",
+          "127.0.0.1",
+          "--port",
+          "8002"
+        ]
+      },
       "options": {
         "cwd": "${workspaceFolder}/backend",
         "env": {
@@ -293,7 +339,30 @@
     {
       "label": "Backend: Run API (Uvicorn :8003)",
       "type": "shell",
-      "command": ".\\.venv\\Scripts\\python -m uvicorn src.main:app --reload --host 127.0.0.1 --port 8003",
+      "command": "${workspaceFolder}/backend/.venv/bin/python",
+      "args": [
+        "-m",
+        "uvicorn",
+        "src.main:app",
+        "--reload",
+        "--host",
+        "127.0.0.1",
+        "--port",
+        "8003"
+      ],
+      "windows": {
+        "command": ".\\.venv\\Scripts\\python.exe",
+        "args": [
+          "-m",
+          "uvicorn",
+          "src.main:app",
+          "--reload",
+          "--host",
+          "127.0.0.1",
+          "--port",
+          "8003"
+        ]
+      },
       "options": {
         "cwd": "${workspaceFolder}/backend",
         "env": {
@@ -317,7 +386,28 @@
     {
       "label": "Backend: Run API (No Reload)",
       "type": "shell",
-      "command": ".\\.venv\\Scripts\\python -m uvicorn src.main:app --host 127.0.0.1 --port 8001",
+      "command": "${workspaceFolder}/backend/.venv/bin/python",
+      "args": [
+        "-m",
+        "uvicorn",
+        "src.main:app",
+        "--host",
+        "127.0.0.1",
+        "--port",
+        "8001"
+      ],
+      "windows": {
+        "command": ".\\.venv\\Scripts\\python.exe",
+        "args": [
+          "-m",
+          "uvicorn",
+          "src.main:app",
+          "--host",
+          "127.0.0.1",
+          "--port",
+          "8001"
+        ]
+      },
       "options": {
         "cwd": "${workspaceFolder}/backend",
         "env": {

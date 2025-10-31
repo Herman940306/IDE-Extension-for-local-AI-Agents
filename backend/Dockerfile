@@ -37,7 +37,7 @@ WORKDIR /app
 COPY --from=builder /app /app
 COPY --from=builder /root/.local /home/auraai/.local
 
-RUN chown -R auraai:auraai /app
+RUN chown -R auraai:auraai /app /home/auraai/.local
 
 USER auraai
 
