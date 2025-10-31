@@ -1,0 +1,101 @@
+/* AuraIA Brand Colors & Variables */
+:root {
+  /* Marketing/Landing Colors (from cinematic deck) */
+  --brand-bg1: #0b1320;           /* Deep Blue-Black */
+  --brand-bg2: #07305f;           /* Ocean Blue */
+  --brand-accent1: #1AF0A7;       /* Bright Teal-Green */
+  --brand-accent2: #00F0FF;       /* Cyan Blue */
+
+  /* Application UI Colors (purple gradient) */
+  --primary-gradient-start: #667eea;  /* Purple-Blue */
+  --primary-gradient-end: #764ba2;    /* Deep Purple */
+
+  /* Dark Theme (Main UI) */
+  --bg-primary: #212121;          /* Main background */
+  --bg-secondary: #171717;        /* Sidebar/panels */
+  --bg-elevated: #2f2f2f;         /* Cards, buttons */
+  --border-subtle: #2f2f2f;       /* Dividers */
+  --border-medium: #4d4d4d;       /* Input borders */
+
+  /* Text Colors */
+  --text-primary: #ececec;        /* Main text */
+  --text-secondary: #8e8e8e;      /* Muted text */
+  --text-tertiary: #a0a0a0;       /* Placeholder */
+
+  /* Status Colors */
+  --success: #4caf50;             /* Connected/Success */
+  --warning: #fbc02d;             /* Warning */
+  --error: #ef5350;               /* Error */
+  --info: #2196f3;                /* Info/Links */
+  --info-border: rgba(33, 150, 243, 0.35);
+  --info-text: #bbdefb;
+}
+
+/* Brand Gradient Classes */
+.gradient-primary {
+  background: linear-gradient(135deg, var(--primary-gradient-start) 0%, var(--primary-gradient-end) 100%);
+}
+
+.gradient-marketing {
+  background: linear-gradient(120deg, var(--brand-bg1), var(--brand-bg2));
+}
+
+/* Accent Glow Effect */
+.accent-glow {
+  box-shadow: 0 0 20px rgba(26, 240, 167, 0.3);
+}
+
+/* Breathing Animation (for logo) */
+@keyframes breath {
+  0% { transform: scale(0.98); opacity: 0.6; }
+  50% { transform: scale(1.03); opacity: 1; }
+  100% { transform: scale(0.98); opacity: 0.6; }
+}
+
+.breathing {
+  animation: breath 4s ease-in-out infinite;
+}
+
+/* Gradient text helper */
+.text-gradient {
+  background: linear-gradient(135deg, var(--primary-gradient-start) 0%, var(--primary-gradient-end) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Sidebar logo styles */
+.logo-container {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 12px;
+}
+
+.logo-text {
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  line-height: 1.1;
+}
+
+.logo-text.text-gradient {
+  filter: drop-shadow(0 2px 10px rgba(102, 126, 234, 0.25));
+}
+
+.logo-tagline {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+/* Header brand title */
+.brand-title {
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  line-height: 1;
+}
+
+.brand-title.text-gradient {
+  filter: drop-shadow(0 2px 10px rgba(118, 75, 162, 0.25));
+}

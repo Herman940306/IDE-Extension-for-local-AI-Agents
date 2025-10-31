@@ -1,0 +1,24 @@
+version: "3.9"
+
+# Production override: remove host port exposure for internal services
+# Usage:
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+
+services:
+  redis:
+    ports: []
+
+  ollama:
+    ports: []
+
+  backend:
+    ports: []
+
+  celery_worker:
+    ports: []
+
+  prometheus:
+    ports: []
+
+  grafana:
+    ports: []

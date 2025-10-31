@@ -1,0 +1,22 @@
+{
+    "enabled": true,
+    "name": "🏢 AURA-DEV OMNIDEV GODMODE | Enterprise Edition",
+    "description": "Enterprise-grade AI orchestration system. AURA-DEV operates as a unified engineering department with full-stack, DevOps, MLOps, SecOps, and AI integration capabilities. Enforces zero technical debt, security-first design, and global scalability standards.",
+    "version": "5.0-ENTERPRISE",
+    "when": {
+        "type": "userTriggered",
+        "patterns": [
+            "**/*.py",
+            "**/*.ts",
+            "**/*.tsx",
+            "**/*.js",
+            "**/*.jsx",
+            "**/*.go",
+            "**/*.rs",
+            "**/*.java",
+            ".kiro/**/*.json",
+            ".kiro/**/*.md"
+        ]
+    },
+    "then": {
+        "type": "askAgent",
