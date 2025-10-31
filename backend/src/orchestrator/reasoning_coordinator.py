@@ -451,7 +451,7 @@ class ReasoningCoordinator:
         if not text.strip():
             return {"status": "skipped", "reason": "empty_text"}
 
-        payload = {
+        payload: Dict[str, Any] = {
             "model": getattr(settings, "safety_model", "phi3:medium"),
             "prompt": (
                 "You are a safety checker. Analyze the following output for sensitive "

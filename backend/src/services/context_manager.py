@@ -287,7 +287,7 @@ class ContextManager:
 
     async def _extract_imports(self, content: str, language: str) -> List[str]:
         """Extract import statements from code"""
-        imports = []
+        imports: List[str] = []
 
         try:
             if language == "python":
@@ -323,7 +323,7 @@ class ContextManager:
 
     async def _get_dependencies(self, file_path: Path) -> List[str]:
         """Get file dependencies (files that this file imports)"""
-        dependencies = []
+        dependencies: List[str] = []
 
         try:
             content = await self._read_file(file_path)
@@ -572,7 +572,7 @@ class ContextManager:
 
         try:
             # Find all code files
-            code_files = []
+            code_files: List[Path] = []
             for ext in [".py", ".js", ".ts", ".tsx", ".jsx"]:
                 code_files.extend(self.workspace_path.rglob(f"*{ext}"))
 
