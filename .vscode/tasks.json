@@ -143,6 +143,29 @@
       "problemMatcher": []
     },
     {
+      "label": "Python: Type Check (mypy - backend, no sqlite cache)",
+      "type": "shell",
+      "command": "${workspaceFolder}/.venv/Scripts/python.exe",
+      "args": [
+        "-m",
+        "mypy",
+        "src",
+        "--no-sqlite-cache",
+        "--cache-dir=.mypy_cache_nosqlite",
+        "--hide-error-codes",
+        "--pretty"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}/backend"
+      },
+      "group": "build",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
       "label": "Extension: Package (.vsix)",
       "type": "shell",
       "command": "\"${env:APPDATA}\\npm\\vsce.cmd\"",
@@ -244,6 +267,54 @@
       ]
     },
     {
+      "label": "Backend: Run API (Uvicorn :8002)",
+      "type": "shell",
+      "command": ".\\.venv\\Scripts\\python -m uvicorn src.main:app --reload --host 127.0.0.1 --port 8002",
+      "options": {
+        "cwd": "${workspaceFolder}/backend",
+        "env": {
+          "PYTHONPATH": "${workspaceFolder}/backend",
+          "APP_INSTANCE": "agent-2"
+        }
+      },
+      "isBackground": true,
+      "problemMatcher": [
+        {
+          "owner": "uvicorn",
+          "pattern": { "regexp": ".*" },
+          "background": {
+            "activeOnStart": true,
+            "beginsPattern": ".*Uvicorn running.*",
+            "endsPattern": ".*Application startup complete.*"
+          }
+        }
+      ]
+    },
+    {
+      "label": "Backend: Run API (Uvicorn :8003)",
+      "type": "shell",
+      "command": ".\\.venv\\Scripts\\python -m uvicorn src.main:app --reload --host 127.0.0.1 --port 8003",
+      "options": {
+        "cwd": "${workspaceFolder}/backend",
+        "env": {
+          "PYTHONPATH": "${workspaceFolder}/backend",
+          "APP_INSTANCE": "agent-3"
+        }
+      },
+      "isBackground": true,
+      "problemMatcher": [
+        {
+          "owner": "uvicorn",
+          "pattern": { "regexp": ".*" },
+          "background": {
+            "activeOnStart": true,
+            "beginsPattern": ".*Uvicorn running.*",
+            "endsPattern": ".*Application startup complete.*"
+          }
+        }
+      ]
+    },
+    {
       "label": "Backend: Run API (No Reload)",
       "type": "shell",
       "command": ".\\.venv\\Scripts\\python -m uvicorn src.main:app --host 127.0.0.1 --port 8001",
@@ -310,6 +381,15 @@
         "Backend: Run API (Uvicorn)",
         "Frontend: Dev",
         "Extension: Compile (Watch)"
+      ]
+    },
+    {
+      "label": "Start Multi-Agent Backends (3x)",
+      "dependsOrder": "parallel",
+      "dependsOn": [
+        "Backend: Run API (Uvicorn)",
+        "Backend: Run API (Uvicorn :8002)",
+        "Backend: Run API (Uvicorn :8003)"
       ]
     },
     {

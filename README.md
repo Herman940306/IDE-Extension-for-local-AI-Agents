@@ -148,3 +148,41 @@ Troubleshooting tips:
 
 - If the backend can’t see your env values, verify `backend/.env` exists and reload your window. The loader is initialized at import time in `src/core/config.py`.
 - For RAG v2 observability routes, ensure `EXPERIMENTAL_RAG_V2_ENABLED=true` and check `/debug/rag_trace` and `/config/rag`.
+
+## Multi-agent development flow
+
+You can run multiple backend instances in parallel for isolation and load testing.
+
+- VS Code tasks:
+  - Tasks: Run Task > `Start Multi-Agent Backends (3x)` — launches Uvicorn on ports 8001, 8002, 8003
+  - Each instance sets `APP_INSTANCE` (e.g., `agent-1`, `agent-2`, `agent-3`) and `PYTHONPATH=backend`
+- PowerShell helper (Windows):
+
+  - From repo root, run:
+
+    ```powershell
+    ./start-multi-agents.ps1 -Count 3 -BasePort 8001 -BindHost 127.0.0.1
+    ```
+
+  - Flags:
+    - `-Count` number of instances (default 3)
+    - `-BasePort` starting port (default 8001)
+    - `-BindHost` host bind address (default 127.0.0.1)
+    - `-NoReload` disable Uvicorn reload
+
+Frontend/extension can be pointed at a specific backend port to exercise instances independently.
+
+## CI overview and coverage gate
+
+Our CI is split for speed and clarity:
+
+- `Typecheck (mypy)`: runs on backend/\*\* changes with pip cache
+- `CI` workflow:
+  - `backend-lint`: Black + Flake8, YAML lint, Prometheus config validation
+  - `backend-tests`: pytest with coverage and a coverage gate (`--cov-fail-under=60`)
+  - `docker-build`: builds backend image, depends on tests
+
+## Repository hygiene update
+
+- The historical `work/refactor` snapshot was removed to keep a clean tree and reduce tooling churn.
+- Pre-commit hooks are scoped to `backend/**` to keep signal high and noise low.

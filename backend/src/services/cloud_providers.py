@@ -9,7 +9,7 @@ import asyncio
 import importlib
 import logging
 from abc import ABC, abstractmethod
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional, cast
 
 logger = logging.getLogger(__name__)
 
@@ -59,7 +59,8 @@ class OpenAIProvider(CloudProvider):
     def __init__(self, api_key: str, model: str):
         super().__init__(api_key, model)
         self._client_mode: Optional[str] = None
-        self._client: Optional[object] = None
+        # Use 'Any' for client to accommodate multiple optional SDK shapes
+        self._client: Any = None
 
     def _ensure_client(self) -> object:
         if self._client is not None:
@@ -71,7 +72,7 @@ class OpenAIProvider(CloudProvider):
             )
 
         try:
-            module = importlib.import_module("openai")
+            module: Any = importlib.import_module("openai")
         except ImportError as exc:  # pragma: no cover - optional dependency branch
             raise ProviderDependencyError(
                 "OpenAI provider requires the optional 'openai' package. Install it via "  # noqa: E501
@@ -151,7 +152,7 @@ class OpenAIProvider(CloudProvider):
         max_tokens: Optional[int] = None,
         stop: Optional[List[str]] = None,
     ) -> str:
-        client = self._ensure_client()
+        client = cast(Any, self._ensure_client())
 
         messages = []
         if system_prompt:
@@ -207,7 +208,8 @@ class AnthropicProvider(CloudProvider):
     def __init__(self, api_key: str, model: str):
         super().__init__(api_key, model)
         self._client_mode: Optional[str] = None
-        self._client: Optional[object] = None
+        # Use 'Any' for client to accommodate multiple optional SDK shapes
+        self._client: Any = None
 
     def _ensure_client(self) -> object:
         if self._client is not None:
@@ -219,7 +221,7 @@ class AnthropicProvider(CloudProvider):
             )
 
         try:
-            module = importlib.import_module("anthropic")
+            module: Any = importlib.import_module("anthropic")
         except ImportError as exc:  # pragma: no cover - optional dependency branch
             raise ProviderDependencyError(
                 "Anthropic provider requires the optional 'anthropic' package. Install it via "  # noqa: E501
@@ -290,7 +292,7 @@ class AnthropicProvider(CloudProvider):
         max_tokens: Optional[int] = None,
         stop: Optional[List[str]] = None,
     ) -> str:
-        client = self._ensure_client()
+        client = cast(Any, self._ensure_client())
 
         request_kwargs: Dict[str, object] = {
             "model": self.model,
