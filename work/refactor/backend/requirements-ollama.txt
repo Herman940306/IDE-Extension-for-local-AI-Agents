@@ -1,7 +1,0 @@
-# Optional dependency set for enabling local Ollama-powered LLM workflows.
-# Install these in a dedicated environment or after removing the base httpx/anyio pins.
-# Expect httpx/anyio to override the defaults when this file is applied.
-ollama==0.6.0
-httpx>=0.27,<0.29
-httpcore==1.0.9
-anyio>=4.0.0,<5.0.0

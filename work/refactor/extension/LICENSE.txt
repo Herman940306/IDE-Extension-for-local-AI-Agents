@@ -1,9 +1,0 @@
-Aura AI Assistant - VS Code Extension
-Copyright (c) 2025 Herman Swanepoel. All rights reserved.
-
-This extension is distributed under a proprietary license. Unauthorized copying,
-modification, distribution, reverse engineering, or use of this software is
-strictly prohibited without written permission from Herman Swanepoel.
-
-For full licensing details, refer to the repository root COPYRIGHT notice or
-contact Herman Swanepoel via https://github.com/Herman940306.
