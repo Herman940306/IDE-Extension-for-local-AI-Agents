@@ -8,14 +8,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from src.adapters.autogpt_adapter import AutoGPTAdapter, AutoGPTResearchAgent
 from src.adapters.base_adapter import AgentConfig, Capability
-from src.models import (
-    CodeContext,
-    ConfidenceLevel,
-    Priority,
-    Suggestion,
-    Task,
-    TaskType,
-)
+from src.models import CodeContext, ConfidenceLevel, Priority, Suggestion, Task, TaskType
 
 
 @pytest.fixture

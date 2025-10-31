@@ -1,10 +1,6 @@
 from fastapi.testclient import TestClient
-
 from src.main import app as main_app
-from src.services.retrieval.trace import (
-    RetrievalDocTrace,
-    retrieval_trace_buffer,
-)
+from src.services.retrieval.trace import RetrievalDocTrace, retrieval_trace_buffer
 
 
 def _make_client() -> TestClient:

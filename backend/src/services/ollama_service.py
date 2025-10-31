@@ -25,7 +25,8 @@ class OllamaService:
         Args:
             host: Ollama host URL. Defaults to environment variable or localhost.
         """
-        configured_host = host or os.getenv("OLLAMA_HOST", "http://127.0.0.1:11434")
+        env_host = os.getenv("OLLAMA_HOST") or "http://127.0.0.1:11434"
+        configured_host: str = host if host is not None else env_host
         self.host = configured_host.rstrip("/")
         self._candidate_hosts = [self.host]
         if "localhost" in self.host:
@@ -33,13 +34,13 @@ class OllamaService:
             if ipv4_host not in self._candidate_hosts:
                 self._candidate_hosts.append(ipv4_host)
         self._is_available = False
-        self._version = None
-        self._models = []
-        self._session = None
+        self._version: Optional[str] = None
+        self._models: list[str] = []
+        self._session: Optional[aiohttp.ClientSession] = None
 
         logger.info(f"🔧 Initializing Ollama service at {self.host}")
 
-    async def get_session(self):
+    async def get_session(self) -> aiohttp.ClientSession:
         if self._session is None or self._session.closed:
             self._session = aiohttp.ClientSession()
         return self._session
@@ -75,9 +76,7 @@ class OllamaService:
         for attempt in range(retries):
             for candidate in list(self._candidate_hosts):
                 try:
-                    async with session.get(
-                        f"{candidate}/api/version", timeout=timeout
-                    ) as response:
+                    async with session.get(f"{candidate}/api/version", timeout=timeout) as response:
                         if response.status == 200:
                             version_data = await response.json()
                             self._version = version_data.get("version", "unknown")
@@ -92,9 +91,7 @@ class OllamaService:
                         f"(attempt {attempt + 1}/{retries})"
                     )
                 except Exception as e:
-                    logger.error(
-                        f"❌ Unexpected error checking Ollama at {candidate}: {e}"
-                    )
+                    logger.error(f"❌ Unexpected error checking Ollama at {candidate}: {e}")
 
             if attempt < retries - 1:
                 await asyncio.sleep(2)
@@ -111,9 +108,7 @@ class OllamaService:
                 if response.status == 200:
                     data = await response.json()
                     self._models = [model["name"] for model in data.get("models", [])]
-                    logger.info(
-                        f"📦 Available models: {', '.join(self._models[:5])}..."
-                    )
+                    logger.info(f"📦 Available models: {', '.join(self._models[:5])}...")
         except Exception as e:
             logger.warning(f"⚠️ Failed to fetch models: {e}")
 
@@ -180,14 +175,10 @@ class OllamaService:
                     )
 
                 except requests.exceptions.Timeout:
-                    logger.warning(
-                        f"⏱️ Ollama request timeout (attempt {attempt + 1}/{retries})"
-                    )
+                    logger.warning(f"⏱️ Ollama request timeout (attempt {attempt + 1}/{retries})")
 
                 except Exception as e:
-                    logger.error(
-                        f"❌ Unexpected error checking Ollama at {candidate}: {e}"
-                    )
+                    logger.error(f"❌ Unexpected error checking Ollama at {candidate}: {e}")
 
             if attempt < retries - 1:
                 time.sleep(2)
@@ -209,9 +200,7 @@ class OllamaService:
         except Exception as e:
             logger.warning(f"⚠️ Failed to fetch models: {e}")
 
-    def query_ollama(
-        self, model: str, prompt: str, stream: bool = False, **kwargs
-    ) -> Dict[str, Any]:
+    def query_ollama(self, model: str, prompt: str, stream: bool = False, **kwargs) -> Any:
         """
         Query Ollama with a prompt.
 
@@ -315,5 +304,4 @@ def get_ollama_service() -> OllamaService:
         _ollama_service = OllamaService()
         _ollama_service.ensure_ollama()
 
-    return _ollama_service
     return _ollama_service

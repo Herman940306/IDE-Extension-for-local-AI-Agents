@@ -13,10 +13,12 @@ from src.adapters.adapter_utils import AdapterUtils
 from src.adapters.base_adapter import AgentAdapter, AgentConfig, Capability
 from src.models import AgentResponse, CodeContext, Suggestion, Task
 
+PydWarn: Any
 try:
-    from pydantic.warnings import PydanticDeprecatedSince20
+    # Use a broad Any to avoid strict typing on optional dependency
+    from pydantic.warnings import PydanticDeprecatedSince20 as PydWarn  # type: ignore[assignment]
 except ImportError:  # pragma: no cover - fallback for unexpected versions
-    PydanticDeprecatedSince20 = None  # type: ignore[assignment]
+    PydWarn = None
 
 CREWAI_DEPENDENCIES_AVAILABLE = True
 
@@ -26,11 +28,11 @@ Process: Any = None
 CrewTask: Any = None
 Ollama: Any = None
 
-if PydanticDeprecatedSince20 is not None:
+if PydWarn is not None:
     warnings.filterwarnings(
         "ignore",
         message="Support for class-based `config` is deprecated",
-        category=PydanticDeprecatedSince20,
+        category=PydWarn,
         module=r"mem0(\.|$)",
     )
 
@@ -97,9 +99,7 @@ class CrewAIAdapter(AgentAdapter):
             # Initialize LLM
             self.llm = Ollama(
                 model=self.config.metadata.get("model", "codellama:7b"),
-                base_url=self.config.metadata.get(
-                    "ollama_url", "http://localhost:11434"
-                ),
+                base_url=self.config.metadata.get("ollama_url", "http://localhost:11434"),
             )
 
             # Create Doc Agent
@@ -344,9 +344,7 @@ Please provide your response in the following format:
                     r"([^\n]+)\n```", result_text[: result_text.find(code)]
                 )
                 description = (
-                    description_match.group(1)
-                    if description_match
-                    else f"Suggestion {i+1}"
+                    description_match.group(1) if description_match else f"Suggestion {i+1}"
                 )
 
                 suggestions.append(
@@ -374,9 +372,7 @@ Please provide your response in the following format:
 
         return suggestions
 
-    def _calculate_confidence(
-        self, result_text: str, suggestions: List[Suggestion]
-    ) -> float:
+    def _calculate_confidence(self, result_text: str, suggestions: List[Suggestion]) -> float:
         """
         Calculate confidence score based on result quality
 
@@ -402,10 +398,7 @@ Please provide your response in the following format:
             confidence += 0.1
 
         # Increase confidence if result has reasoning
-        if any(
-            keyword in result_text.lower()
-            for keyword in ["because", "reason", "analysis"]
-        ):
+        if any(keyword in result_text.lower() for keyword in ["because", "reason", "analysis"]):
             confidence += 0.1
 
         return min(confidence, 1.0)

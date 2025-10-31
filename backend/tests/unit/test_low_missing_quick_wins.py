@@ -9,7 +9,7 @@ import pytest  # noqa: E402
 from src.models.session import (  # noqa: E402
     AgentRunResult,
     TaskSessionResult,
-    VerificationStatus,
+    VerificationStatus,  # noqa: E402
     VerificationSummary,
 )
 from src.models.task import TaskType  # noqa: E402

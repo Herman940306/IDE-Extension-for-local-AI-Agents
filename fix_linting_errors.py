@@ -148,9 +148,7 @@ def fix_b904_errors():
                     if lines[idx].strip().startswith(old_text.strip()):
                         # Find the closing parenthesis line
                         for j in range(idx, min(idx + 5, len(lines))):
-                            if ")" in lines[j] and not lines[j].strip().endswith(
-                                suffix.strip()
-                            ):
+                            if ")" in lines[j] and not lines[j].strip().endswith(suffix.strip()):
                                 lines[j] = lines[j].replace(")", ")" + suffix)
                                 break
                 else:

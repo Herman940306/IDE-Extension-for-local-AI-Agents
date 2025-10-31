@@ -80,9 +80,7 @@ class GraphStore:
             ON nodes(last_touched);
             """
         )
-        await conn.execute(
-            """CREATE INDEX IF NOT EXISTS idx_edges_source ON edges(source);"""
-        )
+        await conn.execute("""CREATE INDEX IF NOT EXISTS idx_edges_source ON edges(source);""")
 
     # ------------------------------------------------------------------
     # Node CRUD
@@ -195,6 +193,10 @@ class GraphStore:
         )
         await conn.commit()
         rowid = cursor.lastrowid
+        # mypy: lastrowid can be Optional[int]; ensure it's present before returning
+        if rowid is None:
+            await cursor.close()
+            raise RuntimeError("Failed to retrieve lastrowid after edge insert")
         await cursor.close()
         return int(rowid)
 

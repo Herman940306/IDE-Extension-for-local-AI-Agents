@@ -58,15 +58,11 @@ def main():
             '      Start-Process -FilePath "$env:USERPROFILE\\AppData\\Local\\Programs\\Ollama\\ollama.exe" -ArgumentList "serve"'
         )
         print()
-        print(
-            "   ⏱️  Wait 10-15 seconds for Ollama to start, then run this script again."
-        )
+        print("   ⏱️  Wait 10-15 seconds for Ollama to start, then run this script again.")
         print()
 
         response = (
-            input("Press Enter to exit and start Ollama, or 'r' to retry check: ")
-            .strip()
-            .lower()
+            input("Press Enter to exit and start Ollama, or 'r' to retry check: ").strip().lower()
         )
         if response == "r":
             return main()  # Retry

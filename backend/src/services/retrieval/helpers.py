@@ -6,11 +6,6 @@ from typing import Any, Dict, Optional
 
 from src.core.config import get_settings
 from src.services.memory_service import MemoryService
-from src.services.retrieval.langchain_retrievers import (
-    LANGCHAIN_AVAILABLE,
-    ChatMemoryRetriever,
-    CodeBaseRetriever,
-)
 from src.services.semantic_search import SemanticSearchService
 
 
@@ -27,27 +22,39 @@ def build_retriever_dict(
     provide the semantic search and memory services from the DI container to obtain
     fully configured retrievers for the experimental RAG v2 path.
     """
+    settings = get_settings()
+
+    # Only attempt to import LangChain adapters when the experimental flag is ON
+    # to avoid heavy optional dependencies during test collection/import.
+    if not getattr(settings, "experimental_rag_v2_enabled", False):
+        return {}
+
+    try:
+        from src.services.retrieval.langchain_retrievers import (  # noqa: WPS433
+            LANGCHAIN_AVAILABLE,
+            ChatMemoryRetriever,
+            CodeBaseRetriever,
+        )
+    except Exception:  # pragma: no cover - optional dependency not present
+        return {}
 
     if not LANGCHAIN_AVAILABLE:
         return {}
-
-    settings = get_settings()
-    rag_cfg = settings.rag_v2
 
     retrievers: Dict[str, Any] = {}
 
     if semantic_search is not None:
         retrievers["code"] = CodeBaseRetriever(
             semantic_search=semantic_search,
-            top_k=rag_cfg.code_top_k,
-            min_relevance=rag_cfg.code_min_relevance,
+            top_k=int(getattr(settings, "rag_v2_code_top_k", 5)),
+            min_relevance=float(getattr(settings, "rag_v2_min_relevance", 0.0)),
         )
 
     if memory_service is not None and session_id:
         retrievers["memory"] = ChatMemoryRetriever(
             memory_service=memory_service,
             session_id=session_id,
-            limit=rag_cfg.memory_message_limit,
+            limit=int(getattr(settings, "rag_v2_memory_message_limit", 20)),
         )
 
     return retrievers

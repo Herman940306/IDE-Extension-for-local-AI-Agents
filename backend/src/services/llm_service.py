@@ -81,9 +81,7 @@ class LLMService:
                 enhanced_prompt, task_type, interaction_mode, **kwargs
             )
 
-    def _enhance_prompt(
-        self, prompt: str, task_type: str, interaction_mode: str
-    ) -> str:
+    def _enhance_prompt(self, prompt: str, task_type: str, interaction_mode: str) -> str:
         """Enhance prompt based on interaction mode."""
 
         if interaction_mode == "agent":
@@ -167,9 +165,7 @@ class LLMService:
                 "provider": "ollama",
                 "mode": "local",
                 "error": str(e),
-                "response": (
-                    "Sorry, I encountered an error generating a response locally."
-                ),
+                "response": ("Sorry, I encountered an error generating a response locally."),
                 "reasoning": f"Error: {str(e)}",
                 "suggestions": [],
             }
@@ -181,30 +177,21 @@ class LLMService:
         try:
             # Prefer OpenAI if available
             if self.openai_api_key:
-                return await self._generate_openai(
-                    prompt, task_type, interaction_mode, **kwargs
-                )
+                return await self._generate_openai(prompt, task_type, interaction_mode, **kwargs)
             elif self.anthropic_api_key:
-                return await self._generate_anthropic(
-                    prompt, task_type, interaction_mode, **kwargs
-                )
+                return await self._generate_anthropic(prompt, task_type, interaction_mode, **kwargs)
             else:
                 # Fallback to local if no cloud API available
                 logger.warning(
-                    "⚠️ Cloud mode requested but no API keys configured, "
-                    "falling back to local"
+                    "⚠️ Cloud mode requested but no API keys configured, " "falling back to local"
                 )
-                return await self._generate_local(
-                    prompt, task_type, interaction_mode, **kwargs
-                )
+                return await self._generate_local(prompt, task_type, interaction_mode, **kwargs)
 
         except Exception as e:
             logger.error(f"❌ Cloud LLM generation failed: {e}")
             # Fallback to local on cloud failure
             logger.info("🔄 Falling back to local LLM")
-            return await self._generate_local(
-                prompt, task_type, interaction_mode, **kwargs
-            )
+            return await self._generate_local(prompt, task_type, interaction_mode, **kwargs)
 
     async def _generate_openai(
         self, prompt: str, task_type: str, interaction_mode: str, **kwargs
@@ -215,9 +202,7 @@ class LLMService:
 
             client = openai.AsyncOpenAI(api_key=self.openai_api_key)
 
-            model = (
-                "gpt-4o-mini" if task_type in ["chat", "documentation"] else "gpt-4o"
-            )
+            model = "gpt-4o-mini" if task_type in ["chat", "documentation"] else "gpt-4o"
 
             logger.info(f"☁️ Generating cloud response with OpenAI {model}")
 
@@ -257,9 +242,7 @@ class LLMService:
             client = anthropic.AsyncAnthropic(api_key=self.anthropic_api_key)
 
             model = (
-                "claude-3-haiku-20240307"
-                if task_type in ["chat"]
-                else "claude-3-5-sonnet-20241022"
+                "claude-3-haiku-20240307" if task_type in ["chat"] else "claude-3-5-sonnet-20241022"
             )
 
             logger.info(f"☁️ Generating cloud response with Anthropic {model}")
@@ -270,7 +253,15 @@ class LLMService:
                 messages=[{"role": "user", "content": prompt}],
             )
 
-            content = message.content[0].text if message.content else ""
+            # Anthropic returns a list of block objects; only some have a 'text' attribute
+            content = ""
+            if getattr(message, "content", None):
+                parts: List[str] = []
+                for block in message.content:
+                    text = getattr(block, "text", None)
+                    if isinstance(text, str):
+                        parts.append(text)
+                content = "\n".join(parts)
 
             return {
                 "success": True,
@@ -283,9 +274,7 @@ class LLMService:
             }
 
         except ImportError:
-            logger.error(
-                "❌ Anthropic library not installed. Run: pip install anthropic"
-            )
+            logger.error("❌ Anthropic library not installed. Run: pip install anthropic")
             raise
         except Exception as e:
             logger.error(f"❌ Anthropic API error: {e}")
@@ -309,9 +298,7 @@ class LLMService:
         # Use first available model as fallback
         return available[0]
 
-    def _parse_code_suggestions(
-        self, response: str, interaction_mode: str
-    ) -> List[Dict[str, str]]:
+    def _parse_code_suggestions(self, response: str, interaction_mode: str) -> List[Dict[str, str]]:
         """Parse code blocks from response into suggestions."""
         suggestions = []
 

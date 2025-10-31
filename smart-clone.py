@@ -195,9 +195,7 @@ def main():
     if len(sys.argv) > 2:
         target_dir = sys.argv[2]
     else:
-        target_dir = input(
-            "Enter target directory (default: current directory): "
-        ).strip()
+        target_dir = input("Enter target directory (default: current directory): ").strip()
         if not target_dir:
             target_dir = "."
 

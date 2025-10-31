@@ -32,9 +32,7 @@ async def main():
     # Try to generate
     print("Testing LLM generation...")
     try:
-        response = await llm_manager.generate(
-            prompt="Say hello in one sentence", model="qwen3:8b"
-        )
+        response = await llm_manager.generate(prompt="Say hello in one sentence", model="qwen3:8b")
         print("✅ SUCCESS!")
         print(f"Response: {response}")
     except Exception as e:

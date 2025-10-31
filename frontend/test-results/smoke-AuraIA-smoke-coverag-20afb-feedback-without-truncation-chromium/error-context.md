@@ -1,0 +1,41 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e3]:
+  - complementary [ref=e4]:
+    - generic [ref=e5]:
+      - generic [ref=e6]:
+        - generic [ref=e7]: AuraIA
+        - generic [ref=e8]: The Future Beside You
+      - button "+ New chat" [ref=e9] [cursor=pointer]:
+        - generic [ref=e10]: +
+        - text: New chat
+    - generic [ref=e12] [cursor=pointer]:
+      - generic [ref=e13]: Long response validation
+      - button "🗑️" [ref=e14]
+    - generic [ref=e16] [cursor=pointer]:
+      - generic [ref=e17]: HS
+      - generic [ref=e18]: Herman Swanepoel
+  - main [ref=e19]:
+    - generic [ref=e20]:
+      - heading "AuraIA" [level=1] [ref=e21]
+      - generic [ref=e22]:
+        - generic [ref=e23]:
+          - button "💬 Chat" [ref=e24] [cursor=pointer]
+          - button "🤖 Agent" [ref=e25] [cursor=pointer]
+          - button "✏️ Edit" [ref=e26] [cursor=pointer]
+        - generic [ref=e27]: 🔴 Disconnected
+        - generic [ref=e28]:
+          - generic [ref=e29]: 💻 Local
+          - generic [ref=e30]:
+            - checkbox
+    - status [ref=e32]: Connection lost. Attempting to reconnect…
+    - alert [ref=e34]:
+      - heading "Unable to reach backend" [level=2] [ref=e35]
+      - paragraph [ref=e36]: We will keep retrying automatically. Please check your backend status.
+    - generic [ref=e38]:
+      - button "+" [ref=e39] [cursor=pointer]
+      - textbox "Backend unavailable" [ref=e40]
+      - button "🎤" [ref=e41] [cursor=pointer]
+      - button "↑" [disabled] [ref=e42]
+```

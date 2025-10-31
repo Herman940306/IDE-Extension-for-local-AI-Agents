@@ -8,11 +8,7 @@ from unittest.mock import AsyncMock, Mock, patch
 import httpx
 import pytest
 from src.models.reasoner import FastReasoner, ReasoningRequest, ReasoningResponse
-from src.models.verifier import (
-    AnalyticalVerifier,
-    VerificationRequest,
-    VerificationResponse,
-)
+from src.models.verifier import AnalyticalVerifier, VerificationRequest, VerificationResponse
 
 
 class TestFastReasoner:

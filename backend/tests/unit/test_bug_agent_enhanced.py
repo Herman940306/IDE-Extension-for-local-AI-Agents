@@ -157,9 +157,7 @@ class TestSecurityPatternDetection:
         response = await bug_agent.analyze_code(base_task, context)
 
         assert response.metadata["static_issues"] >= 1
-        assert any(
-            "command injection" in s.description.lower() for s in response.suggestions
-        )
+        assert any("command injection" in s.description.lower() for s in response.suggestions)
 
     @pytest.mark.asyncio
     async def test_hardcoded_secret_detection(self, bug_agent, base_task):
@@ -213,9 +211,7 @@ class TestSecurityPatternDetection:
         response = await bug_agent.analyze_code(base_task, context)
 
         assert response.metadata["static_issues"] >= 1
-        assert any(
-            "path traversal" in s.description.lower() for s in response.suggestions
-        )
+        assert any("path traversal" in s.description.lower() for s in response.suggestions)
 
     @pytest.mark.asyncio
     async def test_insecure_random_detection(self, bug_agent, base_task):
@@ -260,9 +256,7 @@ class TestPerformancePatternDetection:
         response = await bug_agent.analyze_code(base_task, context)
 
         assert response.metadata["static_issues"] >= 1
-        assert any(
-            "nested loops" in s.description.lower() for s in response.suggestions
-        )
+        assert any("nested loops" in s.description.lower() for s in response.suggestions)
 
     @pytest.mark.asyncio
     async def test_inefficient_string_concat_detection(self, bug_agent, base_task):
@@ -328,9 +322,7 @@ class TestLanguageSpecificChecks:
         response = await bug_agent.analyze_code(base_task, context)
 
         assert response.metadata["static_issues"] >= 1
-        assert any(
-            "deserialization" in s.description.lower() for s in response.suggestions
-        )
+        assert any("deserialization" in s.description.lower() for s in response.suggestions)
 
     @pytest.mark.asyncio
     async def test_python_assert_detection(self, bug_agent, base_task):
@@ -558,9 +550,7 @@ class TestFixGeneration:
     @pytest.mark.asyncio
     async def test_generate_fixes_with_llm(self, bug_agent, python_context):
         """Test fix generation using LLM"""
-        bug_agent.llm_manager.generate.return_value = (
-            "# Fixed code\nresult = safe_query(params)"
-        )
+        bug_agent.llm_manager.generate.return_value = "# Fixed code\nresult = safe_query(params)"
 
         issues = [
             {
@@ -796,9 +786,7 @@ class TestErrorHandling:
     """Test error handling and edge cases"""
 
     @pytest.mark.asyncio
-    async def test_analyze_code_handles_exception(
-        self, bug_agent, base_task, python_context
-    ):
+    async def test_analyze_code_handles_exception(self, bug_agent, base_task, python_context):
         """Test analyze_code handles exceptions gracefully"""
         bug_agent.llm_manager.generate.side_effect = Exception("Unexpected error")
 

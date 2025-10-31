@@ -13,11 +13,7 @@ import pytest
 from fastapi import FastAPI, Request
 from fastapi.testclient import TestClient
 from src.api.exception_handlers import register_exception_handlers
-from src.api.middleware import (
-    CorrelationIDMiddleware,
-    RateLimitMiddleware,
-    RequestSizeMiddleware,
-)
+from src.api.middleware import CorrelationIDMiddleware, RateLimitMiddleware, RequestSizeMiddleware
 from src.services.rate_limiter import RateLimiter
 
 # ============================================================================
