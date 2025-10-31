@@ -65,8 +65,8 @@ class AdapterException(AuraIAException):
         message: str,
         adapter_name: str,
         details: Optional[Dict[str, Any]] = None,
-        **kwargs,
-    ):
+        **kwargs: Any,
+    ) -> None:
         """
         Initialize adapter exception.
 
@@ -96,8 +96,8 @@ class LLMException(AuraIAException):
         message: str,
         model: str,
         details: Optional[Dict[str, Any]] = None,
-        **kwargs,
-    ):
+        **kwargs: Any,
+    ) -> None:
         """
         Initialize LLM exception.
 
@@ -122,8 +122,8 @@ class ValidationException(AuraIAException):
         message: str,
         field: str,
         details: Optional[Dict[str, Any]] = None,
-        **kwargs,
-    ):
+        **kwargs: Any,
+    ) -> None:
         """
         Initialize validation exception.
 
@@ -148,7 +148,9 @@ class ValidationException(AuraIAException):
 class CircuitBreakerOpenException(AuraIAException):
     """Circuit breaker is open"""
 
-    def __init__(self, service_name: str, details: Optional[Dict[str, Any]] = None, **kwargs):
+    def __init__(
+        self, service_name: str, details: Optional[Dict[str, Any]] = None, **kwargs: Any
+    ) -> None:
         """
         Initialize circuit breaker exception.
 
@@ -177,8 +179,8 @@ class RateLimitExceededException(AuraIAException):
         limit: int,
         window: int,
         details: Optional[Dict[str, Any]] = None,
-        **kwargs,
-    ):
+        **kwargs: Any,
+    ) -> None:
         """
         Initialize rate limit exception.
 

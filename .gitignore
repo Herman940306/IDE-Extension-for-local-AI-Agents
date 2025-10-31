@@ -99,6 +99,9 @@ htmlcov/
 coverage.xml
 *.cover
 
+# Test Results
+frontend/test-results/
+
 # Type checkers and test caches
 .mypy_cache/
 .pytest_cache/

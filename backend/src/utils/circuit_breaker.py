@@ -32,7 +32,7 @@ class CircuitBreaker:
         failure_threshold: int = 5,
         timeout_seconds: float = 60.0,
         success_threshold: int = 2,
-    ):
+    ) -> None:
         """
         Initialize circuit breaker.
 

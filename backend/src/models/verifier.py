@@ -50,7 +50,7 @@ class AnalyticalVerifier:
         ollama_url: str = "http://localhost:11434",
         model: str = "mistral:7b",
         timeout: float = 60.0,
-    ):
+    ) -> None:
         """
         Initialize analytical verifier.
 

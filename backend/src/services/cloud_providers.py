@@ -29,7 +29,7 @@ class ProviderDependencyError(CloudProviderError):
 class CloudProvider(ABC):
     """Base class for cloud LLM providers."""
 
-    def __init__(self, api_key: str, model: str):
+    def __init__(self, api_key: str, model: str) -> None:
         self.api_key = api_key
         self.model = model
 
@@ -56,7 +56,7 @@ class CloudProvider(ABC):
 class OpenAIProvider(CloudProvider):
     """OpenAI API provider with optional dependency handling."""
 
-    def __init__(self, api_key: str, model: str):
+    def __init__(self, api_key: str, model: str) -> None:
         super().__init__(api_key, model)
         self._client_mode: Optional[str] = None
         # Use 'Any' for client to accommodate multiple optional SDK shapes
@@ -205,7 +205,7 @@ class AnthropicProvider(CloudProvider):
 
     DEFAULT_MAX_TOKENS = 1024
 
-    def __init__(self, api_key: str, model: str):
+    def __init__(self, api_key: str, model: str) -> None:
         super().__init__(api_key, model)
         self._client_mode: Optional[str] = None
         # Use 'Any' for client to accommodate multiple optional SDK shapes
@@ -333,7 +333,7 @@ class AnthropicProvider(CloudProvider):
 class PrivacyManager:
     """Manages privacy controls for cloud LLM usage."""
 
-    def __init__(self, allow_cloud: bool = False):
+    def __init__(self, allow_cloud: bool = False) -> None:
         self.allow_cloud = allow_cloud
         self.sensitive_patterns = [
             r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}",  # Email

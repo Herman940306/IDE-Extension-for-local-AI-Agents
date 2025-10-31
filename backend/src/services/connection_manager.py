@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 class ConnectionManager:
     """Manages WebSocket connections and message broadcasting"""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.active_connections: Dict[str, WebSocket] = {}
         self.connection_metadata: Dict[str, dict] = {}
         self._lock = asyncio.Lock()

@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 class SearchCache:
     """TTL cache for search results"""
 
-    def __init__(self, maxsize: int = 100, ttl: float = 300.0):
+    def __init__(self, maxsize: int = 100, ttl: float = 300.0) -> None:
         """
         Initialize search cache
 
@@ -83,7 +83,7 @@ class SemanticSearchService:
         self,
         embeddings_service: EmbeddingsService,
         metrics_service: Optional[MetricsService] = None,
-    ):
+    ) -> None:
         """
         Initialize semantic search service
 

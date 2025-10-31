@@ -50,7 +50,7 @@ class ObserverProtocol(Protocol):
 class CodeFileEventHandler(FileSystemEventHandler):
     """File system event handler for code changes"""
 
-    def __init__(self, callback: Callable[[str, str], None]):
+    def __init__(self, callback: Callable[[str, str], None]) -> None:
         """
         Initialize event handler
 
@@ -89,7 +89,7 @@ class CodeFileEventHandler(FileSystemEventHandler):
 class LRUCache:
     """Simple LRU cache for AST parsing results"""
 
-    def __init__(self, maxsize: int = 100):
+    def __init__(self, maxsize: int = 100) -> None:
         self.cache: OrderedDict = OrderedDict()
         self.maxsize = maxsize
 
@@ -118,7 +118,7 @@ class ContextManager:
     Enhanced with file watching and caching for real-time updates
     """
 
-    def __init__(self, workspace_path: str, enable_file_watcher: bool = True):
+    def __init__(self, workspace_path: str, enable_file_watcher: bool = True) -> None:
         """
         Initialize context manager
 

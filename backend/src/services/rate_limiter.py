@@ -25,7 +25,7 @@ class RateLimiter:
         redis_client: Optional[Redis],
         default_limit: int = 100,
         default_window: int = 60,
-    ):
+    ) -> None:
         """
         Initialize rate limiter.
 

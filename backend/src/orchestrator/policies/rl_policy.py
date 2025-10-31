@@ -23,7 +23,7 @@ class PredictivePolicy:
     patterns, enabling pre-warming of models and memory segments.
     """
 
-    def __init__(self, model_path: Optional[str] = None, min_history_size: int = 100):
+    def __init__(self, model_path: Optional[str] = None, min_history_size: int = 100) -> None:
         """
         Initialize predictive policy.
 

@@ -123,7 +123,7 @@ class MemoryConfig:
         hot_data_ttl_hours: int = 24,
         enable_compression: bool = True,
         enable_encryption: bool = False,
-    ):
+    ) -> None:
         self.backend = backend
         self.redis_url = redis_url
         self.sqlite_path = sqlite_path
@@ -155,7 +155,7 @@ class MemoryService:
         history = await memory.get_session_history(session_id, limit=10)
     """
 
-    def __init__(self, config: MemoryConfig):
+    def __init__(self, config: MemoryConfig) -> None:
         self.config = config
         self.redis_client: Optional[aioredis.Redis] = None
         self.sqlite_conn: Optional[sqlite3.Connection] = None

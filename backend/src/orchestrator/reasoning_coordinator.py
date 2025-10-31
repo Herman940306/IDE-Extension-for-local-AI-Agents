@@ -60,7 +60,7 @@ class ReasoningCoordinator:
         meta_controller: MetaController,
         confidence_threshold: float = 0.75,
         complexity_threshold: float = 0.5,
-    ):
+    ) -> None:
         """
         Initialize reasoning coordinator.
 

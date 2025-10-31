@@ -34,7 +34,7 @@ class DualProcessSystem:
         verifier_model: Optional[str] = None,
         confidence_threshold: float = 0.75,
         complexity_threshold: float = 0.5,
-    ):
+    ) -> None:
         """
         Initialize dual-process system.
 

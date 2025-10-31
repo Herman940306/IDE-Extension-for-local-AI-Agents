@@ -29,7 +29,7 @@ class ProvenanceStore:
         self,
         db_path: str = "./data/provenance.db",
         encryption_key: Optional[str] = None,
-    ):
+    ) -> None:
         """
         Initialize provenance store.
 

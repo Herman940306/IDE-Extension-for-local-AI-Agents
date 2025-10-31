@@ -50,7 +50,7 @@ class AgentAdapter(ABC):
     # Class-level response cache shared across all adapters
     _response_cache: Optional["ResponseCache"] = None
 
-    def __init__(self, config: AgentConfig):
+    def __init__(self, config: AgentConfig) -> None:
         """
         Initialize the adapter with configuration
 
@@ -174,7 +174,7 @@ class AgentAdapter(ABC):
 class AdapterRegistry:
     """Registry for managing agent adapters"""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._adapters: Dict[str, AgentAdapter] = {}
 
     def register(self, name: str, adapter: AgentAdapter) -> None:

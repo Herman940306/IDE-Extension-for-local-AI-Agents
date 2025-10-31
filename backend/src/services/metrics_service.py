@@ -30,7 +30,7 @@ class MetricsService:
     - Last used timestamp
     """
 
-    def __init__(self, metrics_path: Optional[Path] = None):
+    def __init__(self, metrics_path: Optional[Path] = None) -> None:
         """
         Initialize metrics service.
 

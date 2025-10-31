@@ -34,7 +34,7 @@ class CircuitBreaker:
         failure_threshold: int = 5,
         timeout: float = 60.0,
         success_threshold: int = 2,
-    ):
+    ) -> None:
         """
         Initialize circuit breaker
 
@@ -53,7 +53,7 @@ class CircuitBreaker:
         self.last_failure_time: Optional[float] = None
         self.last_state_change: float = time.time()
 
-    def call(self, func: Callable, *args, **kwargs):
+    def call(self, func: Callable, *args, **kwargs: Any):
         """
         Execute function with circuit breaker protection
 
@@ -84,7 +84,7 @@ class CircuitBreaker:
             self._on_failure()
             raise
 
-    async def call_async(self, func: Callable, *args, **kwargs):
+    async def call_async(self, func: Callable, *args, **kwargs: Any):
         """Async version of call"""
         if self.state == CircuitState.OPEN:
             if time.time() - self.last_failure_time >= self.timeout:
@@ -152,7 +152,7 @@ class SelfHealingManager:
     Automatic recovery from failures
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize self-healing manager"""
         self.circuit_breakers: Dict[str, CircuitBreaker] = {}
         self.service_health: Dict[str, ServiceHealth] = {}
@@ -233,7 +233,9 @@ class SelfHealingManager:
         self.service_health[service_name] = health
         return health
 
-    async def execute_with_healing(self, service_name: str, func: Callable, *args, **kwargs) -> Any:
+    async def execute_with_healing(
+        self, service_name: str, func: Callable, *args, **kwargs: Any
+    ) -> Any:
         """
         Execute function with self-healing protection
 

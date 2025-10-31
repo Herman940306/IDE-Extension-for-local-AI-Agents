@@ -23,7 +23,7 @@ class ModeManager:
     Manages offline/online mode state and enforces privacy controls
     """
 
-    def __init__(self, default_mode: OperationMode = OperationMode.OFFLINE):
+    def __init__(self, default_mode: OperationMode = OperationMode.OFFLINE) -> None:
         """
         Initialize mode manager
 

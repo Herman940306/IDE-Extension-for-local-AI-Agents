@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 class AccessPattern:
     """Tracks access patterns for a resource"""
 
-    def __init__(self, resource_id: str):
+    def __init__(self, resource_id: str) -> None:
         self.resource_id = resource_id
         self.access_times: deque = deque(maxlen=100)  # Last 100 accesses
         self.access_count = 0
@@ -79,7 +79,7 @@ class PredictiveCacheManager:
     Pre-loads frequently accessed resources
     """
 
-    def __init__(self, prediction_threshold: float = 0.6, preload_window: float = 60.0):
+    def __init__(self, prediction_threshold: float = 0.6, preload_window: float = 60.0) -> None:
         """
         Initialize predictive cache manager
 

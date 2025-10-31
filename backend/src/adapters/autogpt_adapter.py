@@ -20,7 +20,7 @@ class AutoGPTAdapter(AgentAdapter):
     AutoGPT excels at research, planning, and complex multi-step tasks.
     """
 
-    def __init__(self, config: AgentConfig):
+    def __init__(self, config: AgentConfig) -> None:
         """
         Initialize AutoGPT adapter
 
@@ -498,7 +498,7 @@ class AutoGPTAdapter(AgentAdapter):
 class AutoGPTResearchAgent(AutoGPTAdapter):
     """Specialized AutoGPT adapter for research tasks"""
 
-    def __init__(self):
+    def __init__(self) -> None:
         config = AgentConfig(
             name="AutoGPT Research Agent",
             description="Autonomous research and analysis using AutoGPT",
@@ -519,7 +519,7 @@ class AutoGPTResearchAgent(AutoGPTAdapter):
 class AutoGPTCodeAnalysisAgent(AutoGPTAdapter):
     """Specialized AutoGPT adapter for code analysis"""
 
-    def __init__(self):
+    def __init__(self) -> None:
         config = AgentConfig(
             name="AutoGPT Code Analysis Agent",
             description="Deep code analysis using AutoGPT",

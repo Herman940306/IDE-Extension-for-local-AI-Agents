@@ -29,7 +29,7 @@ class MetaController:
     based on task complexity and performance metrics.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize meta-controller with default graph topology"""
         self.graph = nx.DiGraph()
         self.performance_history: List[Dict[str, Any]] = []

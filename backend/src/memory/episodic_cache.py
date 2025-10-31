@@ -26,7 +26,7 @@ class EpisodicCache:
         port: int = 6379,
         db: int = 0,
         password: Optional[str] = None,
-    ):
+    ) -> None:
         """
         Initialize episodic cache.
 

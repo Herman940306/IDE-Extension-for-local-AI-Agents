@@ -28,7 +28,7 @@ class SemanticStore:
         dimension: int = 768,
         persist_directory: str = "./data/chroma_db",
         collection_name: str = "code_patterns",
-    ):
+    ) -> None:
         """
         Initialize semantic store.
 
