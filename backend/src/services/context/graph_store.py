@@ -80,7 +80,9 @@ class GraphStore:
             ON nodes(last_touched);
             """
         )
-        await conn.execute("""CREATE INDEX IF NOT EXISTS idx_edges_source ON edges(source);""")
+        await conn.execute(
+            """CREATE INDEX IF NOT EXISTS idx_edges_source ON edges(source);"""
+        )
 
     # ------------------------------------------------------------------
     # Node CRUD

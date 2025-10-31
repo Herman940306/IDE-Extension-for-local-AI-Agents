@@ -31,8 +31,12 @@ class Metric(BaseModel):
     type: MetricType = Field(..., description="Type of metric")
     value: float = Field(..., description="Metric value")
     unit: Optional[str] = Field(None, description="Unit of measurement")
-    tags: Dict[str, str] = Field(default_factory=dict, description="Tags for filtering/grouping")
-    metadata: Dict[str, Any] = Field(default_factory=dict, description="Additional metadata")
+    tags: Dict[str, str] = Field(
+        default_factory=dict, description="Tags for filtering/grouping"
+    )
+    metadata: Dict[str, Any] = Field(
+        default_factory=dict, description="Additional metadata"
+    )
     timestamp: datetime = Field(
         default_factory=datetime.utcnow, description="When metric was recorded"
     )

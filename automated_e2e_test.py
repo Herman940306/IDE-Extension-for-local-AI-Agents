@@ -180,7 +180,9 @@ def check_ollama_models():
         "nomic-embed-text": "Context Engine",
     }
 
-    result = run_command(f'"{OLLAMA_PATH}" list', "Listing available models", check=False)
+    result = run_command(
+        f'"{OLLAMA_PATH}" list', "Listing available models", check=False
+    )
 
     if not result or result.returncode != 0:
         print_error("Could not list Ollama models")
@@ -306,7 +308,13 @@ def run_e2e_tests():
         print_error(f"Python not found at: {python_path}")
         return False
 
-    test_file = script_dir / "backend" / "tests" / "integration" / "test_end_to_end_router_v2.py"
+    test_file = (
+        script_dir
+        / "backend"
+        / "tests"
+        / "integration"
+        / "test_end_to_end_router_v2.py"
+    )
 
     print_info("Starting pytest with verbose output...")
     print()

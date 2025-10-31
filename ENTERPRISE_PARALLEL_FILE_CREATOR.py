@@ -224,7 +224,9 @@ class EnterpriseParallelFileCreator:
         for attempt in range(self.config.RETRY_ATTEMPTS):
             try:
                 loop = asyncio.get_event_loop()
-                await loop.run_in_executor(None, self._write_file_sync, file_path, content)
+                await loop.run_in_executor(
+                    None, self._write_file_sync, file_path, content
+                )
                 return True
             except Exception as e:
                 if attempt < self.config.RETRY_ATTEMPTS - 1:
@@ -246,7 +248,9 @@ class EnterpriseParallelFileCreator:
         """Generate embedding for content"""
         try:
             loop = asyncio.get_event_loop()
-            vector = await loop.run_in_executor(None, self.embedding_model.encode, content)
+            vector = await loop.run_in_executor(
+                None, self.embedding_model.encode, content
+            )
             self.metrics["embeddings_generated"] += 1
             return np.array(vector, dtype="float32")
         except Exception as e:
@@ -257,7 +261,9 @@ class EnterpriseParallelFileCreator:
         """Store vector in FAISS index"""
         try:
             loop = asyncio.get_event_loop()
-            await loop.run_in_executor(None, self.faiss_index.add, np.expand_dims(vector, axis=0))
+            await loop.run_in_executor(
+                None, self.faiss_index.add, np.expand_dims(vector, axis=0)
+            )
             index_id = self.faiss_index.ntotal - 1
             self.file_id_map[index_id] = file_name
             self.metrics["faiss_operations"] += 1

@@ -19,7 +19,9 @@ from src.utils.circuit_breaker import CircuitBreaker, CircuitState  # noqa: E402
 
 @pytest.mark.asyncio
 async def test_circuit_breaker_state_and_reset():
-    cb = CircuitBreaker(name="svc", failure_threshold=1, timeout_seconds=0.01, success_threshold=1)
+    cb = CircuitBreaker(
+        name="svc", failure_threshold=1, timeout_seconds=0.01, success_threshold=1
+    )
 
     # Initial state
     state = cb.get_state()
@@ -90,16 +92,23 @@ def test_prompt_templates_minimal_calls_cover_edges():
     ctx = {"language": "python", "file_path": "/tmp/x.py"}
     code = "print('x')"
 
-    assert "Given the following python code" in pt.build_code_suggestion_prompt(code, ctx)
-    assert "Analyze this python code" in pt.build_refactor_prompt(code, ctx)
-    assert "Generate comprehensive tests for this python code" in pt.build_test_generation_prompt(
+    assert "Given the following python code" in pt.build_code_suggestion_prompt(
         code, ctx
     )
-    assert "Analyze this python code for potential bugs" in pt.build_bug_detection_prompt(code, ctx)
+    assert "Analyze this python code" in pt.build_refactor_prompt(code, ctx)
+    assert (
+        "Generate comprehensive tests for this python code"
+        in pt.build_test_generation_prompt(code, ctx)
+    )
+    assert (
+        "Analyze this python code for potential bugs"
+        in pt.build_bug_detection_prompt(code, ctx)
+    )
     assert (
         "Generate comprehensive documentation for this python code"
         in pt.build_documentation_prompt(code, ctx)
     )
-    assert "Perform security analysis on this python code" in pt.build_security_analysis_prompt(
-        code, ctx
+    assert (
+        "Perform security analysis on this python code"
+        in pt.build_security_analysis_prompt(code, ctx)
     )

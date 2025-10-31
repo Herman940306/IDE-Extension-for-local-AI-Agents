@@ -20,7 +20,9 @@ ROUTING_YAML = Path("AuralA_Model_Routing_Generated.yaml")
 # load or create config
 if not CONFIG.exists():
     CONFIG.write_text(
-        json.dumps({"callback_url": "http://localhost:3000/notify", "port": 5050}, indent=2)
+        json.dumps(
+            {"callback_url": "http://localhost:3000/notify", "port": 5050}, indent=2
+        )
     )
 with open(CONFIG) as f:
     cfg = json.load(f)
@@ -61,7 +63,11 @@ async def route_endpoint(req: RouteReq, background_tasks: BackgroundTasks):
     with metrics_lock:
         m = metrics.get(model, {"calls": 0, "avg_latency": 0.0, "success": 0})
         calls = m["calls"] + 1
-        avg = (m["avg_latency"] * m["calls"] + latency) / calls if m["calls"] > 0 else latency
+        avg = (
+            (m["avg_latency"] * m["calls"] + latency) / calls
+            if m["calls"] > 0
+            else latency
+        )
         succ = m["success"] + (1 if result.get("text") else 0)
         metrics[model] = {"calls": calls, "avg_latency": avg, "success": succ}
         persist_metrics()

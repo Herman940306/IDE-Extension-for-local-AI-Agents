@@ -22,7 +22,9 @@ async def main():
         print("Waiting for response (this may take 30-60 seconds)...")
 
         try:
-            response = await client.post("http://localhost:8001/api/v1/route", json=request)
+            response = await client.post(
+                "http://localhost:8001/api/v1/route", json=request
+            )
 
             print(f"\nStatus: {response.status_code}")
 

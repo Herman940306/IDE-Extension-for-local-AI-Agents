@@ -26,7 +26,9 @@ TEST_RESULTS = REFACTOR_DIR / "results.json"
 
 # Replace with your API keys (optional if managed by Copilot/VSCode)
 openai.api_key = os.getenv("OPENAI_API_KEY", "your-gpt5-key")
-anthropic_client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY", "your-claude-key"))
+anthropic_client = anthropic.Anthropic(
+    api_key=os.getenv("ANTHROPIC_API_KEY", "your-claude-key")
+)
 
 
 async def run_pytest():
@@ -34,7 +36,9 @@ async def run_pytest():
     print("🧪 [Refactor Agent] Running pytest...")
     REFACTOR_DIR.mkdir(parents=True, exist_ok=True)
     if not (REFACTOR_DIR / ".git").exists():
-        subprocess.run(["git", "worktree", "add", str(REFACTOR_DIR), "main"], check=False)
+        subprocess.run(
+            ["git", "worktree", "add", str(REFACTOR_DIR), "main"], check=False
+        )
 
     # Use the current Python interpreter to invoke pytest for Windows PATH reliability
     cmd = [
@@ -109,7 +113,9 @@ async def update_docs_with_claude():
     DOCS_DIR.mkdir(parents=True, exist_ok=True)
     if not (DOCS_DIR / ".git").exists():
         # Create a detached worktree to avoid branch conflicts with the refactor worktree
-        subprocess.run(["git", "worktree", "add", "--detach", str(DOCS_DIR)], check=False)
+        subprocess.run(
+            ["git", "worktree", "add", "--detach", str(DOCS_DIR)], check=False
+        )
 
     print("📚 [Claude Agent] Updating documentation...")
 
@@ -178,7 +184,9 @@ async def orchestrate():
         )
 
         if failing:
-            print(f"🔁 Tests failing in {len(failing)} file(s); attempting automated refactor...")
+            print(
+                f"🔁 Tests failing in {len(failing)} file(s); attempting automated refactor..."
+            )
             await fix_failures_with_gpt5()
             # Loop will rerun pytest and re-evaluate
             continue

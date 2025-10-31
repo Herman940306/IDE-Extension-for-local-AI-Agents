@@ -83,13 +83,20 @@ class PersonaEngine:
             # if all are dicts -> merge keys recursively (simple average for numeric)
             if all(isinstance(v, dict) for v in vals if v is not None):
                 merged = {}
-                subkeys = set().union(*[set(v.keys()) for v in vals if isinstance(v, dict)])
+                subkeys = set().union(
+                    *[set(v.keys()) for v in vals if isinstance(v, dict)]
+                )
                 for sk in subkeys:
                     # collect numeric or lists
                     entries = [v.get(sk) for v in vals if isinstance(v, dict)]
-                    if all(isinstance(e, (int, float)) for e in entries if e is not None):
+                    if all(
+                        isinstance(e, (int, float)) for e in entries if e is not None
+                    ):
                         # weighted avg
-                        total = sum((e or 0.0) * w for e, w in zip(entries, weights, strict=False))
+                        total = sum(
+                            (e or 0.0) * w
+                            for e, w in zip(entries, weights, strict=False)
+                        )
                         merged[sk] = total
                     else:
                         # union lists or prefer highest weight non-empty
@@ -109,7 +116,9 @@ class PersonaEngine:
             else:
                 # choose highest-weight non-null value
                 chosen = None
-                for val, _w in sorted(zip(vals, weights, strict=False), key=lambda x: -x[1]):
+                for val, _w in sorted(
+                    zip(vals, weights, strict=False), key=lambda x: -x[1]
+                ):
                     if val:
                         chosen = val
                         break
@@ -158,7 +167,9 @@ class PersonaEngine:
         )
         # punctuation & breathing pattern
         if sentiment in ("stressed", "urgent"):
-            prefix = random.choice(persona.get("urgent_prefixes", ["Quick note:", "Heads up:"]))
+            prefix = random.choice(
+                persona.get("urgent_prefixes", ["Quick note:", "Heads up:"])
+            )
             formatted = f"{prefix} {base_text}"
         elif sentiment in ("thoughtful", "curious"):
             formatted = f"{base_text} — {random.choice(persona.get('thoughtful_tail', ['Let’s explore that.','What do you think?']))}"

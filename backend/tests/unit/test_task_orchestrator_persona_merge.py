@@ -8,7 +8,9 @@ def test_build_system_prompt_merges_persona(monkeypatch):
 
     # Ensure persona is enabled
     to.settings.enable_omni_persona = True
-    to.settings.persona_assets_dir = "/nonexistent/path"  # value doesn't matter when stubbed
+    to.settings.persona_assets_dir = (
+        "/nonexistent/path"  # value doesn't matter when stubbed
+    )
 
     calls = SimpleNamespace(count=0)
 

@@ -25,7 +25,9 @@ async def worker(latencies: list[float], stop_at: float):
 async def main():
     stop_at = time.perf_counter() + DURATION
     latencies: list[float] = []
-    tasks = [asyncio.create_task(worker(latencies, stop_at)) for _ in range(CONCURRENCY)]
+    tasks = [
+        asyncio.create_task(worker(latencies, stop_at)) for _ in range(CONCURRENCY)
+    ]
     await asyncio.gather(*tasks)
 
     if not latencies:

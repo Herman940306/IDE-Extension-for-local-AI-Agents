@@ -87,7 +87,9 @@ def wait_for_ollama(
 ) -> bool:
     """Poll the Ollama tags endpoint until it responds or the timeout elapses."""
 
-    target_host = (host or os.getenv("OLLAMA_HOST") or "http://127.0.0.1:11434").rstrip("/")
+    target_host = (host or os.getenv("OLLAMA_HOST") or "http://127.0.0.1:11434").rstrip(
+        "/"
+    )
     candidates = [target_host]
 
     if "localhost" in target_host:
@@ -142,7 +144,9 @@ def _load_openai_key_from_secure_folder() -> None:
             return
 
         # Use first non-empty line
-        first_line = next((ln.strip() for ln in key_text.splitlines() if ln.strip()), "")
+        first_line = next(
+            (ln.strip() for ln in key_text.splitlines() if ln.strip()), ""
+        )
         if first_line.startswith("sk-"):
             os.environ["OPENAI_API_KEY"] = first_line
             logger.info("openai_api_key_loaded", source="secure_folder")
@@ -448,7 +452,9 @@ async def debug_embed(sample: str = "def add(a,b): return a+b") -> Dict[str, Any
             if not getattr(svc, "is_initialized", False):
                 await svc.initialize()
             vec = await svc.embed_code(sample)
-            model_name = svc.ollama_model_name if svc.provider == "ollama" else svc.model_name
+            model_name = (
+                svc.ollama_model_name if svc.provider == "ollama" else svc.model_name
+            )
             results.update(
                 {
                     "service_provider": svc.provider,
@@ -744,7 +750,9 @@ async def get_job_status(job_id: str):
         else:
             status = state.lower()
 
-        info = result.info if isinstance(result.info, dict) else {"raw": str(result.info)}
+        info = (
+            result.info if isinstance(result.info, dict) else {"raw": str(result.info)}
+        )
         return {"job_id": job_id, "status": status, **info}
     else:
         async with job_lock:
@@ -775,7 +783,9 @@ async def prometheus_http_middleware(request, call_next):
 @app.get("/metrics", include_in_schema=False)
 def metrics_endpoint() -> Response:
     """Prometheus scrape endpoint"""
-    return Response(generate_latest(APP_METRICS_REGISTRY), media_type=CONTENT_TYPE_LATEST)
+    return Response(
+        generate_latest(APP_METRICS_REGISTRY), media_type=CONTENT_TYPE_LATEST
+    )
 
 
 @app.get(
@@ -946,7 +956,8 @@ async def api_status() -> Dict[str, Any]:
         "router_initialized": llm_router is not None,
         "default_local_model": getattr(llm_router, "default_local_model", None),
         "openai_configured": bool(
-            os.environ.get("OPENAI_API_KEY") or getattr(llm_router, "openai_api_key", None)
+            os.environ.get("OPENAI_API_KEY")
+            or getattr(llm_router, "openai_api_key", None)
         ),
         "interaction_modes": [mode.value for mode in InteractionMode],
         "mode": mode_info.get("current_mode"),
@@ -1044,7 +1055,9 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
                     await connection_manager.send_personal_message(
                         {
                             "type": "error",
-                            "payload": {"message": f"Unknown message type: {message_type}"},
+                            "payload": {
+                                "message": f"Unknown message type: {message_type}"
+                            },
                         },
                         client_id,
                     )
@@ -1055,7 +1068,9 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
             except RuntimeError as runtime_error:
                 message = str(runtime_error).lower()
                 disconnect_error = "disconnect message" in message
-                receive_after_disconnect = "receive" in message and "disconnect" in message
+                receive_after_disconnect = (
+                    "receive" in message and "disconnect" in message
+                )
 
                 if disconnect_error or receive_after_disconnect:
                     # Treat as clean disconnect without bubbling an exception to uvicorn
@@ -1145,7 +1160,9 @@ async def handle_task_request(client_id: str, payload: Dict):
             # Extract interaction mode from context metadata (default to CHAT)
             # Check both context.metadata and context dict directly
             if hasattr(request_payload.context, "metadata"):
-                mode_str = request_payload.context.metadata.get("interaction_mode", "chat")
+                mode_str = request_payload.context.metadata.get(
+                    "interaction_mode", "chat"
+                )
             elif isinstance(request_payload.context, dict):
                 mode_str = request_payload.context.get("interaction_mode", "chat")
             else:
@@ -1155,7 +1172,9 @@ async def handle_task_request(client_id: str, payload: Dict):
             try:
                 interaction_mode = InteractionMode[mode_str]
             except KeyError:
-                logger.warning(f"Unknown interaction mode: {mode_str}, defaulting to CHAT")
+                logger.warning(
+                    f"Unknown interaction mode: {mode_str}, defaulting to CHAT"
+                )
                 interaction_mode = InteractionMode.CHAT
 
             # Generate response using LLM router
@@ -1269,7 +1288,9 @@ if __name__ == "__main__":
     logger.info("server_starting", creator="Herman Swanepoel")
 
     # Use fully qualified module path so it works whether run as module or script
-    uvicorn.run("src.main:app", host="0.0.0.0", port=8000, reload=True, log_level="info")
+    uvicorn.run(
+        "src.main:app", host="0.0.0.0", port=8000, reload=True, log_level="info"
+    )
 
 
 # Add rate limiting middleware after app initialization

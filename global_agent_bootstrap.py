@@ -12,7 +12,6 @@ import threading
 from pathlib import Path
 from datetime import datetime
 import platform
-import asyncio
 
 # Optional UI/notification libs. Import only if available.
 try:
@@ -58,7 +57,7 @@ workflow:
   - then: qa-phase
 """
 
-ORCHESTRATOR_CODE = r'''
+ORCHESTRATOR_CODE = r"""
 # lightweight orchestrator that writes progress to ~/.aura_agents/pipeline.log
 import asyncio
 from datetime import datetime
@@ -102,7 +101,7 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
-'''
+"""
 
 # ---------- HELPERS & UTILITIES ----------
 
@@ -135,7 +134,14 @@ def _safe_run(cmd: list[str], shell: bool = False) -> subprocess.CompletedProces
 
 def create_startup_shortcut(script_path: Path) -> None:
     """Create a .lnk in the user's Startup folder as a schtasks fallback."""
-    startup = Path(os.getenv("APPDATA", "")) / "Microsoft" / "Windows" / "Start Menu" / "Programs" / "Startup"
+    startup = (
+        Path(os.getenv("APPDATA", ""))
+        / "Microsoft"
+        / "Windows"
+        / "Start Menu"
+        / "Programs"
+        / "Startup"
+    )
     startup.mkdir(parents=True, exist_ok=True)
     shortcut_path = startup / "AuraAgentsWatcher.lnk"
     # Build PowerShell to create shortcut via WScript.Shell COM object.
@@ -160,7 +166,9 @@ def register_task_scheduler() -> None:
     script_quoted = str(script_path).replace('"', '\\"')
     tr = f'"{python_exec}" "{script_quoted}" --watch'
     # Build schtasks command string with proper quoting.
-    cmd = f'schtasks /Create /SC ONLOGON /TN "AuraAgentsWatcher" /TR {tr} /RL HIGHEST /F'
+    cmd = (
+        f'schtasks /Create /SC ONLOGON /TN "AuraAgentsWatcher" /TR {tr} /RL HIGHEST /F'
+    )
     try:
         # Use shell=True here because schtasks expects a single string on Windows.
         subprocess.run(cmd, shell=True, check=True)
@@ -182,8 +190,10 @@ def register_task_scheduler() -> None:
 def install_requirements() -> None:
     """Install minimal dependencies used by the bootstrap (best-effort)."""
     print("📦 Installing optional dependencies (pystray, pillow, winotify)...")
-    _safe_run([sys.executable, "-m", "pip", "install", "-U",
-               "pystray", "pillow", "winotify"], shell=False)
+    _safe_run(
+        [sys.executable, "-m", "pip", "install", "-U", "pystray", "pillow", "winotify"],
+        shell=False,
+    )
 
 
 def setup_global_files() -> None:
@@ -293,7 +303,15 @@ def projects_watcher() -> None:
                     if p in watched:
                         continue
                     # conservative check: only link if it looks like a code project
-                    if any((p / fname).exists() for fname in ("pyproject.toml", "setup.py", "package.json", ".git")):
+                    if any(
+                        (p / fname).exists()
+                        for fname in (
+                            "pyproject.toml",
+                            "setup.py",
+                            "package.json",
+                            ".git",
+                        )
+                    ):
                         try:
                             link_project(p)
                         except Exception as e:
@@ -389,7 +407,9 @@ def apply_global() -> None:
     if pystray and Image is not None:
         run_tray_menu()
     else:
-        print("🟡 Tray not started (missing libs). Watchers still active in background.")
+        print(
+            "🟡 Tray not started (missing libs). Watchers still active in background."
+        )
     print("🌍 Global multi-agent bootstrap applied.")
 
 
@@ -397,8 +417,20 @@ def install_runner_dependencies() -> None:
     """Install basic tooling used by the orchestrator skeleton (best-effort)."""
     print("📦 Installing runner dependencies (ruff, black, pytest) if missing...")
     try:
-        _safe_run([sys.executable, "-m", "pip", "install", "-U",
-                   "ruff", "black", "pytest", "coverage"], shell=False)
+        _safe_run(
+            [
+                sys.executable,
+                "-m",
+                "pip",
+                "install",
+                "-U",
+                "ruff",
+                "black",
+                "pytest",
+                "coverage",
+            ],
+            shell=False,
+        )
     except Exception as e:
         print(f"⚠️ Could not install all runtime deps: {e}")
 

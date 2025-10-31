@@ -133,7 +133,9 @@ class SimpleReasonerEngine:
             applicable_range=None,
         )
 
-        reasoning = narrative.strip() if narrative.strip() else "LLM generated recommendation."
+        reasoning = (
+            narrative.strip() if narrative.strip() else "LLM generated recommendation."
+        )
         metadata = {
             "task_type": request.type.value,
             "selected_model": model_config.name,
@@ -168,7 +170,11 @@ class SimpleReasonerEngine:
                 continue
 
             first_line = lines[0].strip()
-            if first_line and len(first_line) <= 20 and not first_line.startswith(("#", "//")):
+            if (
+                first_line
+                and len(first_line) <= 20
+                and not first_line.startswith(("#", "//"))
+            ):
                 # Treat initial language hint such as "python" as metadata rather than code
                 if first_line.replace("_", "").isalpha():
                     lines = lines[1:]
@@ -195,7 +201,9 @@ class SimpleReasonerEngine:
         brevity = 10 - min(max(word_count - 10, 0) // 5, 5)
         brevity = max(0, min(10, brevity))
 
-        detail_level = min(10, word_count // 3 + (1 if "," in combined or "." in combined else 0))
+        detail_level = min(
+            10, word_count // 3 + (1 if "," in combined or "." in combined else 0)
+        )
         formality = 6 if "please" in lowered or "would you" in lowered else 4
         if any(token in lowered for token in ("sir", "madam", "regards")):
             formality = min(10, formality + 2)
@@ -203,7 +211,8 @@ class SimpleReasonerEngine:
             formality = max(0, formality - 2)
 
         needs_support = any(
-            keyword in lowered for keyword in ("stuck", "blocked", "confused", "help", "urgent")
+            keyword in lowered
+            for keyword in ("stuck", "blocked", "confused", "help", "urgent")
         )
 
         mood = "neutral"
@@ -262,7 +271,11 @@ class SimpleReasonerEngine:
             length = "balanced depth with clear bullet points when helpful."
 
         tone = "steady and reassuring" if needs_support else "friendly and pragmatic"
-        wit_level = "lightly witty" if user_style.get("formality", 5) <= 5 else "straightforward"
+        wit_level = (
+            "lightly witty"
+            if user_style.get("formality", 5) <= 5
+            else "straightforward"
+        )
 
         mood_guidance = {
             "frustrated": (
@@ -391,7 +404,9 @@ class SimpleReasonerEngine:
 
         return prompts[task_type]
 
-    def _build_user_prompt(self, description: str, content: str, _task_type: TaskType) -> str:
+    def _build_user_prompt(
+        self, description: str, content: str, _task_type: TaskType
+    ) -> str:
         """Build user prompt."""
         if content:
             return f"Task: {description}\n\n{content}"
@@ -500,7 +515,9 @@ class SimpleVerifierEngine:
             try:
                 return await self._verify_with_llm(request, response)
             except Exception as e:  # noqa: BLE001
-                ws_logger.warning("LLM verification failed, using fallback: %s", e, exc_info=True)
+                ws_logger.warning(
+                    "LLM verification failed, using fallback: %s", e, exc_info=True
+                )
                 # Fall through to basic verification
 
         # Fallback to basic verification
@@ -574,7 +591,9 @@ Verify this code and provide analysis.
             "uses_llm": True,
         }
 
-        return VerificationSummary(status=status, confidence=confidence, metadata=metadata)
+        return VerificationSummary(
+            status=status, confidence=confidence, metadata=metadata
+        )
 
     async def _verify_fallback(
         self, request: TaskRequestPayload, response: AgentResponse
@@ -593,7 +612,9 @@ Verify this code and provide analysis.
             "uses_llm": False,
         }
 
-        return VerificationSummary(status=status, confidence=confidence, metadata=metadata)
+        return VerificationSummary(
+            status=status, confidence=confidence, metadata=metadata
+        )
 
 
 class TaskOrchestrator:
@@ -644,7 +665,9 @@ class TaskOrchestrator:
         self.metrics_service = metrics_service
         self._rag_retrievers = rag_retrievers
         self._memory_service = memory_service
-        self._rag_enabled = bool(settings.experimental_rag_v2_enabled and rag_retrievers)
+        self._rag_enabled = bool(
+            settings.experimental_rag_v2_enabled and rag_retrievers
+        )
 
         if settings.experimental_rag_v2_enabled:
             if self._rag_enabled:
@@ -718,7 +741,9 @@ class TaskOrchestrator:
         return result
 
     # --- Helper proxies for tests (adaptive style/emoji/persona) ---
-    def _analyze_user_style(self, description: str, content: str) -> dict:  # pragma: no cover
+    def _analyze_user_style(
+        self, description: str, content: str
+    ) -> dict:  # pragma: no cover
         """Expose reasoner's style analyzer for unit tests."""
         return self._reasoner._analyze_user_style(  # type: ignore[attr-defined]
             description, content
@@ -871,13 +896,17 @@ class TaskOrchestrator:
                 else:
                     t0 = time.perf_counter()
 
-                    code_docs = await retrievers["code"].aget_relevant_documents(request.content)
+                    code_docs = await retrievers["code"].aget_relevant_documents(
+                        request.content
+                    )
 
                     mem_docs: List[Any] = []
                     if retrievers.get("memory") is not None:
                         try:
                             mem_retr = retrievers["memory"]
-                            mem_docs = await mem_retr.aget_relevant_documents(request.content)
+                            mem_docs = await mem_retr.aget_relevant_documents(
+                                request.content
+                            )
                         except Exception as mem_err:  # noqa: BLE001
                             ws_logger.warning("Memory retriever failed: %s", mem_err)
 
@@ -906,7 +935,9 @@ class TaskOrchestrator:
                     use_hybrid = bool(getattr(settings, "hybrid_fusion_enabled", False))
                     bm25_scores: Optional[List[float]] = None
                     max_bm25: float = 1.0
-                    code_texts: List[str] = [getattr(doc, "page_content", "") for doc in code_docs]
+                    code_texts: List[str] = [
+                        getattr(doc, "page_content", "") for doc in code_docs
+                    ]
                     if use_hybrid:
                         try:  # pragma: no cover - optional dependency
                             from rank_bm25 import BM25Okapi  # type: ignore
@@ -916,7 +947,9 @@ class TaskOrchestrator:
                             q_tokens = _tokenize(request.content)
                             bm25_arr = bm25.get_scores(q_tokens)
                             bm25_scores = [float(score) for score in bm25_arr]
-                            max_bm25 = max(max(bm25_scores) if bm25_scores else 1.0, 1.0)
+                            max_bm25 = max(
+                                max(bm25_scores) if bm25_scores else 1.0, 1.0
+                            )
                         except Exception:  # noqa: BLE001
                             bm25_scores = None
 
@@ -926,9 +959,13 @@ class TaskOrchestrator:
                         lexical_score = 0.0
                         if use_hybrid:
                             if bm25_scores is not None:
-                                lexical_score = bm25_scores[idx] / max_bm25 if max_bm25 > 0 else 0.0
+                                lexical_score = (
+                                    bm25_scores[idx] / max_bm25 if max_bm25 > 0 else 0.0
+                                )
                             else:
-                                lexical_score = _lexical_overlap(request.content, doc_text)
+                                lexical_score = _lexical_overlap(
+                                    request.content, doc_text
+                                )
                         fusion_score = (
                             (w_vec * vector_score) + (w_bm25 * lexical_score)
                             if use_hybrid
@@ -945,14 +982,22 @@ class TaskOrchestrator:
                         try:
                             retrieval_trace_buffer.append(
                                 RetrievalDocTrace(
-                                    file=(getattr(doc, "metadata", {}) or {}).get("file")
-                                    or (getattr(doc, "metadata", {}) or {}).get("source"),
+                                    file=(getattr(doc, "metadata", {}) or {}).get(
+                                        "file"
+                                    )
+                                    or (getattr(doc, "metadata", {}) or {}).get(
+                                        "source"
+                                    ),
                                     vector_score=vector_score,
                                     lexical_score=lexical_score,
                                     fusion_score=fusion_score,
                                     kept_after_threshold=False,
                                     extras={
-                                        "id": ((getattr(doc, "metadata", {}) or {}).get("id")),
+                                        "id": (
+                                            (getattr(doc, "metadata", {}) or {}).get(
+                                                "id"
+                                            )
+                                        ),
                                         "stage": "rag_v2",
                                         "event": "considered",
                                     },
@@ -962,7 +1007,9 @@ class TaskOrchestrator:
                             pass
 
                     reranker_on = bool(getattr(settings, "reranker_model", ""))
-                    threshold = float(getattr(settings, "relevance_threshold", 0.0) or 0.0)
+                    threshold = float(
+                        getattr(settings, "relevance_threshold", 0.0) or 0.0
+                    )
                     if reranker_on:
                         ce_scores: Optional[List[float]] = None
                         try:  # pragma: no cover - optional dependency
@@ -990,10 +1037,14 @@ class TaskOrchestrator:
 
                         if ce_scores is not None:
                             for idx, record in enumerate(candidate_records):
-                                ce_score = ce_scores[idx] if idx < len(ce_scores) else 0.0
+                                ce_score = (
+                                    ce_scores[idx] if idx < len(ce_scores) else 0.0
+                                )
                                 record["score"] = 0.5 * record["score"] + 0.5 * ce_score
                         candidate_records = [
-                            record for record in candidate_records if record["score"] >= threshold
+                            record
+                            for record in candidate_records
+                            if record["score"] >= threshold
                         ]
 
                     candidate_records.sort(key=lambda item: item["score"], reverse=True)
@@ -1035,14 +1086,22 @@ class TaskOrchestrator:
                             doc = record["doc"]
                             retrieval_trace_buffer.append(
                                 RetrievalDocTrace(
-                                    file=(getattr(doc, "metadata", {}) or {}).get("file")
-                                    or (getattr(doc, "metadata", {}) or {}).get("source"),
+                                    file=(getattr(doc, "metadata", {}) or {}).get(
+                                        "file"
+                                    )
+                                    or (getattr(doc, "metadata", {}) or {}).get(
+                                        "source"
+                                    ),
                                     vector_score=record.get("vector", 0.0),
                                     lexical_score=record.get("lex", 0.0),
                                     fusion_score=record["score"],
                                     kept_after_threshold=True,
                                     extras={
-                                        "id": ((getattr(doc, "metadata", {}) or {}).get("id")),
+                                        "id": (
+                                            (getattr(doc, "metadata", {}) or {}).get(
+                                                "id"
+                                            )
+                                        ),
                                         "stage": "rag_v2",
                                         "event": "kept",
                                     },
@@ -1083,7 +1142,9 @@ class TaskOrchestrator:
                             RETRIEVAL_TOPK_MEAN_FUSION_SCORE,
                         )
 
-                        RETRIEVAL_DOCS_CONSIDERED.labels(stage="rag_v2").inc(considered_count)
+                        RETRIEVAL_DOCS_CONSIDERED.labels(stage="rag_v2").inc(
+                            considered_count
+                        )
                         RETRIEVAL_DOCS_KEPT.labels(stage="rag_v2").inc(kept_count)
                         RETRIEVAL_TOPK_MEAN_FUSION_SCORE.labels(stage="rag_v2").set(
                             float(mean_fusion)
@@ -1252,7 +1313,9 @@ class TaskOrchestrator:
         agent_response: AgentResponse,
         verification_summary: Optional[VerificationSummary],
     ) -> str:
-        primary_suggestion = agent_response.suggestions[0] if agent_response.suggestions else None
+        primary_suggestion = (
+            agent_response.suggestions[0] if agent_response.suggestions else None
+        )
         verification_text = "Verification skipped."
         if verification_summary:
             verification_text = (
@@ -1267,7 +1330,8 @@ class TaskOrchestrator:
             )
 
         return (
-            "No actionable suggestions were produced by the orchestrator. " f"{verification_text}"
+            "No actionable suggestions were produced by the orchestrator. "
+            f"{verification_text}"
         )
 
 

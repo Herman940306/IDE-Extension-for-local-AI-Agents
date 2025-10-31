@@ -17,7 +17,9 @@ class TestRateLimiterInitialization:
 
     def test_initialization_with_redis(self, mock_redis_client):
         """Test rate limiter initialization with Redis client"""
-        limiter = RateLimiter(redis_client=mock_redis_client, default_limit=100, default_window=60)
+        limiter = RateLimiter(
+            redis_client=mock_redis_client, default_limit=100, default_window=60
+        )
 
         assert limiter.redis == mock_redis_client
         assert limiter.default_limit == 100
@@ -59,7 +61,9 @@ class TestRateLimiterCheck:
         )
         mock_redis_client.pipeline.return_value = mock_pipeline
 
-        allowed, remaining = await limiter.check_rate_limit(key="test_client", limit=100, window=60)
+        allowed, remaining = await limiter.check_rate_limit(
+            key="test_client", limit=100, window=60
+        )
 
         assert allowed is True
         assert remaining == 94  # 100 - 5 - 1
@@ -80,7 +84,9 @@ class TestRateLimiterCheck:
         )
         mock_redis_client.pipeline.return_value = mock_pipeline
 
-        allowed, remaining = await limiter.check_rate_limit(key="test_client", limit=100, window=60)
+        allowed, remaining = await limiter.check_rate_limit(
+            key="test_client", limit=100, window=60
+        )
 
         assert allowed is False
         assert remaining == 0
@@ -101,14 +107,18 @@ class TestRateLimiterCheck:
         )
         mock_redis_client.pipeline.return_value = mock_pipeline
 
-        allowed, remaining = await limiter.check_rate_limit(key="test_client", limit=100, window=60)
+        allowed, remaining = await limiter.check_rate_limit(
+            key="test_client", limit=100, window=60
+        )
 
         assert allowed is False
         assert remaining == 0
 
     async def test_check_with_default_params(self, mock_redis_client):
         """Test check with default limit and window"""
-        limiter = RateLimiter(redis_client=mock_redis_client, default_limit=50, default_window=30)
+        limiter = RateLimiter(
+            redis_client=mock_redis_client, default_limit=50, default_window=30
+        )
 
         # Mock pipeline
         mock_pipeline = MagicMock()
@@ -124,7 +134,9 @@ class TestRateLimiterCheck:
         """Test check when rate limiter is disabled"""
         limiter = RateLimiter(redis_client=None)
 
-        allowed, remaining = await limiter.check_rate_limit(key="test_client", limit=100, window=60)
+        allowed, remaining = await limiter.check_rate_limit(
+            key="test_client", limit=100, window=60
+        )
 
         assert allowed is True
         assert remaining == -1
@@ -136,7 +148,9 @@ class TestRateLimiterCheck:
         # Mock Redis error
         mock_redis_client.pipeline.side_effect = Exception("Redis connection error")
 
-        allowed, remaining = await limiter.check_rate_limit(key="test_client", limit=100, window=60)
+        allowed, remaining = await limiter.check_rate_limit(
+            key="test_client", limit=100, window=60
+        )
 
         # Should fail open (allow request)
         assert allowed is True
@@ -169,10 +183,14 @@ class TestRateLimiterCheck:
         mock_redis_client.pipeline.return_value = mock_pipeline
 
         # Check for client 1
-        allowed1, remaining1 = await limiter.check_rate_limit(key="client_1", limit=100, window=60)
+        allowed1, remaining1 = await limiter.check_rate_limit(
+            key="client_1", limit=100, window=60
+        )
 
         # Check for client 2
-        allowed2, remaining2 = await limiter.check_rate_limit(key="client_2", limit=100, window=60)
+        allowed2, remaining2 = await limiter.check_rate_limit(
+            key="client_2", limit=100, window=60
+        )
 
         assert allowed1 is True
         assert allowed2 is True
@@ -237,7 +255,9 @@ class TestRateLimiterEdgeCases:
         mock_pipeline.execute = AsyncMock(return_value=[None, 0, None, None])
         mock_redis_client.pipeline.return_value = mock_pipeline
 
-        allowed, remaining = await limiter.check_rate_limit(key="test_client", limit=0, window=60)
+        allowed, remaining = await limiter.check_rate_limit(
+            key="test_client", limit=0, window=60
+        )
 
         assert allowed is False
         assert remaining == 0
@@ -325,7 +345,9 @@ class TestRateLimiterIntegration:
         mock_pipeline.execute = AsyncMock(return_value=[None, 100, None, None])
         mock_redis_client.pipeline.return_value = mock_pipeline
 
-        allowed, remaining = await limiter.check_rate_limit(key="test_client", limit=100, window=60)
+        allowed, remaining = await limiter.check_rate_limit(
+            key="test_client", limit=100, window=60
+        )
 
         assert allowed is False
 
@@ -339,6 +361,8 @@ class TestRateLimiterIntegration:
         mock_pipeline.execute = AsyncMock(return_value=[None, 0, None, None])
         mock_redis_client.pipeline.return_value = mock_pipeline
 
-        allowed, remaining = await limiter.check_rate_limit(key="test_client", limit=100, window=60)
+        allowed, remaining = await limiter.check_rate_limit(
+            key="test_client", limit=100, window=60
+        )
 
         assert allowed is True

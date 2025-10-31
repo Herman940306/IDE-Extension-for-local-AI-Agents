@@ -110,7 +110,10 @@ class FastReasoner:
             self.total_requests += 1
             self.total_latency += latency_ms
 
-            logger.info(f"Fast reasoning complete: {latency_ms:.0f}ms, " f"conf={confidence:.2f}")
+            logger.info(
+                f"Fast reasoning complete: {latency_ms:.0f}ms, "
+                f"conf={confidence:.2f}"
+            )
 
             return ReasoningResponse(
                 suggestions=suggestions,
@@ -249,7 +252,9 @@ Focus on this specific code:
 
         return []
 
-    def _calculate_confidence(self, response: Dict[str, Any], request: ReasoningRequest) -> float:
+    def _calculate_confidence(
+        self, response: Dict[str, Any], request: ReasoningRequest
+    ) -> float:
         """Calculate confidence score"""
         # Base confidence for System 1
         confidence = 0.75
@@ -272,7 +277,9 @@ Focus on this specific code:
 
     def get_stats(self) -> Dict[str, Any]:
         """Get performance statistics"""
-        avg_latency = self.total_latency / self.total_requests if self.total_requests > 0 else 0
+        avg_latency = (
+            self.total_latency / self.total_requests if self.total_requests > 0 else 0
+        )
 
         return {
             "model": self.model,

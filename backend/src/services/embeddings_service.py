@@ -109,7 +109,8 @@ class EmbeddingsService:
                     if isinstance(status_code, (int, float)) and status_code >= 400:
                         body = await response.aread()
                         raise RuntimeError(
-                            "Ollama embeddings error " f"{int(status_code)}: {body[:500]!r}"
+                            "Ollama embeddings error "
+                            f"{int(status_code)}: {body[:500]!r}"
                         )
                     data = response.json()
                     embedding = data.get("embedding")
@@ -213,7 +214,9 @@ class EmbeddingsService:
                 logger.warning(
                     "chroma_unavailable",
                     extra={
-                        "detail": ("ChromaDB not installed; embeddings persistence disabled"),
+                        "detail": (
+                            "ChromaDB not installed; embeddings persistence disabled"
+                        ),
                         "persist_dir": self.chroma_persist_dir,
                     },
                 )
@@ -295,14 +298,17 @@ class EmbeddingsService:
                 model = self.model
                 embeddings = await loop.run_in_executor(
                     None,
-                    lambda: model.encode(code_snippets, convert_to_numpy=True, batch_size=32),
+                    lambda: model.encode(
+                        code_snippets, convert_to_numpy=True, batch_size=32
+                    ),
                 )
                 if hasattr(embeddings, "tolist"):
                     embeddings_list = embeddings.tolist()
                 else:
                     embeddings_list = list(embeddings)
                 return [
-                    emb.tolist() if hasattr(emb, "tolist") else list(emb) for emb in embeddings_list
+                    emb.tolist() if hasattr(emb, "tolist") else list(emb)
+                    for emb in embeddings_list
                 ]
             else:
                 # Ollama embeddings API doesn't support batch in one call
@@ -386,7 +392,9 @@ class EmbeddingsService:
                     # Skip very large files (>500KB) to avoid timeouts and memory churn
                     try:
                         if file_path.stat().st_size > 500_000:
-                            logger.debug("skip_large_file", extra={"path": str(file_path)})
+                            logger.debug(
+                                "skip_large_file", extra={"path": str(file_path)}
+                            )
                             continue
                     except Exception:
                         # If stat fails, fall back to read and let errors surface below
@@ -491,7 +499,9 @@ class EmbeddingsService:
                             "code": results["documents"][0][i],
                             "metadata": results["metadatas"][0][i],
                             "distance": (
-                                results["distances"][0][i] if "distances" in results else None
+                                results["distances"][0][i]
+                                if "distances" in results
+                                else None
                             ),
                         }
                     )

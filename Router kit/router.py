@@ -26,7 +26,11 @@ def route_request_stub(task_type, prompt, context=None):
         primary = cfg.get("system_1_fast_reasoner", "llama3.2:3b")
     cmd = ["ollama", "run", primary, "--stdin"]
     p = subprocess.run(
-        cmd, input=prompt.encode(), stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=60
+        cmd,
+        input=prompt.encode(),
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        timeout=60,
     )
     text = p.stdout.decode(errors="ignore").strip()
     return {"text": text, "model": primary, "latency": None}
