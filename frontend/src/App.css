@@ -318,6 +318,25 @@ input:checked + .toggle-slider:before {
   flex: 1;
   padding-top: 4px;
   line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.message-content p {
+  margin: 0 0 8px;
+}
+
+.message-content pre {
+  margin: 8px 0;
+  padding: 12px;
+  border-radius: 8px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  overflow-x: auto;
+  font-family: "Fira Code", "Consolas", "Source Code Pro", monospace;
+  font-size: 14px;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
 .typing {
@@ -542,4 +561,3 @@ input:checked + .toggle-slider:before {
   align-items: center;
   gap: 16px;
 }
-

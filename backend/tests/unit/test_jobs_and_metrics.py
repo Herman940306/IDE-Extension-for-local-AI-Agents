@@ -1,7 +1,6 @@
 import time
 
 from fastapi.testclient import TestClient
-
 from src.main import app as main_app
 
 

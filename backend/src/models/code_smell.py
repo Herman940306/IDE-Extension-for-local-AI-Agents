@@ -3,7 +3,7 @@ Code smell data models
 Project Creator: Herman Swanepoel
 """
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 from src.models.task import Priority
 
 
@@ -20,10 +20,12 @@ class CodeSmell(BaseModel):
     line_start: int = Field(..., description="Starting line number")
     line_end: int = Field(..., description="Ending line number")
     suggestion: str = Field(..., description="Suggested fix or refactoring")
-    confidence: float = Field(..., ge=0.0, le=1.0, description="Confidence score (0.0 to 1.0)")
+    confidence: float = Field(
+        ..., ge=0.0, le=1.0, description="Confidence score (0.0 to 1.0)"
+    )
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "id": "god_class_UserManager",
                 "file_path": "src/services/user_manager.py",
@@ -36,3 +38,4 @@ class CodeSmell(BaseModel):
                 "confidence": 0.9,
             }
         }
+    )

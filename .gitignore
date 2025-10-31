@@ -110,11 +110,15 @@ coverage.xml
 .project
 .classpath
 .settings/
+.vs/
 
 # Temporary files
 *.tmp
 *.temp
 .cache/
+
+# Dependency lock files
+requirements.lock
 
 # Local-only project vision and roadmap
 /AuraIA IDE Vision and Roadmap/

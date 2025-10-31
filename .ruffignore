@@ -1,0 +1,7 @@
+# Ignore generated and experimental worktrees
+work/
+work/**
+work\**
+
+# Ignore persona playground assets
+AuraIA_Persona/

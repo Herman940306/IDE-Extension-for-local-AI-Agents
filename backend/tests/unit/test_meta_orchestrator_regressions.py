@@ -146,7 +146,9 @@ async def test_meta_orchestrator_uses_fallback_agent_when_primary_fails():
         metadata={"source": "fallback"},
     )
 
-    failing_agent = _StubAgent(error=RuntimeError("primary agent failure"), name="Failing Agent")
+    failing_agent = _StubAgent(
+        error=RuntimeError("primary agent failure"), name="Failing Agent"
+    )
     fallback_agent = _StubAgent(response=fallback_response, name="Fallback Agent")
 
     orchestrator.register_agent("primary_agent", failing_agent)

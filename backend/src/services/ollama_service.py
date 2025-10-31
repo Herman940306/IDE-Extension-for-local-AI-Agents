@@ -25,15 +25,22 @@ class OllamaService:
         Args:
             host: Ollama host URL. Defaults to environment variable or localhost.
         """
-        self.host = host or os.getenv("OLLAMA_HOST", "http://localhost:11434")
+        env_host = os.getenv("OLLAMA_HOST") or "http://127.0.0.1:11434"
+        configured_host: str = host if host is not None else env_host
+        self.host = configured_host.rstrip("/")
+        self._candidate_hosts = [self.host]
+        if "localhost" in self.host:
+            ipv4_host = self.host.replace("localhost", "127.0.0.1")
+            if ipv4_host not in self._candidate_hosts:
+                self._candidate_hosts.append(ipv4_host)
         self._is_available = False
-        self._version = None
-        self._models = []
-        self._session = None
+        self._version: Optional[str] = None
+        self._models: list[str] = []
+        self._session: Optional[aiohttp.ClientSession] = None
 
         logger.info(f"🔧 Initializing Ollama service at {self.host}")
 
-    async def get_session(self):
+    async def get_session(self) -> aiohttp.ClientSession:
         if self._session is None or self._session.closed:
             self._session = aiohttp.ClientSession()
         return self._session
@@ -42,6 +49,17 @@ class OllamaService:
         if self._session:
             await self._session.close()
             self._session = None
+
+    def _set_active_host(self, host: str) -> None:
+        """Promote the working host to the primary slot."""
+
+        normalized = host.rstrip("/")
+        self.host = normalized
+        unique_hosts = [normalized]
+        for candidate in self._candidate_hosts:
+            if candidate.rstrip("/") != normalized:
+                unique_hosts.append(candidate)
+        self._candidate_hosts = unique_hosts
 
     async def ensure_ollama_async(self, timeout: int = 5, retries: int = 3) -> bool:
         """
@@ -56,23 +74,31 @@ class OllamaService:
         """
         session = await self.get_session()
         for attempt in range(retries):
-            try:
-                async with session.get(f"{self.host}/api/version", timeout=timeout) as response:
-                    if response.status == 200:
-                        version_data = await response.json()
-                        self._version = version_data.get("version", "unknown")
-                        self._is_available = True
-                        logger.info(f"🧠 Ollama running version: {self._version}")
-                        await self._fetch_models_async()
-                        return True
-            except (aiohttp.ClientConnectorError, asyncio.TimeoutError):
-                logger.warning(
-                    f"❌ Ollama not detected at {self.host} " f"(attempt {attempt + 1}/{retries})"
-                )
-                if attempt < retries - 1:
-                    await asyncio.sleep(2)
-            except Exception as e:
-                logger.error(f"❌ Unexpected error checking Ollama: {e}")
+            for candidate in list(self._candidate_hosts):
+                try:
+                    async with session.get(
+                        f"{candidate}/api/version", timeout=timeout
+                    ) as response:
+                        if response.status == 200:
+                            version_data = await response.json()
+                            self._version = version_data.get("version", "unknown")
+                            self._set_active_host(candidate)
+                            self._is_available = True
+                            logger.info(f"🧠 Ollama running version: {self._version}")
+                            await self._fetch_models_async()
+                            return True
+                except (aiohttp.ClientConnectorError, asyncio.TimeoutError):
+                    logger.warning(
+                        f"❌ Ollama not detected at {candidate} "
+                        f"(attempt {attempt + 1}/{retries})"
+                    )
+                except Exception as e:
+                    logger.error(
+                        f"❌ Unexpected error checking Ollama at {candidate}: {e}"
+                    )
+
+            if attempt < retries - 1:
+                await asyncio.sleep(2)
 
         self._is_available = False
         logger.error("❌ Ollama service is not available after retries")
@@ -86,7 +112,9 @@ class OllamaService:
                 if response.status == 200:
                     data = await response.json()
                     self._models = [model["name"] for model in data.get("models", [])]
-                    logger.info(f"📦 Available models: {', '.join(self._models[:5])}...")
+                    logger.info(
+                        f"📦 Available models: {', '.join(self._models[:5])}..."
+                    )
         except Exception as e:
             logger.warning(f"⚠️ Failed to fetch models: {e}")
 
@@ -129,35 +157,41 @@ class OllamaService:
             True if Ollama is available, False otherwise
         """
         for attempt in range(retries):
-            try:
-                response = requests.get(f"{self.host}/api/version", timeout=timeout)
+            for candidate in list(self._candidate_hosts):
+                try:
+                    response = requests.get(f"{candidate}/api/version", timeout=timeout)
 
-                if response.status_code == 200:
-                    version_data = response.json()
-                    self._version = version_data.get("version", "unknown")
-                    self._is_available = True
+                    if response.status_code == 200:
+                        version_data = response.json()
+                        self._version = version_data.get("version", "unknown")
+                        self._set_active_host(candidate)
+                        self._is_available = True
 
-                    logger.info(f"🧠 Ollama running version: {self._version}")
+                        logger.info(f"🧠 Ollama running version: {self._version}")
 
-                    # Fetch available models
-                    self._fetch_models()
+                        # Fetch available models
+                        self._fetch_models()
 
-                    return True
+                        return True
 
-            except requests.exceptions.ConnectionError:
-                logger.warning(
-                    f"❌ Ollama not detected at {self.host} " f"(attempt {attempt + 1}/{retries})"
-                )
-                if attempt < retries - 1:
-                    time.sleep(2)
+                except requests.exceptions.ConnectionError:
+                    logger.warning(
+                        f"❌ Ollama not detected at {candidate} "
+                        f"(attempt {attempt + 1}/{retries})"
+                    )
 
-            except requests.exceptions.Timeout:
-                logger.warning(f"⏱️ Ollama request timeout (attempt {attempt + 1}/{retries})")
-                if attempt < retries - 1:
-                    time.sleep(2)
+                except requests.exceptions.Timeout:
+                    logger.warning(
+                        f"⏱️ Ollama request timeout (attempt {attempt + 1}/{retries})"
+                    )
 
-            except Exception as e:
-                logger.error(f"❌ Unexpected error checking Ollama: {e}")
+                except Exception as e:
+                    logger.error(
+                        f"❌ Unexpected error checking Ollama at {candidate}: {e}"
+                    )
+
+            if attempt < retries - 1:
+                time.sleep(2)
 
         self._is_available = False
         logger.error("❌ Ollama service is not available after retries")
@@ -178,7 +212,7 @@ class OllamaService:
 
     def query_ollama(
         self, model: str, prompt: str, stream: bool = False, **kwargs
-    ) -> Dict[str, Any]:
+    ) -> Any:
         """
         Query Ollama with a prompt.
 
@@ -222,11 +256,22 @@ class OllamaService:
             logger.error(f"❌ Ollama query failed: {e}")
             raise
 
-    async def query_ollama_async(self, model: str, prompt: str, stream: bool = False, **kwargs):
+    async def query_ollama_async(
+        self,
+        model: str,
+        prompt: str,
+        stream: bool = False,
+        **kwargs,
+    ) -> Any:
         """
         Async version of query_ollama.
         """
-        return await self.generate_async(model=model, prompt=prompt, stream=stream, **kwargs)
+        return await self.generate_async(
+            model=model,
+            prompt=prompt,
+            stream=stream,
+            **kwargs,
+        )
 
     def get_health_status(self) -> Dict[str, Any]:
         """
@@ -271,5 +316,4 @@ def get_ollama_service() -> OllamaService:
         _ollama_service = OllamaService()
         _ollama_service.ensure_ollama()
 
-    return _ollama_service
     return _ollama_service

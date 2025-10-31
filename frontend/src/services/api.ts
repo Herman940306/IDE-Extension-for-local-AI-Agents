@@ -5,7 +5,9 @@
 
 import axios from "axios";
 
-const API_BASE_URL = "http://127.0.0.1:8001";
+// Prefer configurable backend URL via Vite env; fall back to local dev default
+const API_BASE_URL =
+  (import.meta as any).env?.VITE_BACKEND_API_URL || "http://127.0.0.1:8001";
 
 export class ApiService {
   private baseUrl: string;

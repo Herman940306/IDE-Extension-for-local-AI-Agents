@@ -3,12 +3,14 @@ from types import SimpleNamespace
 
 def test_build_system_prompt_merges_persona(monkeypatch):
     # Arrange: stub persona_adapter.prepare_chat_prompts
-    from src.services import task_orchestrator as to
     from src.models.task import TaskType
+    from src.services import task_orchestrator as to
 
     # Ensure persona is enabled
     to.settings.enable_omni_persona = True
-    to.settings.persona_assets_dir = "/nonexistent/path"  # value doesn't matter when stubbed
+    to.settings.persona_assets_dir = (
+        "/nonexistent/path"  # value doesn't matter when stubbed
+    )
 
     calls = SimpleNamespace(count=0)
 

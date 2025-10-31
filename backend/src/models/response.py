@@ -6,7 +6,7 @@ Project Creator: Herman Swanepoel
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class ConfidenceLevel(str, Enum):
@@ -29,8 +29,8 @@ class Suggestion(BaseModel):
         None, description="Range where suggestion applies"
     )
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "id": "sugg-1",
                 "code": "async function fetchUser(id: string): Promise<User>",
@@ -40,6 +40,7 @@ class Suggestion(BaseModel):
                 "applicable_range": None,
             }
         }
+    )
 
 
 class AgentResponse(BaseModel):
@@ -47,13 +48,24 @@ class AgentResponse(BaseModel):
 
     agent_id: str = Field(..., description="Agent identifier")
     agent_name: str = Field(..., description="Human-readable agent name")
-    suggestions: List[Suggestion] = Field(default_factory=list, description="List of suggestions")
-    confidence: float = Field(..., ge=0.0, le=1.0, description="Overall confidence score")
+    suggestions: List[Suggestion] = Field(
+        default_factory=list,
+        description="List of suggestions",
+    )
+    confidence: float = Field(
+        ...,
+        ge=0.0,
+        le=1.0,
+        description="Overall confidence score",
+    )
     reasoning: str = Field(..., description="Explanation of the reasoning")
-    metadata: Dict[str, Any] = Field(default_factory=dict, description="Additional metadata")
+    metadata: Dict[str, Any] = Field(
+        default_factory=dict,
+        description="Additional metadata",
+    )
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "agent_id": "refactor_agent",
                 "agent_name": "Refactor Agent",
@@ -70,3 +82,4 @@ class AgentResponse(BaseModel):
                 "metadata": {},
             }
         }
+    )

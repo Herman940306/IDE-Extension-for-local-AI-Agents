@@ -86,8 +86,7 @@ class ParallelFileCreator:
         self.max_workers = max_workers
         self.vector_dim = vector_dim
 
-        # Initialize embedding model
-        # (opt-in to avoid network/download stalls in tests/CI)
+        # Initialize embedding model (opt-in only to avoid slow downloads in tests)
         self.embedding_model = None
         enable_embeddings = os.getenv("PFC_ENABLE_EMBEDDINGS", "false").lower() in (
             "1",
@@ -101,35 +100,61 @@ class ParallelFileCreator:
             except Exception as e:  # pragma: no cover - defensive
                 logger.warning("Embedding model load failed, disabling: %s", e)
                 self.embedding_model = None
+        self._embeddings_enabled = self.embedding_model is not None
 
         # Initialize FAISS index
         self.faiss_index_file = self.base_dir / "faiss.index"
-        if FAISS_AVAILABLE:
-            if self.faiss_index_file.exists():
-                self.faiss_index: Optional[Any] = faiss.read_index(str(self.faiss_index_file))
-                logger.info(f"Loaded existing FAISS index: {self.faiss_index_file}")
-            else:
-                self.faiss_index = faiss.IndexFlatL2(vector_dim)
-                logger.info("Created new FAISS index")
-            self.file_id_map: Dict[int, str] = {}
+        enable_faiss = os.getenv("PFC_ENABLE_FAISS", "false").lower() in (
+            "1",
+            "true",
+            "yes",
+        )
+        self.file_id_map: Dict[int, str] = {}
+        if FAISS_AVAILABLE and enable_faiss:
+            try:
+                if self.faiss_index_file.exists():
+                    self.faiss_index = faiss.read_index(str(self.faiss_index_file))
+                    logger.info(
+                        "Loaded existing FAISS index: %s", self.faiss_index_file
+                    )
+                else:
+                    self.faiss_index = faiss.IndexFlatL2(vector_dim)
+                    logger.info("Created new FAISS index")
+            except Exception as e:  # pragma: no cover - defensive
+                logger.warning("FAISS initialisation failed, disabling: %s", e)
+                self.faiss_index = None
         else:
+            if FAISS_AVAILABLE and not enable_faiss:
+                logger.debug("FAISS disabled via PFC_ENABLE_FAISS")
             self.faiss_index = None
-            self.file_id_map = {}
+        self._faiss_enabled = self.faiss_index is not None
 
         # Initialize Redis
-        if REDIS_AVAILABLE:
+        # Predeclare with broad type to allow None assignment when disabled
+        self.redis_client: Any = None
+        enable_redis = os.getenv("PFC_ENABLE_REDIS", "false").lower() in (
+            "1",
+            "true",
+            "yes",
+        )
+        if REDIS_AVAILABLE and enable_redis:
             try:
                 # Use broad type to keep optional dependency flexible under mypy
-                self.redis_client: Optional[Any] = redis.Redis(
+                self.redis_client = redis.Redis(
                     host=redis_host, port=redis_port, db=redis_db, decode_responses=True
                 )
                 self.redis_client.ping()
-                logger.info(f"Connected to Redis: {redis_host}:{redis_port}")
+                logger.info("Connected to Redis: %s:%s", redis_host, redis_port)
             except Exception as e:
-                logger.warning(f"Redis connection failed: {e}")
+                logger.warning(
+                    "Redis connection failed, disabling metadata storage: %s", e
+                )
                 self.redis_client = None
         else:
+            if REDIS_AVAILABLE and not enable_redis:
+                logger.debug("Redis integration disabled via PFC_ENABLE_REDIS")
             self.redis_client = None
+        self._redis_enabled = self.redis_client is not None
 
         # Statistics
         self.total_files_created = 0
@@ -160,7 +185,9 @@ class ParallelFileCreator:
 
         try:
             # Write file
-            success_write = await loop.run_in_executor(None, self._write_file, file_path, content)
+            success_write = await loop.run_in_executor(
+                None, self._write_file, file_path, content
+            )
 
             if not success_write:
                 return None
@@ -172,7 +199,9 @@ class ParallelFileCreator:
 
             # Store in FAISS
             if vector is not None and self.faiss_index is not None:
-                await loop.run_in_executor(None, self._store_in_faiss, file_name, vector)
+                await loop.run_in_executor(
+                    None, self._store_in_faiss, file_name, vector
+                )
 
             # Store metadata in Redis
             if self.redis_client is not None:
@@ -186,7 +215,9 @@ class ParallelFileCreator:
             self.total_errors += 1
             return None
 
-    async def create_files_parallel(self, file_tasks: List[Dict[str, str]]) -> List[Optional[Path]]:
+    async def create_files_parallel(
+        self, file_tasks: List[Dict[str, str]]
+    ) -> List[Optional[Path]]:
         """
         Create multiple files in parallel.
 
@@ -306,9 +337,7 @@ class ParallelFileCreator:
 
         success_count = 0
         for res in results:
-            if isinstance(res, Exception):
-                summary["CRITICAL"] += 1
-            elif res is None:
+            if res is None:
                 summary["HIGH"] += 1
             else:
                 summary["MEDIUM"] += 1
@@ -350,9 +379,9 @@ class ParallelFileCreator:
             "total_embeddings_generated": self.total_embeddings_generated,
             "total_errors": self.total_errors,
             "faiss_index_size": self.faiss_index.ntotal if self.faiss_index else 0,
-            "embeddings_enabled": EMBEDDINGS_AVAILABLE,
-            "faiss_enabled": FAISS_AVAILABLE,
-            "redis_enabled": REDIS_AVAILABLE and self.redis_client is not None,
+            "embeddings_enabled": self._embeddings_enabled,
+            "faiss_enabled": self._faiss_enabled,
+            "redis_enabled": self._redis_enabled,
         }
 
 
@@ -382,10 +411,13 @@ if __name__ == "__main__":
 
     async def main():
         file_tasks = [
-            {"name": f"file_{i}.txt", "content": f"Content for file {i}"} for i in range(50)
+            {"name": f"file_{i}.txt", "content": f"Content for file {i}"}
+            for i in range(50)
         ]
 
-        creator = ParallelFileCreator(base_dir=Path("projects/output_files"), max_workers=8)
+        creator = ParallelFileCreator(
+            base_dir=Path("projects/output_files"), max_workers=8
+        )
 
         await creator.create_files_parallel(file_tasks)
         stats = creator.get_stats()

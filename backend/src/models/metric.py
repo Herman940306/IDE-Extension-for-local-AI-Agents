@@ -7,7 +7,7 @@ from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class MetricType(str, Enum):
@@ -31,14 +31,18 @@ class Metric(BaseModel):
     type: MetricType = Field(..., description="Type of metric")
     value: float = Field(..., description="Metric value")
     unit: Optional[str] = Field(None, description="Unit of measurement")
-    tags: Dict[str, str] = Field(default_factory=dict, description="Tags for filtering/grouping")
-    metadata: Dict[str, Any] = Field(default_factory=dict, description="Additional metadata")
+    tags: Dict[str, str] = Field(
+        default_factory=dict, description="Tags for filtering/grouping"
+    )
+    metadata: Dict[str, Any] = Field(
+        default_factory=dict, description="Additional metadata"
+    )
     timestamp: datetime = Field(
         default_factory=datetime.utcnow, description="When metric was recorded"
     )
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "name": "api_response_time",
                 "type": "latency",
@@ -48,6 +52,7 @@ class Metric(BaseModel):
                 "metadata": {"status": "success"},
             }
         }
+    )
 
 
 # Legacy model stubs for backward compatibility

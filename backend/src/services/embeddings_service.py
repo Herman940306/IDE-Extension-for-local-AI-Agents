@@ -28,6 +28,23 @@ SentenceTransformer = None  # type: ignore
 
 logger = logging.getLogger(__name__)
 
+# Directories we should never index for embeddings
+EXCLUDED_DIRS = {
+    ".git",
+    ".hg",
+    ".svn",
+    ".venv",
+    "venv",
+    "env",
+    "node_modules",
+    "__pycache__",
+    ".idea",
+    ".vscode",
+    "dist",
+    "build",
+    ".pytest_cache",
+}
+
 
 class EmbeddingsService:
     """
@@ -61,9 +78,86 @@ class EmbeddingsService:
         self.chroma_client: Optional[Any] = None
         self.collection: Optional[Any] = None
         self.is_initialized = False
-        self.provider = provider
+        self.provider = self._resolve_provider(provider)
         self.ollama_url = ollama_url
         self.ollama_model_name = ollama_model_name
+
+    async def _call_ollama_embeddings(
+        self,
+        text: str,
+        *,
+        timeout: float = 45.0,
+        max_attempts: int = 3,
+    ) -> List[float]:
+        """Invoke Ollama's embeddings endpoint with retries and backoff."""
+
+        import httpx
+
+        last_error: Optional[Exception] = None
+        async with httpx.AsyncClient(timeout=timeout) as client:
+            for attempt in range(1, max_attempts + 1):
+                try:
+                    response = await client.post(
+                        f"{self.ollama_url}/api/embeddings",
+                        json={
+                            "model": self.ollama_model_name,
+                            "input": text,
+                            "prompt": text,
+                        },
+                    )
+                    status_code = getattr(response, "status_code", None)
+                    if isinstance(status_code, (int, float)) and status_code >= 400:
+                        body = await response.aread()
+                        raise RuntimeError(
+                            "Ollama embeddings error "
+                            f"{int(status_code)}: {body[:500]!r}"
+                        )
+                    data = response.json()
+                    embedding = data.get("embedding")
+                    if not isinstance(embedding, list) or not embedding:
+                        raise RuntimeError("Ollama returned empty embedding array")
+                    return [float(x) for x in embedding]
+                except asyncio.CancelledError:
+                    raise
+                except Exception as exc:
+                    last_error = exc
+                    if attempt == max_attempts:
+                        break
+                    logger.warning(
+                        "ollama_embed_retry",
+                        extra={
+                            "attempt": attempt,
+                            "max_attempts": max_attempts,
+                            "reason": str(exc),
+                        },
+                    )
+                    await asyncio.sleep(min(4.0, 1.5 * attempt))
+
+        assert last_error is not None
+        raise RuntimeError(
+            "Ollama embeddings failed after " f"{max_attempts} attempts: {last_error}"
+        ) from last_error
+
+    @staticmethod
+    def _resolve_provider(raw_provider: Any) -> str:
+        """Coerce DI-provided provider configs into a simple string."""
+
+        provider_value = raw_provider
+        try:  # dependency_injector is optional during tests
+            from dependency_injector import providers as di_providers  # type: ignore
+
+            if isinstance(provider_value, di_providers.Provider):
+                provider_value = provider_value()
+        except Exception:  # pragma: no cover - defensive guard
+            pass
+
+        if hasattr(provider_value, "provider"):
+            provider_value = provider_value.provider
+
+        if not isinstance(provider_value, str):
+            provider_value = str(provider_value)
+
+        return provider_value
 
     async def initialize(self) -> None:
         """Initialize the embeddings model and vector store"""
@@ -82,16 +176,24 @@ class EmbeddingsService:
                 loop = asyncio.get_event_loop()
                 # Cast lazily assigned SentenceTransformer (type checker appeasement)
                 ST = cast(Any, SentenceTransformer)
-                self.model = await loop.run_in_executor(
-                    None,
-                    lambda: ST(self.model_name),
-                )
+
+                def _load_model() -> Any:
+                    try:
+                        return ST(self.model_name)
+                    except TypeError as exc:
+                        logger.debug(
+                            "sentence_transformer_fallback",
+                            extra={"error": str(exc)},
+                        )
+                        return ST()
+
+                self.model = await loop.run_in_executor(None, _load_model)
             else:
                 # Ollama provider: no local model to load
                 self.model = None
 
             # Initialize ChromaDB if available; otherwise run in ephemeral/no-op mode
-            if CHROMADB_AVAILABLE and chromadb and Settings:
+            if CHROMADB_AVAILABLE and chromadb is not None and Settings is not None:
                 self.chroma_client = chromadb.Client(  # type: ignore[call-arg]
                     Settings(  # type: ignore[call-arg]
                         persist_directory=self.chroma_persist_dir,
@@ -112,7 +214,9 @@ class EmbeddingsService:
                 logger.warning(
                     "chroma_unavailable",
                     extra={
-                        "message": ("ChromaDB not installed; embeddings persistence disabled"),
+                        "detail": (
+                            "ChromaDB not installed; embeddings persistence disabled"
+                        ),
                         "persist_dir": self.chroma_persist_dir,
                     },
                 )
@@ -143,6 +247,10 @@ class EmbeddingsService:
             raise RuntimeError("Embeddings service not initialized")
 
         try:
+            # Clip very large inputs to keep requests fast and within model limits
+            if len(code) > 8000:
+                code = code[:8000]
+
             if self.provider == "sentence-transformers":
                 if not self.model:
                     raise RuntimeError("Embeddings model not loaded")
@@ -154,23 +262,16 @@ class EmbeddingsService:
                 embedding = await loop.run_in_executor(
                     None, lambda: model.encode(code, convert_to_numpy=True)
                 )
-                return embedding.tolist()
+                if hasattr(embedding, "tolist"):
+                    return embedding.tolist()
+                return list(embedding)
             else:
                 # Use Ollama embeddings API
-                import httpx
-
-                async with httpx.AsyncClient(timeout=30.0) as client:
-                    resp = await client.post(
-                        f"{self.ollama_url}/api/embeddings",
-                        json={"model": self.ollama_model_name, "prompt": code},
-                    )
-                    resp.raise_for_status()
-                    data = resp.json()
-                    # Ollama returns { embedding: [...] }
-                    return data.get("embedding", [])
+                return await self._call_ollama_embeddings(code)
 
         except Exception as e:
-            logger.error(f"Failed to generate embedding: {e}")
+            # Log full exception info for better diagnostics
+            logger.exception("Failed to generate embedding: %r", e)
             raise
 
     async def embed_code_batch(self, code_snippets: List[str]) -> List[List[float]]:
@@ -197,9 +298,18 @@ class EmbeddingsService:
                 model = self.model
                 embeddings = await loop.run_in_executor(
                     None,
-                    lambda: model.encode(code_snippets, convert_to_numpy=True, batch_size=32),
+                    lambda: model.encode(
+                        code_snippets, convert_to_numpy=True, batch_size=32
+                    ),
                 )
-                return [emb.tolist() for emb in embeddings]
+                if hasattr(embeddings, "tolist"):
+                    embeddings_list = embeddings.tolist()
+                else:
+                    embeddings_list = list(embeddings)
+                return [
+                    emb.tolist() if hasattr(emb, "tolist") else list(emb)
+                    for emb in embeddings_list
+                ]
             else:
                 # Ollama embeddings API doesn't support batch in one call
                 # Do sequential calls (kept simple; could parallelize if needed)
@@ -210,7 +320,7 @@ class EmbeddingsService:
                 return results
 
         except Exception as e:
-            logger.error(f"Failed to generate batch embeddings: {e}")
+            logger.exception("Failed to generate batch embeddings: %r", e)
             raise
 
     async def embed_codebase(
@@ -243,7 +353,11 @@ class EmbeddingsService:
             # Find all code files
             code_files: List[Path] = []
             for ext in file_extensions:
-                code_files.extend(workspace.rglob(f"*{ext}"))
+                for p in workspace.rglob(f"*{ext}"):
+                    # Skip excluded directories anywhere in the path
+                    if any(part in EXCLUDED_DIRS for part in p.parts):
+                        continue
+                    code_files.append(p)
 
             logger.info(f"Found {len(code_files)} code files to process")
 
@@ -261,7 +375,7 @@ class EmbeddingsService:
             return files_processed
 
         except Exception as e:
-            logger.error(f"Failed to embed codebase: {e}")
+            logger.exception("Failed to embed codebase: %r", e)
             raise
 
     async def _process_file_batch(self, files: List[Path]) -> None:
@@ -275,6 +389,17 @@ class EmbeddingsService:
 
             for file_path in files:
                 try:
+                    # Skip very large files (>500KB) to avoid timeouts and memory churn
+                    try:
+                        if file_path.stat().st_size > 500_000:
+                            logger.debug(
+                                "skip_large_file", extra={"path": str(file_path)}
+                            )
+                            continue
+                    except Exception:
+                        # If stat fails, fall back to read and let errors surface below
+                        pass
+
                     content = file_path.read_text(encoding="utf-8", errors="ignore")
                     contents.append(content)
                     file_ids.append(self._generate_file_id(str(file_path)))
@@ -306,7 +431,7 @@ class EmbeddingsService:
                 )
 
         except Exception as e:
-            logger.error(f"Failed to process file batch: {e}")
+            logger.exception("Failed to process file batch: %r", e)
             # Fallback to individual processing
             for file_path in files:
                 try:
@@ -329,7 +454,7 @@ class EmbeddingsService:
                             ],
                         )
                 except Exception as e2:
-                    logger.warning(f"Failed to process {file_path}: {e2}")
+                    logger.warning("Failed to process %s: %r", file_path, e2)
 
     async def find_similar_code(
         self, query: str, top_k: int = 5, file_extension: Optional[str] = None
@@ -374,7 +499,9 @@ class EmbeddingsService:
                             "code": results["documents"][0][i],
                             "metadata": results["metadatas"][0][i],
                             "distance": (
-                                results["distances"][0][i] if "distances" in results else None
+                                results["distances"][0][i]
+                                if "distances" in results
+                                else None
                             ),
                         }
                     )

@@ -175,11 +175,11 @@ class Container(containers.DeclarativeContainer):
     )
 
     rag_retrievers = providers.Callable(
-        lambda enabled, search: build_retriever_dict(
-            semantic_search=search if enabled else None,
+        lambda enabled, semantic_search_service: build_retriever_dict(
+            semantic_search=semantic_search_service if enabled else None,
         ),
         config.provided.experimental_rag_v2_enabled,
-        semantic_search=semantic_search,
+        semantic_search_service=semantic_search,
     )
 
     task_orchestrator = providers.Singleton(

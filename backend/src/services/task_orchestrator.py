@@ -11,7 +11,7 @@ import asyncio
 import textwrap
 import time
 from collections import OrderedDict
-from typing import Any, Dict, List, Optional, Tuple, cast
+from typing import Any, Dict, List, Optional, cast
 
 from src.config.settings import get_settings
 from src.models.response import AgentResponse, ConfidenceLevel, Suggestion
@@ -105,301 +105,178 @@ class SimpleReasonerEngine:
             max_tokens=model_config.max_tokens,
         )
 
-        # Parse and structure the response
+        code_snippet, narrative = self._extract_response_sections(response_text)
+        if not code_snippet.strip():
+            # Fall back to returning something meaningful even if the model omitted code
+            code_snippet = response_text.strip() or self._build_code_snippet(
+                content or response_text, request.type
+            )
+
+        confidence_level = self._determine_confidence(request.type, content)
+        confidence_lookup = {
+            ConfidenceLevel.LOW: 0.62,
+            ConfidenceLevel.MEDIUM: 0.74,
+            ConfidenceLevel.HIGH: 0.86,
+        }
+        response_confidence = confidence_lookup.get(confidence_level, 0.7)
+
+        summary_line = (narrative.strip().splitlines()[0] if narrative else "").strip()
+        if not summary_line:
+            summary_line = self._build_description(description, request.type)
+
         suggestion = Suggestion(
             id=f"{request.id}-suggestion",
-            code=response_text.strip(),
-            description=(
-                "AI-generated solution"
-                if settings.clean_user_experience
-                else f"AI-generated solution using {model_config.name}"
-            ),
-            confidence=ConfidenceLevel.HIGH,
-            diff=None,  # Could be generated later
-            applicable_range=None,  # Could be calculated from request context
+            code=code_snippet.strip(),
+            description=summary_line,
+            confidence=confidence_level,
+            diff=None,
+            applicable_range=None,
         )
 
-        # Build reasoning (hide model details if clean UX enabled)
-        if settings.clean_user_experience:
-            reasoning = f"Generated {request.type.value} solution: {description}"
-        else:
-            reasoning = (
-                f"Routed to {model_config.name} ({model_config.description}) "
-                f"for {request.type.value} task: {description}"
-            )
+        reasoning = (
+            narrative.strip() if narrative.strip() else "LLM generated recommendation."
+        )
+        metadata = {
+            "task_type": request.type.value,
+            "selected_model": model_config.name,
+            "uses_llm": True,
+            "raw_response_excerpt": response_text.strip()[:400],
+        }
 
         return AgentResponse(
             agent_id=self.AGENT_ID,
             agent_name=self.AGENT_NAME,
             suggestions=[suggestion],
-            confidence=0.90,  # Higher confidence with specialized models
+            confidence=response_confidence,
             reasoning=reasoning,
-            metadata={
-                "task_type": request.type.value,
-                "uses_router": True,
-                "selected_model": model_config.name,
-                "model_role": model_config.role.value,
-            },
+            metadata=metadata,
         )
 
-    def _detect_user_mood(self, description: str, content: str) -> dict:
-        """
-        Detect user's emotional state from language patterns.
+    def _extract_response_sections(self, response_text: str) -> tuple[str, str]:
+        """Split an LLM response into code and narrative sections."""
+        text = response_text or ""
+        if "```" not in text:
+            return "", text.strip()
 
-        Returns dict with:
-        - mood: frustrated/stressed/happy/neutral/excited
-        - intensity: 1-10 (how strong the emotion is)
-        - needs_support: bool (requires empathetic response)
-        """
-        user_text = f"{description} {content}".strip().lower()
+        segments = text.split("```")
+        preamble = segments[0].strip()
+        code_block = ""
+        trailing = ""
 
-        # Frustration indicators
-        frustrated_markers = [
-            "doesn't work",
-            "not working",
-            "broken",
-            "fails",
-            "error",
-            "wrong",
-            "stuck",
-            "help!",
-            "frustrated",
-            "wtf",
-            "damn",
-            "ugh",
-            "argh",
-            "why won't",
-            "keeps failing",
-            "still not",
-            "tried everything",
-        ]
+        for idx in range(1, len(segments), 2):
+            candidate = segments[idx]
+            lines = candidate.splitlines()
+            if not lines:
+                continue
 
-        # Stress indicators
-        stressed_markers = [
-            "urgent",
-            "asap",
-            "deadline",
-            "quickly",
-            "hurry",
-            "rush",
-            "critical",
-            "important",
-            "need this now",
-            "running out of time",
-        ]
+            first_line = lines[0].strip()
+            if (
+                first_line
+                and len(first_line) <= 20
+                and not first_line.startswith(("#", "//"))
+            ):
+                # Treat initial language hint such as "python" as metadata rather than code
+                if first_line.replace("_", "").isalpha():
+                    lines = lines[1:]
 
-        # Happy/positive indicators
-        happy_markers = [
-            "thanks",
-            "thank you",
-            "awesome",
-            "great",
-            "love",
-            "perfect",
-            "amazing",
-            "excellent",
-            "appreciate",
-            "helpful",
-            "cool",
-            "nice",
-        ]
+            code_candidate = "\n".join(lines).strip()
+            if not code_candidate:
+                continue
 
-        # Excited/eager indicators
-        excited_markers = [
-            "excited",
-            "can't wait",
-            "eager",
-            "looking forward",
-            "awesome",
-            "finally",
-            "yes!",
-            "wow",
-            "fantastic",
-        ]
+            code_block = code_candidate
+            trailing = segments[idx + 1].strip() if idx + 1 < len(segments) else ""
+            break
 
-        # Count emotional markers
-        frustrated_count = sum(1 for m in frustrated_markers if m in user_text)
-        stressed_count = sum(1 for m in stressed_markers if m in user_text)
-        happy_count = sum(1 for m in happy_markers if m in user_text)
-        excited_count = sum(1 for m in excited_markers if m in user_text)
+        narrative_parts = [part for part in (preamble, trailing) if part]
+        narrative = "\n\n".join(narrative_parts)
+        return code_block, narrative
 
-        # Determine primary mood
-        if frustrated_count > 0:
+    def _analyze_user_style(self, description: str, content: str) -> Dict[str, Any]:
+        """Infer simple style traits from the incoming request."""
+        combined = " ".join(part for part in (description, content) if part).strip()
+        lowered = combined.lower()
+        words = combined.split()
+        word_count = len(words)
+
+        brevity = 10 - min(max(word_count - 10, 0) // 5, 5)
+        brevity = max(0, min(10, brevity))
+
+        detail_level = min(
+            10, word_count // 3 + (1 if "," in combined or "." in combined else 0)
+        )
+        formality = 6 if "please" in lowered or "would you" in lowered else 4
+        if any(token in lowered for token in ("sir", "madam", "regards")):
+            formality = min(10, formality + 2)
+        if any(token in lowered for token in ("hey", "yo", "lol")):
+            formality = max(0, formality - 2)
+
+        needs_support = any(
+            keyword in lowered
+            for keyword in ("stuck", "blocked", "confused", "help", "urgent")
+        )
+
+        mood = "neutral"
+        if any(token in lowered for token in ("frustrated", "annoyed", "irritated")):
             mood = "frustrated"
-            intensity = min(10, frustrated_count * 3)
-            needs_support = True
-        elif stressed_count > 0:
+        elif any(token in lowered for token in ("stress", "rush", "asap")):
             mood = "stressed"
-            intensity = min(10, stressed_count * 3)
-            needs_support = True
-        elif happy_count > 0:
+        elif any(token in lowered for token in ("thank", "awesome", "great")):
             mood = "happy"
-            intensity = min(10, happy_count * 2)
-            needs_support = False
-        elif excited_count > 0:
+        elif any(token in lowered for token in ("excited", "hyped", "pumped")):
             mood = "excited"
-            intensity = min(10, excited_count * 2)
-            needs_support = False
-        else:
-            mood = "neutral"
-            intensity = 5
-            needs_support = False
 
-        return {
-            "mood": mood,
-            "intensity": intensity,
-            "needs_support": needs_support,
-        }
-
-    def _analyze_user_style(self, description: str, content: str) -> dict:
-        """
-        Analyze user's communication style to adapt response personality.
-
-        Returns dict with style metrics (1-10 scale):
-        - brevity: How concise the user is
-        - formality: Professional vs casual tone
-        - detail_level: Depth of explanation needed
-        - mood: User's emotional state
-        - needs_support: Requires empathetic response
-        """
-        user_text = f"{description} {content}".strip()
-        word_count = len(user_text.split())
-
-        # Brevity: Shorter prompts = concise responses
-        brevity = 10 if word_count < 10 else (7 if word_count < 30 else 4)
-
-        # Formality: Check for casual markers
-        casual_markers = ["hi", "hey", "yo", "what's", "gonna", "wanna", "lol"]
-        formal_markers = ["please", "kindly", "could you", "would you", "regarding"]
-
-        casual_count = sum(1 for marker in casual_markers if marker in user_text.lower())
-        formal_count = sum(1 for marker in formal_markers if marker in user_text.lower())
-
-        if formal_count > casual_count:
-            formality = 8  # Professional
-        elif casual_count > 0:
-            formality = 3  # Casual
-        else:
-            formality = 5  # Neutral
-
-        # Detail level: More content = detailed response expected
-        detail_level = 3 if word_count < 10 else (6 if word_count < 50 else 8)
-
-        # Emoji preference cues
-        contains_emoji = any(ch in user_text for ch in "😀😁😂🤣😊😍🙌👍🔥✨🥲😅😉🤔🙏🎉🚀💡")
-        explicit_no_emoji = "no emoji" in user_text.lower() or "no emojis" in user_text.lower()
-        exclamations = user_text.count("!")
-
-        # Mood detection
-        mood_info = self._detect_user_mood(description, content)
+        contains_emoji = any(ord(char) > 0x1F000 for char in combined)
+        explicit_no_emoji = "no emoji" in lowered or "sans emoji" in lowered
 
         return {
             "brevity": brevity,
-            "formality": formality,
             "detail_level": detail_level,
-            "mood": mood_info["mood"],
-            "mood_intensity": mood_info["intensity"],
-            "needs_support": mood_info["needs_support"],
+            "formality": max(0, min(10, formality)),
+            "needs_support": needs_support,
+            "mood": mood,
             "contains_emoji": contains_emoji,
             "explicit_no_emoji": explicit_no_emoji,
-            "exclamations": exclamations,
         }
 
-    def _emoji_policy(self, user_style: dict) -> dict:
-        """
-        Decide whether and how many emojis to use, based on settings and user style.
+    def _emoji_policy(self, user_style: Dict[str, Any]) -> Dict[str, Any]:
+        """Determine if emojis should be used based on inferred style."""
+        if user_style.get("explicit_no_emoji"):
+            return {"allow": False, "max": 0}
 
-        Returns:
-            {
-              "allow": bool,
-              "max": int,
-              "tone": "minimal"|"balanced"|"rich",
-            }
-        """
-        allow = getattr(settings, "emoji_enabled_default", True)
-        if user_style.get("explicit_no_emoji", False):
-            allow = False
+        high_formality = user_style.get("formality", 5) >= 7
+        if high_formality:
+            return {"allow": False, "max": 0}
 
-        # Reduce emoji usage in formal contexts
-        formality = user_style.get("formality", 5)
-        mood = user_style.get("mood", "neutral")
-        intensity = int(user_style.get("mood_intensity", 5))
-        has_user_emoji = user_style.get("contains_emoji", False)
+        if user_style.get("needs_support"):
+            # Allow a single empathetic emoji to soften guidance
+            return {"allow": True, "max": 1}
 
-        style_pref = getattr(settings, "emoji_style_default", "auto")
-        base_max = int(getattr(settings, "emoji_max_per_response", 3))
+        contains_emoji = user_style.get("contains_emoji", False)
+        return {"allow": not contains_emoji, "max": 2 if not contains_emoji else 1}
 
-        # Compute max count
-        if not allow:
-            max_count = 0
-        else:
-            if style_pref == "minimal" or formality >= 7:
-                max_count = 0 if formality >= 8 else 1
-            elif style_pref == "rich" or (has_user_emoji and formality <= 4):
-                max_count = min(base_max + 1, 5)
-            else:
-                # auto: adapt to mood
-                if mood in ("happy", "excited"):
-                    max_count = min(base_max, 3)
-                elif mood in ("frustrated", "stressed"):
-                    # Keep gentle, avoid excess
-                    max_count = 1 if intensity >= 7 else 0
-                else:
-                    max_count = min(base_max, 2)
-
-        tone = "minimal" if max_count == 0 else ("balanced" if max_count <= 2 else "rich")
-
-        return {"allow": allow, "max": max_count, "tone": tone}
-
-    def _build_adaptive_chat_prompt(self, user_style: dict) -> str:
-        """
-        Build chat mode prompt with adaptive personality.
-
-        Base Personality Traits (1-10 scale):
-        - Warmth: 8 (empathetic, supportive)
-        - Clarity: 9 (concise, structured)
-        - Wit: 5 (light, situational)
-        - Humor: 3 (gentle, non-sarcastic)
-        - Humility: 7 (own mistakes, offer corrections)
-        - Patience: 8 (pace with the user)
-        - Encouragement: 8 (cheer progress, reduce friction)
-        - Proactivity: 7 (offer next steps)
-        - Collaboration: 9 (pair-programmer energy)
-
-        Adapts to user style:
-        - Short prompts → Brief, punchy responses
-        - Detailed prompts → Thorough explanations
-        - Casual tone → Relaxed, friendly
-        - Formal tone → Professional, precise
-        - Frustrated → Supportive, solution-focused
-        - Stressed → Calm, efficient
-        - Happy → Enthusiastic, engaging
-        """
-        brevity = user_style["brevity"]
-        formality = user_style["formality"]
-        detail_level = user_style["detail_level"]
-        mood = user_style.get("mood", "neutral")
-        # Whether user needs extra support is reflected in mood instruction
-        # (value not directly used here to avoid verbosity)
-        _ = user_style.get("needs_support", False)
+    def _build_adaptive_chat_prompt(self, user_style: Dict[str, Any]) -> str:
+        """Craft a style-aware system prompt for the chat personality."""
         emoji_cfg = self._emoji_policy(user_style)
+        mood = user_style.get("mood", "neutral")
 
-        # Build adaptive personality instructions
-        tone = (
-            "professional and precise"
-            if formality > 6
-            else ("friendly and relaxed" if formality < 4 else "balanced and conversational")
+        brevity = user_style.get("brevity", 5)
+        detail_level = user_style.get("detail_level", 5)
+        needs_support = user_style.get("needs_support", False)
+
+        if brevity >= 7 and detail_level <= 5:
+            length = "short, high-signal replies (<=5 sentences)."
+        elif detail_level >= 7:
+            length = "detailed explanations when they add value."
+        else:
+            length = "balanced depth with clear bullet points when helpful."
+
+        tone = "steady and reassuring" if needs_support else "friendly and pragmatic"
+        wit_level = (
+            "lightly witty"
+            if user_style.get("formality", 5) <= 5
+            else "straightforward"
         )
 
-        length = (
-            "1-2 sentences"
-            if brevity > 7
-            else ("2-4 sentences" if detail_level < 5 else "3-5 sentences with details")
-        )
-
-        wit_level = "clever when appropriate" if brevity < 7 else "straightforward"
-
-        # Mood-based response adjustment
         mood_guidance = {
             "frustrated": (
                 "The user seems frustrated. Be EXTRA supportive and patient. "
@@ -428,11 +305,9 @@ class SimpleReasonerEngine:
 
         mood_instruction = mood_guidance.get(mood, "")
 
-        # Omni persona activation
         omni_active = getattr(settings, "enable_omni_persona", True)
         persona_name = "AuraIA OmniDev" if omni_active else "Assistant"
 
-        # Emoji usage rules
         if emoji_cfg["allow"] and emoji_cfg["max"] > 0:
             emoji_rule = (
                 "Emojis allowed as prosody (max "
@@ -529,7 +404,9 @@ class SimpleReasonerEngine:
 
         return prompts[task_type]
 
-    def _build_user_prompt(self, description: str, content: str, _task_type: TaskType) -> str:
+    def _build_user_prompt(
+        self, description: str, content: str, _task_type: TaskType
+    ) -> str:
         """Build user prompt."""
         if content:
             return f"Task: {description}\n\n{content}"
@@ -638,7 +515,9 @@ class SimpleVerifierEngine:
             try:
                 return await self._verify_with_llm(request, response)
             except Exception as e:  # noqa: BLE001
-                ws_logger.warning("LLM verification failed, using fallback: %s", e, exc_info=True)
+                ws_logger.warning(
+                    "LLM verification failed, using fallback: %s", e, exc_info=True
+                )
                 # Fall through to basic verification
 
         # Fallback to basic verification
@@ -712,7 +591,9 @@ Verify this code and provide analysis.
             "uses_llm": True,
         }
 
-        return VerificationSummary(status=status, confidence=confidence, metadata=metadata)
+        return VerificationSummary(
+            status=status, confidence=confidence, metadata=metadata
+        )
 
     async def _verify_fallback(
         self, request: TaskRequestPayload, response: AgentResponse
@@ -731,7 +612,9 @@ Verify this code and provide analysis.
             "uses_llm": False,
         }
 
-        return VerificationSummary(status=status, confidence=confidence, metadata=metadata)
+        return VerificationSummary(
+            status=status, confidence=confidence, metadata=metadata
+        )
 
 
 class TaskOrchestrator:
@@ -782,7 +665,9 @@ class TaskOrchestrator:
         self.metrics_service = metrics_service
         self._rag_retrievers = rag_retrievers
         self._memory_service = memory_service
-        self._rag_enabled = bool(settings.experimental_rag_v2_enabled and rag_retrievers)
+        self._rag_enabled = bool(
+            settings.experimental_rag_v2_enabled and rag_retrievers
+        )
 
         if settings.experimental_rag_v2_enabled:
             if self._rag_enabled:
@@ -797,7 +682,7 @@ class TaskOrchestrator:
                 )
         self._token_cache: Dict[str, List[str]] = {}
         self._token_cache_max = 1000
-        self._retrieval_cache: Optional[OrderedDict[str, List[str]]] = None
+        self._retrieval_cache: Optional[OrderedDict[str, Dict[str, Any]]] = None
         self._retrieval_cache_cap = 100
 
     async def execute(self, request: TaskRequestPayload) -> TaskSessionResult:
@@ -856,7 +741,9 @@ class TaskOrchestrator:
         return result
 
     # --- Helper proxies for tests (adaptive style/emoji/persona) ---
-    def _analyze_user_style(self, description: str, content: str) -> dict:  # pragma: no cover
+    def _analyze_user_style(
+        self, description: str, content: str
+    ) -> dict:  # pragma: no cover
         """Expose reasoner's style analyzer for unit tests."""
         return self._reasoner._analyze_user_style(  # type: ignore[attr-defined]
             description, content
@@ -951,49 +838,78 @@ class TaskOrchestrator:
                     except Exception:  # pragma: no cover - optional dependency
                         mem_service = None
 
-                if mem_service and session_id:
-                    # Build only the memory retriever to avoid duplicating code
-                    # retriever
-                    mem_retr = build_retriever_dict(
-                        memory_service=mem_service, session_id=session_id
-                    ).get("memory")
+                if session_id:
+                    # Attempt to build a memory retriever when sessions are active.
+                    # Allows monkeypatched helpers in tests even if the memory
+                    # service dependency is unavailable.
+                    try:
+                        mem_retr = build_retriever_dict(
+                            memory_service=mem_service, session_id=session_id
+                        ).get("memory")
+                    except Exception as mem_err:  # noqa: BLE001
+                        ws_logger.warning(
+                            "Memory retriever construction failed: %s",
+                            mem_err,
+                        )
+                        mem_retr = None
+
                     if mem_retr is not None:
                         retrievers.setdefault("memory", mem_retr)
 
                 if "code" not in retrievers:
                     raise RuntimeError("LangChain code retriever is not configured")
 
-                t0 = time.perf_counter()
+                key_parts = [
+                    request.content,
+                    str(getattr(settings, "fusion_weight_vector", 0.6)),
+                    str(getattr(settings, "fusion_weight_bm25", 0.4)),
+                    str(getattr(settings, "hybrid_fusion_enabled", False)),
+                    str(getattr(settings, "relevance_threshold", 0.0)),
+                    str(bool(getattr(settings, "reranker_model", ""))),
+                    str(getattr(settings, "rag_v2_code_top_k", 5)),
+                ]
+                if session_id:
+                    key_parts.append(f"session:{session_id}")
+                cache_key = "|".join(key_parts)
 
-                # Simple retrieval cache key to avoid recomputation in rapid repeats
-                key = "|".join(
-                    [
-                        request.content,
-                        str(getattr(settings, "fusion_weight_vector", 0.6)),
-                        str(getattr(settings, "fusion_weight_bm25", 0.4)),
-                        str(getattr(settings, "hybrid_fusion_enabled", False)),
-                        str(getattr(settings, "relevance_threshold", 0.0)),
-                        str(bool(getattr(settings, "reranker_model", ""))),
-                        str(getattr(settings, "rag_v2_code_top_k", 5)),
-                    ]
-                )
+                cache_entry = self._retrieval_cache.get(cache_key)
+                code_snippets = []
+                memory_snippets = []
 
-                cached = self._retrieval_cache.get(key)
-                if cached is not None:
-                    context_snippets = cached
+                if cache_entry:
+                    self._retrieval_cache.move_to_end(cache_key)
+                    code_snippets = list(cache_entry.get("code_snippets", []))
+                    memory_snippets = list(cache_entry.get("memory_snippets", []))
+                    context_snippets = list(code_snippets + memory_snippets)
+                    stats = dict(cache_entry.get("stats", {}))
+                    stats["cache_hit"] = True
+                    pipeline_metadata["retrieval_stats"] = stats
+                    pipeline_metadata.setdefault("cache", {})["rag_v2"] = True
+                    latencies["context_retrieval"] = 0.0
+                    stages.append("rag_v2_retrieval_cache_hit")
+                    context_source = "rag_v2"
+                    pipeline_metadata["retriever"] = context_source
+                    ws_logger.debug(
+                        "Retrieved %d context snippets via LangChain retrievers (cache)",
+                        len(context_snippets),
+                    )
                 else:
-                    # Fetch from available retrievers (code + optional memory)
-                    code_docs = await retrievers["code"].aget_relevant_documents(request.content)
+                    t0 = time.perf_counter()
+
+                    code_docs = await retrievers["code"].aget_relevant_documents(
+                        request.content
+                    )
 
                     mem_docs: List[Any] = []
                     if retrievers.get("memory") is not None:
                         try:
                             mem_retr = retrievers["memory"]
-                            mem_docs = await mem_retr.aget_relevant_documents(request.content)
+                            mem_docs = await mem_retr.aget_relevant_documents(
+                                request.content
+                            )
                         except Exception as mem_err:  # noqa: BLE001
                             ws_logger.warning("Memory retriever failed: %s", mem_err)
 
-                    # Optional hybrid fusion + reranking for code documents
                     def _tokenize(text: str) -> List[str]:
                         return [t for t in text.lower().split() if t]
 
@@ -1003,7 +919,6 @@ class TaskOrchestrator:
                         if not q or not d:
                             return 0.0
                         inter = len(set(q) & set(d))
-                        # normalized overlap proxy
                         return inter / max(len(set(q)), 1)
 
                     def _vector_score(doc: Any) -> float:
@@ -1014,51 +929,75 @@ class TaskOrchestrator:
                         except Exception:
                             return 0.0
 
-                    ranked_code: List[Tuple[float, Any]] = []
+                    candidate_records: List[Dict[str, Any]] = []
                     w_bm25 = getattr(settings, "fusion_weight_bm25", 0.4)
                     w_vec = getattr(settings, "fusion_weight_vector", 0.6)
                     use_hybrid = bool(getattr(settings, "hybrid_fusion_enabled", False))
-                    # Optional BM25 scoring if library is available
                     bm25_scores: Optional[List[float]] = None
                     max_bm25: float = 1.0
-                    code_texts: List[str] = [getattr(d, "page_content", "") for d in code_docs]
+                    code_texts: List[str] = [
+                        getattr(doc, "page_content", "") for doc in code_docs
+                    ]
                     if use_hybrid:
                         try:  # pragma: no cover - optional dependency
                             from rank_bm25 import BM25Okapi  # type: ignore
 
-                            corpus = [_tokenize(txt) for txt in code_texts]
+                            corpus = [_tokenize(text) for text in code_texts]
                             bm25 = BM25Okapi(corpus)
                             q_tokens = _tokenize(request.content)
                             bm25_arr = bm25.get_scores(q_tokens)
-                            bm25_scores = [float(s) for s in bm25_arr]
-                            max_bm25 = max(max(bm25_scores) if bm25_scores else 1.0, 1.0)
+                            bm25_scores = [float(score) for score in bm25_arr]
+                            max_bm25 = max(
+                                max(bm25_scores) if bm25_scores else 1.0, 1.0
+                            )
                         except Exception:  # noqa: BLE001
                             bm25_scores = None
 
-                    for idx, d in enumerate(code_docs):
-                        v = _vector_score(d)
+                    for idx, doc in enumerate(code_docs):
+                        vector_score = _vector_score(doc)
                         doc_text = code_texts[idx]
+                        lexical_score = 0.0
                         if use_hybrid:
                             if bm25_scores is not None:
-                                lex = bm25_scores[idx] / max_bm25 if max_bm25 > 0 else 0.0
+                                lexical_score = (
+                                    bm25_scores[idx] / max_bm25 if max_bm25 > 0 else 0.0
+                                )
                             else:
-                                lex = _lexical_overlap(request.content, doc_text)
-                        else:
-                            lex = 0.0
-                        score = (w_vec * v) + (w_bm25 * lex) if use_hybrid else v
-                        ranked_code.append((score, d))
-                        # Trace each candidate prior to filtering (mark as considered)
+                                lexical_score = _lexical_overlap(
+                                    request.content, doc_text
+                                )
+                        fusion_score = (
+                            (w_vec * vector_score) + (w_bm25 * lexical_score)
+                            if use_hybrid
+                            else vector_score
+                        )
+                        candidate_records.append(
+                            {
+                                "doc": doc,
+                                "score": fusion_score,
+                                "vector": vector_score,
+                                "lex": lexical_score,
+                            }
+                        )
                         try:
                             retrieval_trace_buffer.append(
                                 RetrievalDocTrace(
-                                    file=(getattr(d, "metadata", {}) or {}).get("file")
-                                    or (getattr(d, "metadata", {}) or {}).get("source"),
-                                    vector_score=v,
-                                    lexical_score=lex,
-                                    fusion_score=score,
+                                    file=(getattr(doc, "metadata", {}) or {}).get(
+                                        "file"
+                                    )
+                                    or (getattr(doc, "metadata", {}) or {}).get(
+                                        "source"
+                                    ),
+                                    vector_score=vector_score,
+                                    lexical_score=lexical_score,
+                                    fusion_score=fusion_score,
                                     kept_after_threshold=False,
                                     extras={
-                                        "id": ((getattr(d, "metadata", {}) or {}).get("id")),
+                                        "id": (
+                                            (getattr(doc, "metadata", {}) or {}).get(
+                                                "id"
+                                            )
+                                        ),
                                         "stage": "rag_v2",
                                         "event": "considered",
                                     },
@@ -1067,29 +1006,25 @@ class TaskOrchestrator:
                         except Exception:  # noqa: BLE001
                             pass
 
-                    # Reranker toggle: honor relevance_threshold when enabled
                     reranker_on = bool(getattr(settings, "reranker_model", ""))
-                    threshold = float(getattr(settings, "relevance_threshold", 0.0) or 0.0)
+                    threshold = float(
+                        getattr(settings, "relevance_threshold", 0.0) or 0.0
+                    )
                     if reranker_on:
-                        # Optional cross-encoder reranker blending
                         ce_scores: Optional[List[float]] = None
                         try:  # pragma: no cover - optional dependency
                             model_name = str(getattr(settings, "reranker_model", ""))
                             if model_name.lower().startswith("cross-encoder"):
-                                from sentence_transformers import (
-                                    CrossEncoder,
-                                )  # type: ignore  # noqa: E501
+                                from sentence_transformers import CrossEncoder  # type: ignore
 
                                 loop = asyncio.get_event_loop()
                                 ce = await loop.run_in_executor(
                                     None, lambda: CrossEncoder(model_name)
                                 )
-                                pairs = [(request.content, t) for t in code_texts]
-                                # Predict in executor to avoid blocking
+                                pairs = [(request.content, text) for text in code_texts]
                                 raw_scores = await loop.run_in_executor(
                                     None, lambda: ce.predict(pairs)
                                 )
-                                # Normalize to 0..1
                                 try:
                                     raw_list = [float(x) for x in raw_scores]
                                     mn, mx = min(raw_list), max(raw_list)
@@ -1101,55 +1036,72 @@ class TaskOrchestrator:
                             ce_scores = None
 
                         if ce_scores is not None:
-                            # Blend CE score into fusion score then threshold
-                            blended: List[Tuple[float, Any]] = []
-                            for i, (s, d) in enumerate(ranked_code):
-                                ce_s = ce_scores[i] if i < len(ce_scores) else 0.0
-                                new_s = 0.5 * s + 0.5 * ce_s
-                                blended.append((new_s, d))
-                            ranked_code = [(s, d) for (s, d) in blended if s >= threshold]
-                        else:
-                            ranked_code = [(s, d) for (s, d) in ranked_code if s >= threshold]
+                            for idx, record in enumerate(candidate_records):
+                                ce_score = (
+                                    ce_scores[idx] if idx < len(ce_scores) else 0.0
+                                )
+                                record["score"] = 0.5 * record["score"] + 0.5 * ce_score
+                        candidate_records = [
+                            record
+                            for record in candidate_records
+                            if record["score"] >= threshold
+                        ]
 
-                    # Sort by score desc and clip to top_k
-                    ranked_code.sort(key=lambda x: x[0], reverse=True)
+                    candidate_records.sort(key=lambda item: item["score"], reverse=True)
                     top_k = int(getattr(settings, "rag_v2_code_top_k", 5) or 5)
-                    ranked_code = ranked_code[:top_k]
+                    kept_candidates = candidate_records[:top_k]
 
-                    # Observability: compute kept/filtered counts and mean fusion
+                    if not kept_candidates and code_docs:
+                        fallback_docs = code_docs[:top_k]
+                        kept_candidates = [
+                            {
+                                "doc": doc,
+                                "score": 0.0,
+                                "vector": _vector_score(doc),
+                                "lex": _lexical_overlap(
+                                    request.content, getattr(doc, "page_content", "")
+                                ),
+                            }
+                            for doc in fallback_docs
+                            if getattr(doc, "page_content", "")
+                        ]
+
                     considered_count = len(code_docs)
-                    kept_count = len(ranked_code)
+                    kept_count = len(kept_candidates)
                     filtered_count = max(considered_count - kept_count, 0)
                     mean_fusion = (
-                        sum(s for (s, _d) in ranked_code) / kept_count if kept_count else 0.0
+                        sum(record["score"] for record in kept_candidates) / kept_count
+                        if kept_count
+                        else 0.0
                     )
 
-                    # Build final snippets: code (reranked) + memory (as-is)
-                    context_snippets = [
-                        getattr(d, "page_content", "")
-                        for (s, d) in ranked_code
-                        if getattr(d, "page_content", "")
+                    code_snippets = [
+                        getattr(record["doc"], "page_content", "")
+                        for record in kept_candidates
+                        if getattr(record["doc"], "page_content", "")
                     ]
-                    # Trace kept documents after thresholding/top-k
+
                     try:
-                        for s, d in ranked_code:
+                        for record in kept_candidates:
+                            doc = record["doc"]
                             retrieval_trace_buffer.append(
                                 RetrievalDocTrace(
-                                    file=(getattr(d, "metadata", {}) or {}).get("file")
-                                    or (getattr(d, "metadata", {}) or {}).get("source"),
-                                    vector_score=_vector_score(d),
-                                    lexical_score=(
-                                        _lexical_overlap(
-                                            request.content,
-                                            getattr(d, "page_content", ""),
-                                        )
-                                        if use_hybrid and bm25_scores is None
-                                        else 0.0
+                                    file=(getattr(doc, "metadata", {}) or {}).get(
+                                        "file"
+                                    )
+                                    or (getattr(doc, "metadata", {}) or {}).get(
+                                        "source"
                                     ),
-                                    fusion_score=s,
+                                    vector_score=record.get("vector", 0.0),
+                                    lexical_score=record.get("lex", 0.0),
+                                    fusion_score=record["score"],
                                     kept_after_threshold=True,
                                     extras={
-                                        "id": ((getattr(d, "metadata", {}) or {}).get("id")),
+                                        "id": (
+                                            (getattr(doc, "metadata", {}) or {}).get(
+                                                "id"
+                                            )
+                                        ),
                                         "stage": "rag_v2",
                                         "event": "kept",
                                     },
@@ -1157,31 +1109,32 @@ class TaskOrchestrator:
                             )
                     except Exception:  # noqa: BLE001
                         pass
-                    context_snippets.extend(
-                        [
-                            getattr(doc, "page_content", "")
-                            for doc in mem_docs
-                            if getattr(doc, "page_content", "")
-                        ]
-                    )
-                    # Populate cache
-                    self._retrieval_cache[key] = context_snippets
-                    # Enforce simple LRU capacity
+
+                    memory_snippets = [
+                        getattr(doc, "page_content", "")
+                        for doc in mem_docs
+                        if getattr(doc, "page_content", "")
+                    ]
+
+                    context_snippets = code_snippets + memory_snippets
+
+                    cache_stats = {
+                        "considered": considered_count,
+                        "kept": kept_count,
+                        "filtered": filtered_count,
+                        "topk_mean_fusion": round(mean_fusion, 4),
+                    }
+                    pipeline_metadata["retrieval_stats"] = dict(cache_stats)
+                    cache_entry_payload = {
+                        "code_snippets": list(code_snippets),
+                        "memory_snippets": list(memory_snippets),
+                        "stats": cache_stats,
+                    }
+                    self._retrieval_cache[cache_key] = cache_entry_payload
                     cap = getattr(self, "_retrieval_cache_cap", 100)
                     while len(self._retrieval_cache) > cap:
                         self._retrieval_cache.popitem(last=False)
 
-                    # Attach retrieval stats
-                    try:
-                        pipeline_metadata["retrieval_stats"] = {
-                            "considered": considered_count,
-                            "kept": kept_count,
-                            "filtered": filtered_count,
-                            "topk_mean_fusion": round(mean_fusion, 4),
-                        }
-                    except Exception:  # noqa: BLE001
-                        pass
-                    # Export to Prometheus if available
                     try:  # pragma: no cover - optional
                         from src.main import (
                             RETRIEVAL_DOCS_CONSIDERED,
@@ -1189,7 +1142,9 @@ class TaskOrchestrator:
                             RETRIEVAL_TOPK_MEAN_FUSION_SCORE,
                         )
 
-                        RETRIEVAL_DOCS_CONSIDERED.labels(stage="rag_v2").inc(considered_count)
+                        RETRIEVAL_DOCS_CONSIDERED.labels(stage="rag_v2").inc(
+                            considered_count
+                        )
                         RETRIEVAL_DOCS_KEPT.labels(stage="rag_v2").inc(kept_count)
                         RETRIEVAL_TOPK_MEAN_FUSION_SCORE.labels(stage="rag_v2").set(
                             float(mean_fusion)
@@ -1197,14 +1152,14 @@ class TaskOrchestrator:
                     except Exception:  # noqa: BLE001
                         pass
 
-                latencies["context_retrieval"] = time.perf_counter() - t0
-                stages.append("rag_v2_retrieval")
-                context_source = "rag_v2"
-                pipeline_metadata["retriever"] = context_source
-                ws_logger.debug(
-                    "Retrieved %d context snippets via LangChain retrievers",
-                    len(context_snippets),
-                )
+                    latencies["context_retrieval"] = time.perf_counter() - t0
+                    stages.append("rag_v2_retrieval")
+                    context_source = "rag_v2"
+                    pipeline_metadata["retriever"] = context_source
+                    ws_logger.debug(
+                        "Retrieved %d context snippets via LangChain retrievers",
+                        len(context_snippets),
+                    )
             except Exception as e:  # noqa: BLE001
                 ws_logger.warning("LangChain context retrieval failed: %s", e)
 
@@ -1228,6 +1183,8 @@ class TaskOrchestrator:
                 {
                     "source": context_source,
                     "snippet_count": len(context_snippets),
+                    "code_snippet_count": len(code_snippets),
+                    "memory_snippet_count": len(memory_snippets),
                 }
             )
 
@@ -1356,7 +1313,9 @@ class TaskOrchestrator:
         agent_response: AgentResponse,
         verification_summary: Optional[VerificationSummary],
     ) -> str:
-        primary_suggestion = agent_response.suggestions[0] if agent_response.suggestions else None
+        primary_suggestion = (
+            agent_response.suggestions[0] if agent_response.suggestions else None
+        )
         verification_text = "Verification skipped."
         if verification_summary:
             verification_text = (
@@ -1371,7 +1330,8 @@ class TaskOrchestrator:
             )
 
         return (
-            "No actionable suggestions were produced by the orchestrator. " f"{verification_text}"
+            "No actionable suggestions were produced by the orchestrator. "
+            f"{verification_text}"
         )
 
 

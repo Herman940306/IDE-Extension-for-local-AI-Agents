@@ -13,6 +13,7 @@ from typing import Any, Callable, Dict, List, Optional
 
 import networkx as nx
 from git import InvalidGitRepositoryError, Repo
+from git.exc import NoSuchPathError
 from src.models import CodeContext, GitCommit
 from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
@@ -20,10 +21,8 @@ from watchdog.observers import Observer
 logger = logging.getLogger(__name__)
 
 try:
-    import tree_sitter_javascript as tsjavascript
-    import tree_sitter_python as tspython
-    import tree_sitter_typescript as tstypescript
-    from tree_sitter import Language, Parser
+    from tree_sitter import Parser
+    from tree_sitter_languages import get_language
 
     TREE_SITTER_AVAILABLE = True
 except ImportError:
@@ -141,29 +140,17 @@ class ContextManager:
     def _initialize_parsers(self) -> None:
         """Initialize tree-sitter parsers for supported languages"""
         try:
-            # Python parser
-            PY_LANGUAGE = Language(tspython.language(), "python")
-            py_parser = Parser()
-            py_parser.set_language(PY_LANGUAGE)
-            self.parsers["python"] = py_parser
+            language_map = {
+                "python": "python",
+                "javascript": "javascript",
+                "typescript": "typescript",
+                "tsx": "tsx",
+            }
 
-            # JavaScript parser
-            JS_LANGUAGE = Language(tsjavascript.language(), "javascript")
-            js_parser = Parser()
-            js_parser.set_language(JS_LANGUAGE)
-            self.parsers["javascript"] = js_parser
-
-            # TypeScript parser
-            TS_LANGUAGE = Language(tstypescript.language_typescript(), "typescript")
-            ts_parser = Parser()
-            ts_parser.set_language(TS_LANGUAGE)
-            self.parsers["typescript"] = ts_parser
-
-            # TSX parser
-            TSX_LANGUAGE = Language(tstypescript.language_tsx(), "tsx")
-            tsx_parser = Parser()
-            tsx_parser.set_language(TSX_LANGUAGE)
-            self.parsers["tsx"] = tsx_parser
+            for key, language_name in language_map.items():
+                parser = Parser()
+                parser.set_language(get_language(language_name))
+                self.parsers[key] = parser
 
             logger.info("✓ Tree-sitter parsers initialized")
         except Exception as e:
@@ -175,8 +162,11 @@ class ContextManager:
         try:
             self.repo = Repo(self.workspace_path, search_parent_directories=True)
             logger.info(f"✓ Git repository found: {self.repo.working_dir}")
-        except InvalidGitRepositoryError:
-            logger.warning("No Git repository found in workspace")
+        except (InvalidGitRepositoryError, NoSuchPathError):
+            logger.warning(
+                "Git repository missing or workspace path unavailable; "
+                "proceeding without Git context"
+            )
             self.repo = None
 
     async def get_context(
@@ -288,7 +278,7 @@ class ContextManager:
 
     async def _extract_imports(self, content: str, language: str) -> List[str]:
         """Extract import statements from code"""
-        imports = []
+        imports: List[str] = []
 
         try:
             if language == "python":
@@ -324,7 +314,7 @@ class ContextManager:
 
     async def _get_dependencies(self, file_path: Path) -> List[str]:
         """Get file dependencies (files that this file imports)"""
-        dependencies = []
+        dependencies: List[str] = []
 
         try:
             content = await self._read_file(file_path)
@@ -450,7 +440,7 @@ class ContextManager:
             if language == "python":
                 ast_info = self._extract_python_symbols(root_node, content)
             elif language in ["javascript", "typescript", "tsx"]:
-                ast_info = self._extract_js_symbols(root_node, content)
+                ast_info = self._extract_js_symbols(root_node, content, language)
 
             # Cache result
             self.ast_cache.put(cache_key, ast_info)
@@ -495,14 +485,16 @@ class ContextManager:
         traverse(root_node)
         return symbols
 
-    def _extract_js_symbols(self, root_node, content: str) -> Dict[str, Any]:
+    def _extract_js_symbols(
+        self, root_node, content: str, language: str = "javascript"
+    ) -> Dict[str, Any]:
         """Extract symbols from JavaScript/TypeScript AST"""
         symbols = {
             "functions": [],
             "classes": [],
             "imports": [],
             "variables": [],
-            "language": "javascript",
+            "language": "javascript" if language == "javascript" else language,
         }
 
         def traverse(node):
@@ -557,7 +549,7 @@ class ContextManager:
 
         try:
             # Find all code files
-            code_files = []
+            code_files: List[Path] = []
             for ext in [".py", ".js", ".ts", ".tsx", ".jsx"]:
                 code_files.extend(self.workspace_path.rglob(f"*{ext}"))
 

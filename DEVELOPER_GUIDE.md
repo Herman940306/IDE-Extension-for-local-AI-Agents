@@ -107,6 +107,34 @@ docker-compose up -d  # Redis, ChromaDB
 python -m uvicorn src.main:app --reload
 ```
 
+### Running multiple backend instances (multi-agent dev)
+
+For parallel development and isolation testing, run several Uvicorn instances bound to different ports.
+
+- VS Code tasks:
+  - `Start Multi-Agent Backends (3x)` — starts instances on 8001/8002/8003 with `APP_INSTANCE` set per process
+  - Individual tasks exist for 8001, 8002, 8003
+- PowerShell helper (Windows):
+
+```powershell
+./start-multi-agents.ps1 -Count 3 -BasePort 8001 -BindHost 127.0.0.1
+```
+
+Flags: `-Count`, `-BasePort`, `-BindHost`, and `-NoReload` (to disable hot reload).
+
+### CI pipelines and gates
+
+- Type checking runs on backend path changes with pip caching.
+- CI splits:
+  - Linting & config checks (Black, Flake8, yamllint, Prometheus promtool)
+  - Tests with coverage and a gate (`--cov-fail-under=60`)
+  - Docker build depends on successful tests
+
+### Repository housekeeping
+
+- The `work/refactor` subtree has been removed to keep the repository clean and reduce pre-commit churn.
+- Pre-commit hooks are scoped to `backend/**` to focus on actionable signals.
+
 ### Environment Variables
 
 Create `backend/.env`:
@@ -156,10 +184,7 @@ import * as vscode from "vscode";
 export class MyProvider implements vscode.SomeProvider {
   constructor(private wsClient: WebSocketClient) {}
 
-  async provideSomething(
-    document: vscode.TextDocument,
-    position: vscode.Position,
-  ): Promise<vscode.Something[]> {
+  async provideSomething(document: vscode.TextDocument, position: vscode.Position): Promise<vscode.Something[]> {
     // Your implementation
     const response = await this.wsClient.sendWithResponse("my_action", {
       document,
@@ -175,12 +200,9 @@ export class MyProvider implements vscode.SomeProvider {
 
 ```typescript
 // In extension.ts
-const myCommand = vscode.commands.registerCommand(
-  "enterpriseAI.myCommand",
-  async () => {
-    // Command implementation
-  },
-);
+const myCommand = vscode.commands.registerCommand("enterpriseAI.myCommand", async () => {
+  // Command implementation
+});
 
 context.subscriptions.push(myCommand);
 ```

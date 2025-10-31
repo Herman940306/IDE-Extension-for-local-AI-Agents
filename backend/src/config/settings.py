@@ -68,7 +68,7 @@ class Settings(BaseSettings):
     # Embeddings / Search
     # Note: Current embeddings service uses Sentence-Transformers by default.
     # This field declares the preferred Ollama embedding model when enabled.
-    preferred_ollama_embedding_model: str = "nomic-embed-text"
+    preferred_ollama_embedding_model: str = "nomic-embed-text:latest"
 
     # Summarization / simple NL flows (fallback, CPU-friendly)
     summarizer_model: str = "phi3:mini"

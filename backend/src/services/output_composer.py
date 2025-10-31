@@ -79,7 +79,9 @@ class OutputComposer:
 
         # Apply tone enhancement if LLM manager available
         if self.llm_manager:
-            tone_result = await self._apply_tone_enhancement(base_content, use_premium_tone)
+            tone_result = await self._apply_tone_enhancement(
+                base_content, use_premium_tone
+            )
             latency = time.time() - start_time
 
             return {
@@ -119,7 +121,9 @@ class OutputComposer:
         # Fallback to System 1 fast reasoning
         return system1_text.strip() if system1_text else ""
 
-    async def _apply_tone_enhancement(self, content: str, use_premium: bool) -> Dict[str, Any]:
+    async def _apply_tone_enhancement(
+        self, content: str, use_premium: bool
+    ) -> Dict[str, Any]:
         """Apply AuralA personality tone enhancement."""
         tone_model = self.tone_model_premium if use_premium else self.tone_model_light
 
@@ -146,7 +150,9 @@ class OutputComposer:
             }
 
         except Exception as e:
-            logger.error("Tone enhancement failed: %s (falling back to base content)", e)
+            logger.error(
+                "Tone enhancement failed: %s (falling back to base content)", e
+            )
             return {
                 "enhanced_text": content,
                 "raw_response": "",
@@ -155,7 +161,7 @@ class OutputComposer:
 
     def _build_tone_prompt(self, content: str) -> str:
         """Build tone enhancement prompt."""
-        return f"""You are AuralA's tone enhancement layer. 
+        return f"""You are AuralA's tone enhancement layer.
 
 Your task: Refine the following output to be calm, elegant, and human-centric.
 

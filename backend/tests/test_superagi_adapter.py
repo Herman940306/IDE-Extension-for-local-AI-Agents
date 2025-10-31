@@ -70,7 +70,9 @@ class TestSuperAGIAdapter:
         """Test adapter initialization"""
         adapter = SuperAGIAdapter(mock_config)
 
-        with patch("src.adapters.superagi_adapter.httpx.AsyncClient") as mock_client_cls:
+        with patch(
+            "src.adapters.superagi_adapter.httpx.AsyncClient"
+        ) as mock_client_cls:
             mock_client = AsyncMock()
             mock_response = MagicMock()
             mock_response.json.return_value = {"agent_id": "test-agent-123"}

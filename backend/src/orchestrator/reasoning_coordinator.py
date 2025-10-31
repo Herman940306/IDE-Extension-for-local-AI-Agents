@@ -245,7 +245,7 @@ class ReasoningCoordinator:
                 "suggestions": response.suggestions,
                 "confidence": response.confidence,
                 "reasoning": response.reasoning,
-                "system1_response": response.dict(),
+                "system1_response": response.model_dump(),
                 "system2_response": None,
                 "verification_skipped": True,
             }
@@ -309,7 +309,7 @@ class ReasoningCoordinator:
                     system2_response = VerificationResponse(**cached)
                 else:
                     system2_response = await self.verifier.verify(verification_request)
-                    self._verify_cache_set(cache_key, system2_response.dict())
+                    self._verify_cache_set(cache_key, system2_response.model_dump())
             finally:
                 # Restore verifier model
                 self.verifier.model = original_model
@@ -334,8 +334,8 @@ class ReasoningCoordinator:
                     "suggestions": final_suggestions,
                     "confidence": final_confidence,
                     "reasoning": f"System 1: {system1_response.reasoning}\nSystem 2: {system2_response.reasoning}",  # noqa: E501
-                    "system1_response": system1_response.dict(),
-                    "system2_response": system2_response.dict(),
+                    "system1_response": system1_response.model_dump(),
+                    "system2_response": system2_response.model_dump(),
                     "verification_passed": system2_response.valid,
                     "issues": system2_response.issues,
                 }
@@ -348,7 +348,7 @@ class ReasoningCoordinator:
                     "suggestions": [],
                     "confidence": 0.0,
                     "reasoning": "System 1 produced no suggestions",
-                    "system1_response": system1_response.dict(),
+                    "system1_response": system1_response.model_dump(),
                     "system2_response": None,
                 }
             )
@@ -429,7 +429,7 @@ class ReasoningCoordinator:
                     "suggestions": system1_response.suggestions,
                     "confidence": system1_response.confidence,
                     "reasoning": system1_response.reasoning,
-                    "system1_response": system1_response.dict(),
+                    "system1_response": system1_response.model_dump(),
                     "system2_response": None,
                     "verification_skipped": True,
                 }
@@ -443,7 +443,7 @@ class ReasoningCoordinator:
         if not text.strip():
             return {"status": "skipped", "reason": "empty_text"}
 
-        payload = {
+        payload: Dict[str, Any] = {
             "model": getattr(settings, "safety_model", "phi3:medium"),
             "prompt": (
                 "You are a safety checker. Analyze the following output for sensitive "

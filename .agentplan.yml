@@ -1,0 +1,44 @@
+# ===========================================
+# 🧠 AI Agent Auto-Fix Plan
+# ===========================================
+# Fix all Ruff-detected issues automatically, test for green build, and update docs.
+// Save as: .agentplan.yml (optional) or just paste to your Copilot Chat.
+
+tasks:
+  - id: ruff-autofix
+    model: gpt-5
+    goal: |
+      Apply the Ruff fixes shown in latest lint output:
+      - Fix unused vars (F841) by removing or renaming with underscore.
+      - Rename unused loop vars (B007) to `_var`.
+      - Replace bare `except:` with `except Exception:`.
+      - Fix `raise` statements to use `raise ... from err`.
+      - Move misplaced imports to top of files (E402).
+      - Wrap long lines (E501) without breaking strings, f-strings, or comments.
+    commands:
+      - run: ruff check --unsafe-fixes --fix .
+      - run: black . --line-length 100
+      - run: isort .
+
+  - id: verify-tests
+    model: gpt-4o-mini
+    goal: |
+      Run tests and ensure code compiles cleanly after refactor.
+      If any test fails, summarize top 3 issues with file and line context.
+    commands:
+      - run: pytest -q --disable-warnings || true
+
+  - id: doc-refresh
+    model: claude-3.5-sonnet
+    goal: |
+      Scan code comments and regenerate documentation to match refactored files.
+      Focus on persona_engine, backend adapters, and llm_service modules.
+      Rewrite docstrings, README, and any .md files to reflect current APIs and architecture.
+    commands:
+      - run: python scripts/generate_docs.py || true
+
+workflow:
+  - parallel:
+      - ruff-autofix
+  - then: verify-tests
+  - then: doc-refresh

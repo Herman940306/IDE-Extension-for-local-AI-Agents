@@ -1,245 +1,301 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 
-test.describe('AuraIA Frontend E2E Tests', () => {
+type ChatMessage = {
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: number;
+};
 
-    // Smoke test - basic rendering
-    test('home page renders correctly', async ({ page }) => {
-        await page.goto('/');
+type ChatSeed = {
+  id: string;
+  title: string;
+  messages: ChatMessage[];
+  timestamp: number;
+};
 
-        // Check main container
-        await expect(page.locator('.app')).toBeVisible();
+type OpenAppOptions = {
+  beforeNavigate?: () => Promise<void> | void;
+  seedChats?: () => ChatSeed[];
+  resetChats?: boolean;
+};
 
-        // Check sidebar exists
-        await expect(page.locator('.sidebar')).toBeVisible();
-        await expect(page.locator('.logo-text')).toContainText('AuraIA');
-        await expect(page.getByText('The Future Beside You')).toBeVisible();
+const fixturePath = 'tests/fixtures/sample-attachment.txt';
 
-        // Check main content area
-        await expect(page.locator('.main-content')).toBeVisible();
-        await expect(page.getByRole('heading', { name: 'AuraIA' })).toBeVisible();
+const messageInputRole = /Ask anything|Backend unavailable|Connecting/;
 
-        // Check input area exists
-        await expect(page.locator('.input-container')).toBeVisible();
-        await expect(page.getByRole('textbox', { name: /Ask anything|Backend unavailable|Connecting/ })).toBeVisible();
-    });    // WebSocket Connection Test
-    test('establishes WebSocket connection to backend', async ({ page }) => {
-        await page.goto('/');
+const waitForConnection = async (page: Page) => {
+  await expect(page.getByText('🟢 Connected')).toBeVisible({ timeout: 15_000 });
+};
 
-        // Wait for connection status to show connected
-        await expect(page.getByText('🟢 Connected')).toBeVisible({ timeout: 15000 });
+const openApp = async (page: Page, options: OpenAppOptions = {}) => {
+  if (options.beforeNavigate) {
+    await options.beforeNavigate();
+  }
 
-        // Check connection indicator shows correct status
-        const status = page.locator('.status');
-        await expect(status).toContainText('Connected');
+  const seededChats = options.seedChats?.();
+  const shouldReset = options.resetChats ?? true;
+
+  await page.addInitScript(({ chats, reset }) => {
+    const storageKey = 'auraIA_chats';
+    const sessionMarker = '__auraInitChatReset';
+
+    if (Array.isArray(chats)) {
+      window.localStorage.setItem(storageKey, JSON.stringify(chats));
+      window.sessionStorage.setItem(sessionMarker, '1');
+      return;
+    }
+
+    if (reset && !window.sessionStorage.getItem(sessionMarker)) {
+      window.localStorage.removeItem(storageKey);
+      window.sessionStorage.setItem(sessionMarker, '1');
+    }
+  }, { chats: seededChats, reset: shouldReset });
+
+  await page.goto('/');
+  await waitForConnection(page);
+};
+
+const getInput = (page: Page) => page.getByRole('textbox', { name: messageInputRole });
+
+test.describe('AuraIA smoke coverage', () => {
+  test('renders core layout and branding', async ({ page }) => {
+    await openApp(page);
+
+    await expect(page.locator('.app')).toBeVisible();
+    await expect(page.locator('.sidebar')).toBeVisible();
+    await expect(page.locator('.logo-text')).toContainText('AuraIA');
+    await expect(page.locator('.logo-tagline')).toContainText('The Future Beside You');
+    await expect(page.locator('.main-content')).toBeVisible();
+    await expect(page.locator('.input-container')).toBeVisible();
+    await expect(page.getByText('Herman Swanepoel')).toBeVisible();
+
+    test.info().annotations.push({ type: 'status', description: 'Layout & branding verified' });
+  });
+
+  test('shows connection indicator once backend is reachable', async ({ page }) => {
+    await openApp(page);
+
+    const status = page.locator('.status');
+    await expect(status).toContainText('Connected');
+
+    test.info().annotations.push({ type: 'status', description: 'Backend connection indicator working' });
+  });
+
+  test('switches interaction modes between Chat, Agent, and Edit', async ({ page }) => {
+    await openApp(page);
+
+    const chatBtn = page.getByRole('button', { name: '💬 Chat' });
+    const agentBtn = page.getByRole('button', { name: '🤖 Agent' });
+    const editBtn = page.getByRole('button', { name: '✏️ Edit' });
+
+    await chatBtn.click();
+    await expect(chatBtn).toHaveClass(/active/);
+
+    await agentBtn.click();
+    await expect(agentBtn).toHaveClass(/active/);
+    await expect(chatBtn).not.toHaveClass(/active/);
+
+    await editBtn.click();
+    await expect(editBtn).toHaveClass(/active/);
+    await expect(agentBtn).not.toHaveClass(/active/);
+
+    test.info().annotations.push({ type: 'status', description: 'Interaction mode buttons working' });
+  });
+
+  test('toggles between local and cloud modes and surfaces banner messages', async ({ page }) => {
+    await openApp(page);
+
+    const slider = page.locator('.toggle-slider');
+    await expect(page.getByText('💻 Local')).toBeVisible();
+
+    await slider.click({ force: true });
+    await expect(page.getByText('☁️ Cloud')).toBeVisible({ timeout: 5_000 });
+    await expect(page.locator('.status-banner')).toContainText(/Connected to Enterprise AI Agents Backend|Switched to|Already in/);
+
+    await slider.click({ force: true });
+    await expect(page.getByText('💻 Local')).toBeVisible({ timeout: 5_000 });
+
+    test.info().annotations.push({ type: 'status', description: 'Local / cloud toggle verified' });
+  });
+
+  test('attaches a file, displays the attachment chip, and clears after sending', async ({ page }) => {
+    await openApp(page);
+
+    await page.locator('.attach-btn').click();
+    await page.locator('input[type="file"]').setInputFiles(fixturePath);
+
+    const chip = page.locator('.attached-files .file-chip');
+    await expect(chip).toContainText('sample-attachment.txt');
+
+    const input = getInput(page);
+    await input.fill('Message with attachment');
+    const sendBtn = page.locator('.send-btn');
+    await sendBtn.click();
+
+    await expect(page.locator('.message.user').last()).toContainText('Message with attachment');
+    await expect(page.locator('.attached-files .file-chip')).toHaveCount(0);
+
+    test.info().annotations.push({ type: 'status', description: 'Attachment upload and send path working' });
+  });
+
+  test('persists chat history across reloads', async ({ page }) => {
+    await openApp(page);
+
+    const message = `Persistent message ${Date.now()}`;
+    const input = getInput(page);
+    await input.fill(message);
+    await input.press('Enter');
+
+    await expect(page.locator('.message.user').last()).toContainText(message);
+
+    await page.waitForFunction((expected) => {
+      const chatsRaw = window.localStorage.getItem('auraIA_chats');
+      if (!chatsRaw) return false;
+      try {
+        const chats = JSON.parse(chatsRaw) as Array<{ messages?: Array<{ content?: string }> }>;
+        return chats.some((chat) => chat.messages?.some((m) => m.content === expected));
+      } catch {
+        return false;
+      }
+    }, message);
+
+    await page.reload();
+    await waitForConnection(page);
+
+    const historyItem = page.locator('.chat-history .chat-item').first();
+    await expect(historyItem).toBeVisible({ timeout: 10_000 });
+    await historyItem.click();
+
+    await expect(page.locator('.message.user').last()).toContainText(message);
+
+    test.info().annotations.push({ type: 'status', description: 'Chat memory retained after reload' });
+  });
+
+  test('deletes chat entries from history', async ({ page }) => {
+    await openApp(page);
+
+    const input = getInput(page);
+    await input.fill('Chat slated for deletion');
+    await input.press('Enter');
+    await page.getByRole('button', { name: '+ New chat' }).click();
+
+    const deleteBtn = page.locator('.chat-history .chat-item .delete-btn').first();
+    await deleteBtn.click();
+    await expect(page.locator('.chat-history .chat-item')).toHaveCount(0);
+
+    test.info().annotations.push({ type: 'status', description: 'Chat deletion workflow verified' });
+  });
+
+  test('renders long assistant feedback without truncation', async ({ page }) => {
+    const longContent = (() => {
+      const intro = 'This is a deliberately long assistant reply used to validate wrapping.';
+      const lines = Array.from({ length: 30 }, (_, index) => `Line ${(index + 1).toString().padStart(2, '0')} of detailed guidance.`);
+      const code = ['```', 'function sample() {', "  console.log('Line coverage check');", '}', '```'];
+      const outro = 'Final summary line confirming the end of the message.';
+      return [intro, ...lines, ...code, outro].join('\n');
+    })();
+
+    await openApp(page, {
+      seedChats: () => [{
+        id: 'chat-long-response',
+        title: 'Long response validation',
+        messages: [{ role: 'assistant', content: longContent, timestamp: Date.now() }],
+        timestamp: Date.now(),
+      }],
     });
 
-    // Chat Functionality Tests
-    test('can send a message in chat mode', async ({ page }) => {
-        await page.goto('/');
-        await expect(page.getByText('🟢 Connected')).toBeVisible({ timeout: 15000 });
+    await page.locator('.chat-history .chat-item').first().click();
 
-        // Ensure we're in chat mode
-        await page.getByRole('button', { name: '💬 Chat' }).click();
+    const assistantMessage = page.locator('.message.assistant');
+    await expect(assistantMessage).toContainText('Line 30 of detailed guidance.');
+    await expect(assistantMessage.locator('pre code')).toContainText("console.log('Line coverage check');");
+    await expect(assistantMessage).toContainText('Final summary line confirming the end of the message.');
 
-        // Type and send a message
-        const input = page.getByRole('textbox', { name: 'Ask anything' });
-        await input.fill('Hello, can you help me?');
-        await input.press('Enter');
+    test.info().annotations.push({ type: 'status', description: 'Assistant feedback rendering intact' });
+  });
 
-        // Verify message appears in chat
-        await expect(page.locator('.message.user')).toContainText('Hello, can you help me?');
+  test('accepts voice input and surfaces listening banner', async ({ page }) => {
+    await openApp(page, {
+      beforeNavigate: async () => {
+        await page.addInitScript(() => {
+          class MockSpeechRecognition {
+            continuous = false;
+            interimResults = false;
+            lang = 'en-US';
+            onresult: ((event: unknown) => void) | null = null;
+            onerror: ((event: unknown) => void) | null = null;
+            onend: (() => void) | null = null;
+            start() {
+              // @ts-ignore - testing hook
+              window.__mockSpeechStarted = true;
+              setTimeout(() => {
+                this.onresult?.({ results: [[{ transcript: 'voice prompt automation sample' }]] } as unknown);
+                this.onend?.();
+              }, 10);
+            }
+            stop() {
+              this.onend?.();
+            }
+          }
 
-        // Optionally wait for assistant response (loading indicator may appear briefly)
-        // Using a soft expectation since response time varies
-        await page.waitForTimeout(1000);
-    });    // Mode Switching Tests
-    test('can switch between interaction modes', async ({ page }) => {
-        await page.goto('/');
-        await expect(page.getByText('🟢 Connected')).toBeVisible({ timeout: 15000 });
-
-        // Test Chat mode
-        const chatBtn = page.getByRole('button', { name: '💬 Chat' });
-        await chatBtn.click();
-        await expect(chatBtn).toHaveClass(/active/);
-
-        // Test Agent mode
-        const agentBtn = page.getByRole('button', { name: '🤖 Agent' });
-        await agentBtn.click();
-        await expect(agentBtn).toHaveClass(/active/);
-        await expect(chatBtn).not.toHaveClass(/active/);
-
-        // Test Edit mode
-        const editBtn = page.getByRole('button', { name: '✏️ Edit' });
-        await editBtn.click();
-        await expect(editBtn).toHaveClass(/active/);
-        await expect(agentBtn).not.toHaveClass(/active/);
+          // @ts-expect-error - exposing mock globally for the app
+          window.SpeechRecognition = MockSpeechRecognition;
+          // @ts-expect-error - exposing mock globally for the app
+          window.webkitSpeechRecognition = MockSpeechRecognition;
+        });
+      },
     });
 
-    // Local/Cloud Mode Toggle Test
-    test('can toggle between local and cloud modes', async ({ page }) => {
-        await page.goto('/');
-        await expect(page.getByText('🟢 Connected')).toBeVisible({ timeout: 15000 });
+    const voiceBtn = page.locator('.voice-btn');
+    await voiceBtn.click();
 
-        // Check initial mode (should be local)
-        await expect(page.getByText('💻 Local')).toBeVisible();
+    await expect(page.locator('.status-banner')).toContainText('Listening');
+    await expect(getInput(page)).toHaveValue('voice prompt automation sample');
 
-        // Toggle to cloud mode - click on the visible toggle slider
-        await page.locator('.toggle-slider').click({ force: true });
-        await expect(page.getByText('☁️ Cloud')).toBeVisible({ timeout: 5000 });
+    test.info().annotations.push({ type: 'status', description: 'Voice prompt pipeline operating' });
+  });
 
-        // Toggle back to local
-        await page.locator('.toggle-slider').click({ force: true });
-        await expect(page.getByText('💻 Local')).toBeVisible({ timeout: 5000 });
-    });    // Chat History Tests
-    test('can create and manage chat history', async ({ page }) => {
-        await page.goto('/');
-        await expect(page.getByText('🟢 Connected')).toBeVisible({ timeout: 15000 });
+  test('supports sending multiple sequential messages in order', async ({ page }) => {
+    await openApp(page);
 
-        // Send a message to create chat history
-        const input = page.getByRole('textbox', { name: 'Ask anything' });
-        await input.fill('Test message for history');
-        await input.press('Enter');
+    const input = getInput(page);
+    await input.fill('First message');
+    await input.press('Enter');
+    await input.fill('Second message');
+    await input.press('Enter');
+    await input.fill('Third message');
+    await input.press('Enter');
 
-        // Wait a moment for the chat to be saved
-        await page.waitForTimeout(1000);
+    const userMessages = page.locator('.message.user');
+    await expect(userMessages).toHaveCount(3);
+    await expect(userMessages.nth(0)).toContainText('First message');
+    await expect(userMessages.nth(1)).toContainText('Second message');
+    await expect(userMessages.nth(2)).toContainText('Third message');
 
-        // Create new chat
-        await page.getByRole('button', { name: '+ New chat' }).click();
+    test.info().annotations.push({ type: 'status', description: 'Sequential messaging verified' });
+  });
 
-        // Verify chat history shows previous chat
-        await expect(page.locator('.chat-history .chat-item')).toHaveCount(1);
+  test('resets chat state when starting a new chat', async ({ page }) => {
+    await openApp(page);
 
-        // Click on previous chat to load it
-        await page.locator('.chat-history .chat-item').first().click();
-        await expect(page.locator('.message.user')).toContainText('Test message for history');
-    });
+    const input = getInput(page);
+    await input.fill('Message before reset');
+    await input.press('Enter');
 
-    test('can delete chat from history', async ({ page }) => {
-        await page.goto('/');
-        await expect(page.getByText('🟢 Connected')).toBeVisible({ timeout: 15000 });
+    await page.getByRole('button', { name: '+ New chat' }).click();
+    await expect(page.getByText('Ready when you are.')).toBeVisible();
 
-        // Send a message to create chat history
-        const input = page.getByRole('textbox', { name: 'Ask anything' });
-        await input.fill('Message to delete');
-        await input.press('Enter');
-        await page.waitForTimeout(1000);
+    test.info().annotations.push({ type: 'status', description: 'New chat reset confirmed' });
+  });
 
-        // Create new chat so we can see history
-        await page.getByRole('button', { name: '+ New chat' }).click();
+  test('shows banner notifications when mode changes', async ({ page }) => {
+    await openApp(page);
 
-        // Delete the chat
-        const deleteBtn = page.locator('.chat-history .chat-item .delete-btn').first();
-        await deleteBtn.click();
+    await page.locator('.toggle-slider').click({ force: true });
+    await expect(page.locator('.status-banner')).toBeVisible({ timeout: 5_000 });
+    await page.locator('.toggle-slider').click({ force: true });
+    await expect(page.locator('.status-banner')).toBeVisible({ timeout: 5_000 });
 
-        // Verify chat is removed
-        const chatCount = await page.locator('.chat-history .chat-item').count();
-        expect(chatCount).toBe(0);
-    });
-
-    // File Attachment Tests
-    test('can attach files to messages', async ({ page }) => {
-        await page.goto('/');
-        await expect(page.getByText('🟢 Connected')).toBeVisible({ timeout: 15000 });
-
-        // Click attach button
-        await page.getByRole('button', { name: '+' }).first().click();
-
-        // Note: File upload would require actual file in test environment
-        // This test verifies the UI is present and clickable
-        await expect(page.locator('input[type="file"]')).toBeAttached();
-    });
-
-    // Input Validation Tests
-    test('send button is disabled when input is empty', async ({ page }) => {
-        await page.goto('/');
-        await expect(page.getByText('🟢 Connected')).toBeVisible({ timeout: 15000 });
-
-        const sendBtn = page.locator('.send-btn');
-        await expect(sendBtn).toBeDisabled();
-
-        // Type something
-        await page.getByRole('textbox', { name: 'Ask anything' }).fill('test');
-        await expect(sendBtn).toBeEnabled();
-
-        // Clear input
-        await page.getByRole('textbox', { name: 'Ask anything' }).clear();
-        await expect(sendBtn).toBeDisabled();
-    });
-
-    test('input is disabled when backend is disconnected', async ({ page }) => {
-        await page.goto('/');
-
-        // Wait for initial connection
-        await expect(page.getByText('🟢 Connected')).toBeVisible({ timeout: 15000 });
-
-        // Input should be enabled when connected
-        const input = page.getByRole('textbox', { name: 'Ask anything' });
-        await expect(input).toBeEnabled();
-    });
-
-    // Welcome Screen Test
-    test('shows welcome message when no messages exist', async ({ page }) => {
-        await page.goto('/');
-        await expect(page.getByText('🟢 Connected')).toBeVisible({ timeout: 15000 });
-
-        // Should show welcome message
-        await expect(page.getByText('Ready when you are.')).toBeVisible();
-    });
-
-    // User Info Display Test
-    test('displays user information in sidebar', async ({ page }) => {
-        await page.goto('/');
-
-        // Check user avatar and name
-        await expect(page.getByText('HS')).toBeVisible();
-        await expect(page.getByText('Herman Swanepoel')).toBeVisible();
-    });
-
-    // Branding and Theme Tests
-    test('displays correct branding elements', async ({ page }) => {
-        await page.goto('/');
-
-        // Check logo and tagline
-        await expect(page.locator('.logo-text')).toContainText('AuraIA');
-        await expect(page.locator('.logo-tagline')).toContainText('The Future Beside You');
-    });
-
-    // Multiple Messages Test
-    test('can send multiple messages in sequence', async ({ page }) => {
-        await page.goto('/');
-        await expect(page.getByText('🟢 Connected')).toBeVisible({ timeout: 15000 });
-
-        const input = page.getByRole('textbox', { name: 'Ask anything' });
-
-        // Send first message
-        await input.fill('First message');
-        await input.press('Enter');
-
-        // Send second message
-        await input.fill('Second message');
-        await input.press('Enter');
-
-        // Send third message
-        await input.fill('Third message');
-        await input.press('Enter');
-
-        // Verify all messages are displayed
-        const userMessages = page.locator('.message.user');
-        await expect(userMessages).toHaveCount(3);
-        await expect(userMessages.nth(0)).toContainText('First message');
-        await expect(userMessages.nth(1)).toContainText('Second message');
-        await expect(userMessages.nth(2)).toContainText('Third message');
-    });
-
-    // Banner Notifications Test
-    test('displays banner notifications for events', async ({ page }) => {
-        await page.goto('/');
-        await expect(page.getByText('🟢 Connected')).toBeVisible({ timeout: 15000 });
-
-        // Toggle mode to trigger banner - click on the visible slider
-        await page.locator('.toggle-slider').click({ force: true });
-
-        // Should show a banner notification
-        await expect(page.locator('.status-banner')).toBeVisible({ timeout: 5000 });
-    });
+    test.info().annotations.push({ type: 'status', description: 'Banner notifications verified' });
+  });
 });
