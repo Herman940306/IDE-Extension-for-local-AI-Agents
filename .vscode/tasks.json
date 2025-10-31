@@ -1,261 +1,333 @@
 {
-	"version": "2.0.0",
-	"tasks": [
-		{
-			"label": "Python: Run Tests",
-			"type": "shell",
-			"command": "${workspaceFolder}/.venv/Scripts/python.exe",
-			"args": [
-				"-m",
-				"pytest",
-				"backend/tests",
-				"-v"
-			],
-			"group": {
-				"kind": "test",
-				"isDefault": true
-			},
-			"presentation": {
-				"reveal": "always",
-				"panel": "new"
-			},
-			"problemMatcher": []
-		},
-		{
-			"label": "Python: Format with Black",
-			"type": "shell",
-			"command": "${workspaceFolder}/.venv/Scripts/python.exe",
-			"args": [
-				"-m",
-				"black",
-				"backend",
-				"--line-length=100"
-			],
-			"group": "build",
-			"presentation": {
-				"reveal": "always",
-				"panel": "shared"
-			},
-			"problemMatcher": []
-		},
-		{
-			"label": "Python: Lint with Flake8",
-			"type": "shell",
-			"command": "${workspaceFolder}/.venv/Scripts/python.exe",
-			"args": [
-				"-m",
-				"flake8",
-				"backend"
-			],
-			"group": "build",
-			"presentation": {
-				"reveal": "always",
-				"panel": "shared"
-			},
-			"problemMatcher": []
-		},
-		{
-			"label": "Python: Install Dependencies",
-			"type": "shell",
-			"command": "${workspaceFolder}/.venv/Scripts/python.exe",
-			"args": [
-				"-m",
-				"pip",
-				"install",
-				"-r",
-				"backend/requirements.txt"
-			],
-			"group": "build",
-			"presentation": {
-				"reveal": "always",
-				"panel": "shared"
-			},
-			"problemMatcher": []
-		},
-		{
-			"label": "Python: Run API (Uvicorn)",
-			"type": "shell",
-			"command": "${workspaceFolder}/.venv/Scripts/python.exe",
-			"args": [
-				"-m",
-				"uvicorn",
-				"src.main:app",
-				"--reload",
-				"--host",
-				"127.0.0.1",
-				"--port",
-				"8001"
-			],
-			"options": {
-				"cwd": "${workspaceFolder}/backend"
-			},
-			"group": {
-				"kind": "build",
-				"isDefault": false
-			},
-			"presentation": {
-				"reveal": "always",
-				"panel": "dedicated",
-				"clear": true
-			},
-			"problemMatcher": []
-		},
-		{
-			"label": "Python: Test Coverage",
-			"type": "shell",
-			"command": "${workspaceFolder}/.venv/Scripts/python.exe",
-			"args": [
-				"-m",
-				"pytest",
-				"backend/tests",
-				"-v",
-				"--cov=backend/src",
-				"--cov-report=term-missing",
-				"--cov-report=html"
-			],
-			"group": {
-				"kind": "test",
-				"isDefault": false
-			},
-			"presentation": {
-				"reveal": "always",
-				"panel": "new"
-			},
-			"problemMatcher": []
-		},
-		{
-			"label": "Python: Test Coverage (unit-only)",
-			"type": "shell",
-			"command": "${workspaceFolder}/.venv/Scripts/python.exe",
-			"args": [
-				"-m",
-				"pytest",
-				"backend/tests",
-				"-v",
-				"-m",
-				"not integration",
-				"-k",
-				"not test_very_short_timeout",
-				"--cov=backend/src",
-				"--cov-report=term-missing",
-				"--cov-report=html"
-			],
-			"group": {
-				"kind": "test",
-				"isDefault": false
-			},
-			"presentation": {
-				"reveal": "always",
-				"panel": "new"
-			},
-			"problemMatcher": []
-		},
-		{
-			"label": "Python: Type Check (mypy)",
-			"type": "shell",
-			"command": "${workspaceFolder}/.venv/Scripts/python.exe",
-			"args": [
-				"-m",
-				"mypy",
-				"backend/src"
-			],
-			"group": "build",
-			"presentation": {
-				"reveal": "always",
-				"panel": "shared"
-			},
-			"problemMatcher": []
-		},
-		{
-			"label": "Extension: Package (.vsix)",
-			"type": "shell",
-			"command": "\"${env:APPDATA}\\npm\\vsce.cmd\"",
-			"args": [
-				"package"
-			],
-			"options": {
-				"cwd": "${workspaceFolder}/extension"
-			},
-			"presentation": {
-				"reveal": "always",
-				"panel": "shared"
-			},
-			"problemMatcher": []
-		},
-		{
-			"label": "Extension: Publish (Marketplace)",
-			"type": "shell",
-			"command": "pwsh",
-			"args": [
-				"-NoProfile",
-				"-Command",
-				"$pat='${input:vscePat}'; if ([string]::IsNullOrWhiteSpace($pat)) { & \"${env:APPDATA}\\npm\\vsce.cmd\" publish } else { & \"${env:APPDATA}\\npm\\vsce.cmd\" publish --pat $pat }"
-			],
-			"options": {
-				"cwd": "${workspaceFolder}/extension"
-			},
-			"presentation": {
-				"reveal": "always",
-				"panel": "shared"
-			},
-			"problemMatcher": []
-		},
-		{
-			"label": "Python: Install Dependencies",
-			"type": "shell",
-			"command": "pip",
-			"args": [
-				"install",
-				"-r",
-				"backend/requirements.txt"
-			],
-			"group": "build"
-		},
-		{
-			"label": "Python: Format with Black",
-			"type": "shell",
-			"command": "black",
-			"args": [
-				"backend",
-				"--line-length=100"
-			],
-			"group": "build"
-		},
-		{
-			"label": "Python: Lint with Flake8",
-			"type": "shell",
-			"command": "flake8",
-			"args": [
-				"backend"
-			],
-			"group": "build"
-		},
-		{
-			"label": "Python: Format with Black",
-			"type": "shell",
-			"command": "black",
-			"args": [
-				"backend",
-				"--line-length=100"
-			],
-			"group": "build"
-		},
-		{
-			"label": "Python: Lint with Flake8",
-			"type": "shell",
-			"command": "flake8",
-			"args": [
-				"backend"
-			],
-			"group": "build"
-		}
-	],
-	"inputs": [
-		{
-			"id": "vscePat",
-			"type": "promptString",
-			"description": "Enter your VSCE Personal Access Token (leave blank to use stored login or env VSCE_PAT)",
-			"default": ""
-		}
-	]
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Python: Run Tests",
+      "type": "shell",
+      "command": "${workspaceFolder}/.venv/Scripts/python.exe",
+      "args": ["-m", "pytest", "backend/tests", "-v"],
+      "group": {
+        "kind": "test",
+        "isDefault": true
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Python: Format with Black",
+      "type": "shell",
+      "command": "${workspaceFolder}/.venv/Scripts/python.exe",
+      "args": ["-m", "black", "backend", "--line-length=100"],
+      "group": "build",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Python: Lint with Flake8",
+      "type": "shell",
+      "command": "${workspaceFolder}/.venv/Scripts/python.exe",
+      "args": ["-m", "flake8", "backend"],
+      "group": "build",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Python: Install Dependencies",
+      "type": "shell",
+      "command": "${workspaceFolder}/.venv/Scripts/python.exe",
+      "args": ["-m", "pip", "install", "-r", "backend/requirements.txt"],
+      "group": "build",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Python: Run API (Uvicorn)",
+      "type": "shell",
+      "command": "${workspaceFolder}/.venv/Scripts/python.exe",
+      "args": [
+        "-m",
+        "uvicorn",
+        "src.main:app",
+        "--reload",
+        "--host",
+        "127.0.0.1",
+        "--port",
+        "8001"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}/backend"
+      },
+      "group": {
+        "kind": "build",
+        "isDefault": false
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Python: Test Coverage",
+      "type": "shell",
+      "command": "${workspaceFolder}/.venv/Scripts/python.exe",
+      "args": [
+        "-m",
+        "pytest",
+        "backend/tests",
+        "-v",
+        "--cov=backend/src",
+        "--cov-report=term-missing",
+        "--cov-report=html"
+      ],
+      "group": {
+        "kind": "test",
+        "isDefault": false
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Python: Test Coverage (unit-only)",
+      "type": "shell",
+      "command": "${workspaceFolder}/.venv/Scripts/python.exe",
+      "args": [
+        "-m",
+        "pytest",
+        "backend/tests",
+        "-v",
+        "-m",
+        "not integration",
+        "-k",
+        "not test_very_short_timeout",
+        "--cov=backend/src",
+        "--cov-report=term-missing",
+        "--cov-report=html"
+      ],
+      "group": {
+        "kind": "test",
+        "isDefault": false
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Python: Type Check (mypy)",
+      "type": "shell",
+      "command": "${workspaceFolder}/.venv/Scripts/python.exe",
+      "args": ["-m", "mypy", "backend/src"],
+      "group": "build",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Extension: Package (.vsix)",
+      "type": "shell",
+      "command": "\"${env:APPDATA}\\npm\\vsce.cmd\"",
+      "args": ["package"],
+      "options": {
+        "cwd": "${workspaceFolder}/extension"
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Extension: Publish (Marketplace)",
+      "type": "shell",
+      "command": "pwsh",
+      "args": [
+        "-NoProfile",
+        "-Command",
+        "$pat='${input:vscePat}'; if ([string]::IsNullOrWhiteSpace($pat)) { & \"${env:APPDATA}\\npm\\vsce.cmd\" publish } else { & \"${env:APPDATA}\\npm\\vsce.cmd\" publish --pat $pat }"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}/extension"
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Python: Install Dependencies",
+      "type": "shell",
+      "command": "pip",
+      "args": ["install", "-r", "backend/requirements.txt"],
+      "group": "build"
+    },
+    {
+      "label": "Python: Format with Black",
+      "type": "shell",
+      "command": "black",
+      "args": ["backend", "--line-length=100"],
+      "group": "build"
+    },
+    {
+      "label": "Python: Lint with Flake8",
+      "type": "shell",
+      "command": "flake8",
+      "args": ["backend"],
+      "group": "build"
+    },
+    {
+      "label": "Python: Format with Black",
+      "type": "shell",
+      "command": "black",
+      "args": ["backend", "--line-length=100"],
+      "group": "build"
+    },
+    {
+      "label": "Python: Lint with Flake8",
+      "type": "shell",
+      "command": "flake8",
+      "args": ["backend"],
+      "group": "build"
+    },
+    {
+      "label": "Backend: Install deps",
+      "type": "shell",
+      "command": "if (!(Test-Path .venv)) { python -m venv .venv }; .\\.venv\\Scripts\\python -m pip install -r requirements.txt",
+      "options": {
+        "cwd": "${workspaceFolder}/backend"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Backend: Run API (Uvicorn)",
+      "type": "shell",
+      "command": ".\\.venv\\Scripts\\python -m uvicorn src.main:app --reload --host 127.0.0.1 --port 8001",
+      "options": {
+        "cwd": "${workspaceFolder}/backend",
+        "env": {
+          "PYTHONPATH": "${workspaceFolder}/backend"
+        }
+      },
+      "isBackground": true,
+      "problemMatcher": [
+        {
+          "owner": "uvicorn",
+          "pattern": {
+            "regexp": ".*"
+          },
+          "background": {
+            "activeOnStart": true,
+            "beginsPattern": ".*Uvicorn running.*",
+            "endsPattern": ".*Application startup complete.*"
+          }
+        }
+      ]
+    },
+    {
+      "label": "Backend: Run API (No Reload)",
+      "type": "shell",
+      "command": ".\\.venv\\Scripts\\python -m uvicorn src.main:app --host 127.0.0.1 --port 8001",
+      "options": {
+        "cwd": "${workspaceFolder}/backend",
+        "env": {
+          "PYTHONPATH": "${workspaceFolder}/backend"
+        }
+      },
+      "isBackground": true,
+      "problemMatcher": [
+        {
+          "owner": "uvicorn",
+          "pattern": { "regexp": ".*" },
+          "background": {
+            "activeOnStart": true,
+            "beginsPattern": ".*Uvicorn running.*",
+            "endsPattern": ".*Application startup complete.*"
+          }
+        }
+      ]
+    },
+    {
+      "label": "Frontend: Install",
+      "type": "shell",
+      "command": "npm install",
+      "options": {
+        "cwd": "${workspaceFolder}/frontend"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Frontend: Dev",
+      "type": "shell",
+      "command": "npm run dev",
+      "options": {
+        "cwd": "${workspaceFolder}/frontend"
+      },
+      "isBackground": true
+    },
+    {
+      "label": "Extension: Install",
+      "type": "shell",
+      "command": "npm install",
+      "options": {
+        "cwd": "${workspaceFolder}/extension"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Extension: Compile (Watch)",
+      "type": "shell",
+      "command": "npm run watch",
+      "options": {
+        "cwd": "${workspaceFolder}/extension"
+      },
+      "isBackground": true,
+      "problemMatcher": "$tsc-watch"
+    },
+    {
+      "label": "Start Dev Servers",
+      "dependsOrder": "parallel",
+      "dependsOn": [
+        "Backend: Run API (Uvicorn)",
+        "Frontend: Dev",
+        "Extension: Compile (Watch)"
+      ]
+    },
+    {
+      "label": "Setup All (Install deps)",
+      "dependsOrder": "sequence",
+      "dependsOn": [
+        "Backend: Install deps",
+        "Frontend: Install",
+        "Extension: Install"
+      ]
+    }
+  ],
+  "inputs": [
+    {
+      "id": "vscePat",
+      "type": "promptString",
+      "description": "Enter your VSCE Personal Access Token (leave blank to use stored login or env VSCE_PAT)",
+      "default": ""
+    }
+  ]
 }

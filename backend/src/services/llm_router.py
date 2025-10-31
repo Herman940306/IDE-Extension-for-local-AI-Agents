@@ -93,9 +93,13 @@ class LLMRouter:
         system_prompt = self.system_prompts[interaction_mode]
 
         if current_mode == OperationMode.OFFLINE:
-            return await self._generate_local(prompt, system_prompt, interaction_mode, context)
+            return await self._generate_local(
+                prompt, system_prompt, interaction_mode, context
+            )
         else:
-            return await self._generate_cloud(prompt, system_prompt, interaction_mode, context)
+            return await self._generate_cloud(
+                prompt, system_prompt, interaction_mode, context
+            )
 
     async def _generate_local(
         self,
@@ -167,7 +171,8 @@ class LLMRouter:
             return {
                 "content": (
                     "☁️ Cloud mode is enabled but no API key is configured. "
-                    "Please set OPENAI_API_KEY environment variable or switch to Local mode."
+                    "Please set OPENAI_API_KEY environment variable or switch to "
+                    "Local mode."
                 ),
                 "provider": "none",
                 "model": "none",
@@ -182,7 +187,9 @@ class LLMRouter:
         except Exception as e:
             logger.error("cloud_generation_failed", error=str(e), exc_info=True)
             return {
-                "content": f"☁️ Cloud API error: {str(e)}. Try switching to Local mode.",
+                "content": (
+                    f"☁️ Cloud API error: {str(e)}. " "Try switching to Local mode."
+                ),
                 "provider": "error",
                 "model": "none",
                 "mode": "online",
@@ -230,7 +237,7 @@ class LLMRouter:
                 },
             }
 
-        except (ImportError, Exception) as e:
+        except (ImportError, Exception):
             logger.error("openai_not_installed")
             return {
                 "content": "☁️ OpenAI library not installed. Run: pip install openai",
@@ -244,34 +251,47 @@ class LLMRouter:
         """Generate mock response for testing when no LLM is available"""
 
         responses = {
-            InteractionMode.CHAT: (
-                f"💬 [Mock Response - Chat Mode]\n\n"
-                f"I received your message: '{prompt[:100]}...'\n\n"
-                f"This is a mock response because no LLM is currently available. "
-                f"To get real responses:\n"
-                f"• Local Mode: Ensure Ollama is running with models installed\n"
-                f"• Cloud Mode: Set OPENAI_API_KEY environment variable"
+            InteractionMode.CHAT: "\n".join(
+                [
+                    "💬 [Mock Response - Chat Mode]",
+                    "",
+                    f"I received your message: '{prompt[:100]}...'",
+                    "",
+                    "This is a mock response because no LLM is currently available.",
+                    "To get real responses:",
+                    "• Local Mode: Ensure Ollama is running with models installed",
+                    "• Cloud Mode: Set OPENAI_API_KEY environment variable",
+                ]
             ),
-            InteractionMode.AGENT: (
-                f"🤖 [Mock Response - Agent Mode]\n\n"
-                f"```python\n"
-                f"# Generated code for: {prompt[:50]}...\n"
-                f"def solution():\n"
-                f"    # TODO: Implement actual logic\n"
-                f"    pass\n"
-                f"```\n\n"
-                f"This is mock code. Configure Ollama or OpenAI for real code generation."
+            InteractionMode.AGENT: "\n".join(
+                [
+                    "🤖 [Mock Response - Agent Mode]",
+                    "",
+                    "```python",
+                    f"# Generated code for: {prompt[:50]}...",
+                    "def solution():",
+                    "    # TODO: Implement actual logic",
+                    "    pass",
+                    "```",
+                    "",
+                    "This is mock code. Configure Ollama or OpenAI for real code generation.",
+                ]
             ),
-            InteractionMode.EDIT: (
-                f"✏️ [Mock Response - Edit Mode]\n\n"
-                f"**Analysis:** Your code request: '{prompt[:100]}...'\n\n"
-                f"**Suggested Changes:**\n"
-                f"• This is a mock refactoring suggestion\n"
-                f"• Configure Ollama or OpenAI for real code analysis\n\n"
-                f"**Improved Code:**\n"
-                f"```python\n"
-                f"# Refactored code would appear here\n"
-                f"```"
+            InteractionMode.EDIT: "\n".join(
+                [
+                    "✏️ [Mock Response - Edit Mode]",
+                    "",
+                    f"**Analysis:** Your code request: '{prompt[:100]}...'",
+                    "",
+                    "**Suggested Changes:**",
+                    "• This is a mock refactoring suggestion",
+                    "• Configure Ollama or OpenAI for real code analysis",
+                    "",
+                    "**Improved Code:**",
+                    "```python",
+                    "# Refactored code would appear here",
+                    "```",
+                ]
             ),
         }
 
@@ -286,7 +306,8 @@ class LLMRouter:
             if self.default_local_model in available_models:
                 return self.default_local_model
 
-            # Allow using short names without tag suffix if there is an exact match ignoring suffixes
+            # Allow using short names without tag suffix
+            # if there is an exact match ignoring suffixes
             for candidate in available_models:
                 if candidate.startswith(self.default_local_model):
                     logger.info(

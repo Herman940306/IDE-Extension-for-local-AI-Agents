@@ -7,6 +7,7 @@ Project Creator: Herman Swanepoel
 
 import subprocess
 import sys
+import urllib.request
 from pathlib import Path
 
 print("=" * 80)
@@ -16,7 +17,6 @@ print()
 
 # Check if backend is running
 print("📡 Checking if backend is running on http://localhost:8001...")
-import urllib.request
 
 try:
     response = urllib.request.urlopen("http://localhost:8001/health", timeout=5)
@@ -39,7 +39,9 @@ print("-" * 80)
 print()
 
 # Run pytest
-test_file = Path(__file__).parent / "tests" / "integration" / "test_end_to_end_router_v2.py"
+test_file = (
+    Path(__file__).parent / "tests" / "integration" / "test_end_to_end_router_v2.py"
+)
 
 result = subprocess.run(
     [

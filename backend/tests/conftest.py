@@ -6,11 +6,18 @@ Date: 2025-10-13
 """
 
 import asyncio
+import warnings
 from typing import Generator
 from unittest.mock import AsyncMock, Mock
 
 import pytest
 import redis.asyncio as redis
+
+warnings.filterwarnings(
+    "ignore",
+    message="cannot collect test class 'TestAgent'",
+    category=pytest.PytestCollectionWarning,
+)
 
 # ============================================================================
 # Pytest Configuration
@@ -409,7 +416,10 @@ def performance_timer():
 # ============================================================================
 
 
-def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
+def pytest_collection_modifyitems(
+    config: pytest.Config,
+    items: list[pytest.Item],
+) -> None:
     """Auto-mark tests in the integration folder with the 'integration' marker.
 
     This allows excluding them with `-m "not integration"` even if tests aren't

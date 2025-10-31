@@ -12,6 +12,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any, Awaitable, Dict, Optional, cast
 
+import requests
 from celery.result import AsyncResult  # type: ignore
 from fastapi import BackgroundTasks, FastAPI, Response, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
@@ -79,6 +80,46 @@ def _format_duration(seconds: float) -> str:
     return " ".join(parts)
 
 
+def wait_for_ollama(
+    host: Optional[str] = None,
+    timeout: float = 30.0,
+    interval: float = 2.0,
+) -> bool:
+    """Poll the Ollama tags endpoint until it responds or the timeout elapses."""
+
+    target_host = (host or os.getenv("OLLAMA_HOST") or "http://127.0.0.1:11434").rstrip(
+        "/"
+    )
+    candidates = [target_host]
+
+    if "localhost" in target_host:
+        ipv4_host = target_host.replace("localhost", "127.0.0.1")
+        if ipv4_host not in candidates:
+            candidates.append(ipv4_host)
+
+    deadline = time.time() + timeout
+
+    while time.time() < deadline:
+        for candidate in candidates:
+            try:
+                response = requests.get(f"{candidate}/api/tags", timeout=3)
+                if response.status_code == 200:
+                    logger.info("ollama_ready", host=candidate)
+                    return True
+                logger.debug(
+                    "ollama_wait_non_200",
+                    host=candidate,
+                    status=response.status_code,
+                )
+            except requests.RequestException as exc:
+                logger.debug("ollama_wait_retry", host=candidate, error=str(exc))
+
+        time.sleep(interval)
+
+    logger.warning("ollama_wait_timeout", hosts=candidates, timeout=timeout)
+    return False
+
+
 def _load_openai_key_from_secure_folder() -> None:
     """Load OPENAI_API_KEY from a local, git-ignored secure folder if not set.
 
@@ -103,7 +144,9 @@ def _load_openai_key_from_secure_folder() -> None:
             return
 
         # Use first non-empty line
-        first_line = next((ln.strip() for ln in key_text.splitlines() if ln.strip()), "")
+        first_line = next(
+            (ln.strip() for ln in key_text.splitlines() if ln.strip()), ""
+        )
         if first_line.startswith("sk-"):
             os.environ["OPENAI_API_KEY"] = first_line
             logger.info("openai_api_key_loaded", source="secure_folder")
@@ -120,6 +163,13 @@ async def lifespan(app: FastAPI):
     global container, llm_router
 
     logger.info("backend_starting", creator="Herman Swanepoel")
+
+    # Wait for Ollama without blocking the event loop; tolerate reload cancellations
+    try:
+        await asyncio.to_thread(wait_for_ollama, os.getenv("OLLAMA_HOST"))
+    except asyncio.CancelledError:  # log for clarity during --reload restarts
+        logger.info("startup_cancelled_during_ollama_wait")
+        raise
 
     # Initialize Ollama service
     ollama_service = get_ollama_service()
@@ -342,6 +392,73 @@ def get_rag_overview(limit: int = 400) -> Dict[str, Any]:
         }
     except Exception as e:  # pragma: no cover - defensive
         return {"error": str(e)}
+
+
+@app.get(
+    "/debug/embed",
+    tags=["health"],
+    response_model=None,
+)  # quick live embedding sanity-check
+async def debug_embed(sample: str = "def add(a,b): return a+b") -> Dict[str, Any]:
+    """Run two checks: direct Ollama embed call and via service/DI.
+
+    Returns both results or error messages without raising to simplify debugging.
+    """
+    results: Dict[str, Any] = {}
+
+    # 1) Direct Ollama call
+    try:
+        import httpx  # local import to avoid global dependency at import time
+        from src.core.config import get_settings as _get_settings
+
+        _s = _get_settings()
+        async with httpx.AsyncClient(timeout=45.0) as client:
+            r = await client.post(
+                f"{_s.embeddings.ollama_url}/api/embeddings",
+                json={
+                    "model": _s.embeddings.ollama_model_name,
+                    "input": sample,
+                    "prompt": sample,
+                },
+            )
+            results["direct_status"] = r.status_code
+            if r.status_code < 400:
+                data = r.json()
+                emb = data.get("embedding", [])
+                results["direct_len"] = len(emb)
+                results["direct_preview"] = emb[:5]
+            else:
+                # include short body fragment to aid diagnostics
+                body = await r.aread()
+                results["direct_error"] = f"HTTP {r.status_code}: {body[:240]!r}"
+    except Exception as e:  # noqa: BLE001
+        results["direct_error"] = str(e)
+
+    # 2) Service/DI call
+    try:
+        global container
+        if container is None:
+            results["service_error"] = "container_not_initialized"
+        else:
+            svc = container.embeddings_service()
+            if not getattr(svc, "is_initialized", False):
+                await svc.initialize()
+            vec = await svc.embed_code(sample)
+            model_name = (
+                svc.ollama_model_name if svc.provider == "ollama" else svc.model_name
+            )
+            results.update(
+                {
+                    "service_provider": svc.provider,
+                    "service_model": model_name,
+                    "service_len": len(vec),
+                    "service_preview": vec[:5],
+                }
+            )
+    except Exception as e:  # noqa: BLE001
+        results["service_error"] = str(e)
+
+    return results
 
 
 @app.get("/debug/rag_overview_page", tags=["health"], response_class=Response)
@@ -625,7 +742,9 @@ async def get_job_status(job_id: str):
         else:
             status = state.lower()
 
-        info = result.info if isinstance(result.info, dict) else {"raw": str(result.info)}
+        info = (
+            result.info if isinstance(result.info, dict) else {"raw": str(result.info)}
+        )
         return {"job_id": job_id, "status": status, **info}
     else:
         async with job_lock:
@@ -656,7 +775,9 @@ async def prometheus_http_middleware(request, call_next):
 @app.get("/metrics", include_in_schema=False)
 def metrics_endpoint() -> Response:
     """Prometheus scrape endpoint"""
-    return Response(generate_latest(APP_METRICS_REGISTRY), media_type=CONTENT_TYPE_LATEST)
+    return Response(
+        generate_latest(APP_METRICS_REGISTRY), media_type=CONTENT_TYPE_LATEST
+    )
 
 
 @app.get(
@@ -827,7 +948,8 @@ async def api_status() -> Dict[str, Any]:
         "router_initialized": llm_router is not None,
         "default_local_model": getattr(llm_router, "default_local_model", None),
         "openai_configured": bool(
-            os.environ.get("OPENAI_API_KEY") or getattr(llm_router, "openai_api_key", None)
+            os.environ.get("OPENAI_API_KEY")
+            or getattr(llm_router, "openai_api_key", None)
         ),
         "interaction_modes": [mode.value for mode in InteractionMode],
         "mode": mode_info.get("current_mode"),
@@ -925,7 +1047,9 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
                     await connection_manager.send_personal_message(
                         {
                             "type": "error",
-                            "payload": {"message": f"Unknown message type: {message_type}"},
+                            "payload": {
+                                "message": f"Unknown message type: {message_type}"
+                            },
                         },
                         client_id,
                     )
@@ -936,7 +1060,9 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
             except RuntimeError as runtime_error:
                 message = str(runtime_error).lower()
                 disconnect_error = "disconnect message" in message
-                receive_after_disconnect = "receive" in message and "disconnect" in message
+                receive_after_disconnect = (
+                    "receive" in message and "disconnect" in message
+                )
 
                 if disconnect_error or receive_after_disconnect:
                     # Treat as clean disconnect without bubbling an exception to uvicorn
@@ -1026,7 +1152,9 @@ async def handle_task_request(client_id: str, payload: Dict):
             # Extract interaction mode from context metadata (default to CHAT)
             # Check both context.metadata and context dict directly
             if hasattr(request_payload.context, "metadata"):
-                mode_str = request_payload.context.metadata.get("interaction_mode", "chat")
+                mode_str = request_payload.context.metadata.get(
+                    "interaction_mode", "chat"
+                )
             elif isinstance(request_payload.context, dict):
                 mode_str = request_payload.context.get("interaction_mode", "chat")
             else:
@@ -1036,7 +1164,9 @@ async def handle_task_request(client_id: str, payload: Dict):
             try:
                 interaction_mode = InteractionMode[mode_str]
             except KeyError:
-                logger.warning(f"Unknown interaction mode: {mode_str}, defaulting to CHAT")
+                logger.warning(
+                    f"Unknown interaction mode: {mode_str}, defaulting to CHAT"
+                )
                 interaction_mode = InteractionMode.CHAT
 
             # Generate response using LLM router
@@ -1150,7 +1280,9 @@ if __name__ == "__main__":
     logger.info("server_starting", creator="Herman Swanepoel")
 
     # Use fully qualified module path so it works whether run as module or script
-    uvicorn.run("src.main:app", host="0.0.0.0", port=8000, reload=True, log_level="info")
+    uvicorn.run(
+        "src.main:app", host="0.0.0.0", port=8000, reload=True, log_level="info"
+    )
 
 
 # Add rate limiting middleware after app initialization

@@ -80,23 +80,33 @@ class GraphStore:
             ON nodes(last_touched);
             """
         )
-        await conn.execute("""CREATE INDEX IF NOT EXISTS idx_edges_source ON edges(source);""")
+        await conn.execute(
+            """CREATE INDEX IF NOT EXISTS idx_edges_source ON edges(source);"""
+        )
 
     # ------------------------------------------------------------------
     # Node CRUD
     # ------------------------------------------------------------------
-    async def add_node(
-        self,
-        node_id: str,
-        node_type: str,
-        title: Optional[str],
-        content_preview: Optional[str],
-        metadata: Dict[str, Any],
-        workspace_id: str,
-        last_touched: Optional[float] = None,
-        importance_score: float = 1.0,
-        embedding_ref: Optional[str] = None,
-    ) -> None:
+    async def add_node(self, **node_data: Any) -> None:
+        node_id = node_data.get("id") or node_data.get("node_id")
+        if not node_id:
+            raise ValueError("node id is required")
+
+        node_type = node_data.get("type") or node_data.get("node_type")
+        if not node_type:
+            raise ValueError("node type is required")
+
+        workspace_id = node_data.get("workspace_id")
+        if not workspace_id:
+            raise ValueError("workspace_id is required")
+
+        title = node_data.get("title")
+        content_preview = node_data.get("content_preview")
+        metadata = node_data.get("metadata") or {}
+        last_touched = node_data.get("last_touched")
+        importance_score = float(node_data.get("importance_score", 1.0))
+        embedding_ref = node_data.get("embedding_ref")
+
         conn = self._require_connection()
         timestamp = last_touched or time.time()
         metadata_json = json.dumps(metadata or {})

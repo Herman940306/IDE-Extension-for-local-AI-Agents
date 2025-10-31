@@ -125,7 +125,9 @@ class TestDocAgentCapabilities:
         mock_llm_manager.generate.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_health_check_with_crewai(self, doc_agent_config, mock_crewai_adapter):
+    async def test_health_check_with_crewai(
+        self, doc_agent_config, mock_crewai_adapter
+    ):
         """Test health check with CrewAI adapter"""
         agent = DocAgent(config=doc_agent_config, crewai_adapter=mock_crewai_adapter)
         result = await agent.health_check()
@@ -153,7 +155,9 @@ class TestDocTypeDetection:
             description="Generate docstrings for functions",
             priority=Priority.MEDIUM,
         )
-        context = CodeContext(file_path="test.py", code="def foo(): pass", language="python")
+        context = CodeContext(
+            file_path="test.py", code="def foo(): pass", language="python"
+        )
         doc_type = agent._determine_doc_type(task, context)
         assert doc_type == "docstring"
 
@@ -388,7 +392,9 @@ class TestDocAgentExecution:
             description="Generate docstrings",
             priority=Priority.MEDIUM,
         )
-        context = CodeContext(file_path="test.py", code="def foo(): pass", language="python")
+        context = CodeContext(
+            file_path="test.py", code="def foo(): pass", language="python"
+        )
 
         result = await agent.execute_task(task, context)
         assert isinstance(result, AgentResponse)
@@ -423,13 +429,17 @@ class TestDocAgentExecution:
             description="Generate JSDoc",
             priority=Priority.MEDIUM,
         )
-        context = CodeContext(file_path="test.js", code="function foo() {}", language="javascript")
+        context = CodeContext(
+            file_path="test.js", code="function foo() {}", language="javascript"
+        )
 
         result = await agent.execute_task(task, context)
         assert isinstance(result, AgentResponse)
 
     @pytest.mark.asyncio
-    async def test_execute_task_general_with_crewai(self, doc_agent_config, mock_crewai_adapter):
+    async def test_execute_task_general_with_crewai(
+        self, doc_agent_config, mock_crewai_adapter
+    ):
         """Test executing general documentation with CrewAI"""
         agent = DocAgent(config=doc_agent_config, crewai_adapter=mock_crewai_adapter)
         task = Task(
@@ -488,7 +498,9 @@ class TestDocAgentExecution:
             description="Add comments",
             priority=Priority.MEDIUM,
         )
-        context = CodeContext(file_path="test.py", code="x = 1\ny = 2", language="python")
+        context = CodeContext(
+            file_path="test.py", code="x = 1\ny = 2", language="python"
+        )
 
         result = await agent.execute_task(task, context)
         assert isinstance(result, AgentResponse)
@@ -585,7 +597,9 @@ class TestReadmeGeneration:
     async def test_generate_readme_basic(self, doc_agent_config, mock_crewai_adapter):
         """Test basic README generation"""
         agent = DocAgent(config=doc_agent_config, crewai_adapter=mock_crewai_adapter)
-        context = CodeContext(file_path="README.md", code="# Sample project", language="python")
+        context = CodeContext(
+            file_path="README.md", code="# Sample project", language="python"
+        )
         suggestions = await agent._generate_readme(context)
         # Should delegate to CrewAI or return suggestions
         assert isinstance(suggestions, list)
@@ -646,17 +660,17 @@ from typing import List, Optional
 
 class DataProcessor:
     """Existing class docstring"""
-    
+
     def __init__(self, config: dict):
         self.config = config
-    
+
     async def process(self, data: List[str]) -> dict:
         results = []
         for item in data:
             processed = await self._process_item(item)
             results.append(processed)
         return {"results": results}
-    
+
     async def _process_item(self, item: str) -> str:
         # Private method without docstring
         return item.upper()
@@ -711,7 +725,9 @@ const validator = (input) => {
         assert len(suggestions) >= 1
 
     @pytest.mark.asyncio
-    async def test_end_to_end_docstring_with_crewai(self, doc_agent_config, mock_crewai_adapter):
+    async def test_end_to_end_docstring_with_crewai(
+        self, doc_agent_config, mock_crewai_adapter
+    ):
         """Test complete end-to-end workflow with CrewAI integration"""
         agent = DocAgent(config=doc_agent_config, crewai_adapter=mock_crewai_adapter)
 
@@ -751,11 +767,11 @@ def undocumented_one():
 
 class MyClass:
     """Class with docs"""
-    
+
     def method_with_docs(self):
         """Method docs"""
         pass
-    
+
     def method_without_docs(self):
         pass
 '''
@@ -776,7 +792,7 @@ class OuterClass:
     class InnerClass:
         def inner_method(self):
             pass
-    
+
     def outer_method(self):
         pass
 """
@@ -800,7 +816,9 @@ def broken_function(:
 class NoColon
     pass
 """
-        context = CodeContext(file_path="broken.py", code=malformed_code, language="python")
+        context = CodeContext(
+            file_path="broken.py", code=malformed_code, language="python"
+        )
         suggestions = await agent._generate_python_docstrings(context)
 
         # Should handle gracefully and return empty list
@@ -886,7 +904,9 @@ def function_with_many_params(
         assert '"""TODO: Add docstring"""' in docstring
 
     @pytest.mark.asyncio
-    async def test_execution_with_missing_code(self, doc_agent_config, mock_crewai_adapter):
+    async def test_execution_with_missing_code(
+        self, doc_agent_config, mock_crewai_adapter
+    ):
         """Test task execution when context code is missing"""
         agent = DocAgent(config=doc_agent_config, crewai_adapter=mock_crewai_adapter)
 
@@ -943,7 +963,9 @@ function broken({
 
 const incomplete = function(
 """
-        context = CodeContext(file_path="broken.js", code=broken_js, language="javascript")
+        context = CodeContext(
+            file_path="broken.js", code=broken_js, language="javascript"
+        )
         suggestions = await agent._generate_jsdoc(context)
 
         # Should handle gracefully, may find partial matches
@@ -980,7 +1002,9 @@ const incomplete = function(
         assert agent._calculate_confidence(all_low) == 0.4
 
     @pytest.mark.asyncio
-    async def test_readme_generation_with_crewai(self, doc_agent_config, mock_crewai_adapter):
+    async def test_readme_generation_with_crewai(
+        self, doc_agent_config, mock_crewai_adapter
+    ):
         """Test README generation delegates to CrewAI"""
         agent = DocAgent(config=doc_agent_config, crewai_adapter=mock_crewai_adapter)
 
@@ -994,7 +1018,9 @@ const incomplete = function(
         assert isinstance(suggestions, list)
 
     @pytest.mark.asyncio
-    async def test_api_docs_generation_with_crewai(self, doc_agent_config, mock_crewai_adapter):
+    async def test_api_docs_generation_with_crewai(
+        self, doc_agent_config, mock_crewai_adapter
+    ):
         """Test API docs generation delegates to CrewAI"""
         agent = DocAgent(config=doc_agent_config, crewai_adapter=mock_crewai_adapter)
 

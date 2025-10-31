@@ -13,6 +13,7 @@ from typing import Any, Callable, Dict, List, Optional
 
 import networkx as nx
 from git import InvalidGitRepositoryError, Repo
+from git.exc import NoSuchPathError
 from src.models import CodeContext, GitCommit
 from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
@@ -20,10 +21,8 @@ from watchdog.observers import Observer
 logger = logging.getLogger(__name__)
 
 try:
-    import tree_sitter_javascript as tsjavascript
-    import tree_sitter_python as tspython
-    import tree_sitter_typescript as tstypescript
-    from tree_sitter import Language, Parser
+    from tree_sitter import Parser
+    from tree_sitter_languages import get_language
 
     TREE_SITTER_AVAILABLE = True
 except ImportError:
@@ -58,15 +57,24 @@ class CodeFileEventHandler(FileSystemEventHandler):
         }
 
     def on_modified(self, event):
-        if not event.is_directory and Path(event.src_path).suffix in self.code_extensions:
+        if (
+            not event.is_directory
+            and Path(event.src_path).suffix in self.code_extensions
+        ):
             self.callback(event.src_path, "modified")
 
     def on_created(self, event):
-        if not event.is_directory and Path(event.src_path).suffix in self.code_extensions:
+        if (
+            not event.is_directory
+            and Path(event.src_path).suffix in self.code_extensions
+        ):
             self.callback(event.src_path, "created")
 
     def on_deleted(self, event):
-        if not event.is_directory and Path(event.src_path).suffix in self.code_extensions:
+        if (
+            not event.is_directory
+            and Path(event.src_path).suffix in self.code_extensions
+        ):
             self.callback(event.src_path, "deleted")
 
 
@@ -141,29 +149,17 @@ class ContextManager:
     def _initialize_parsers(self) -> None:
         """Initialize tree-sitter parsers for supported languages"""
         try:
-            # Python parser
-            PY_LANGUAGE = Language(tspython.language(), "python")
-            py_parser = Parser()
-            py_parser.set_language(PY_LANGUAGE)
-            self.parsers["python"] = py_parser
+            language_map = {
+                "python": "python",
+                "javascript": "javascript",
+                "typescript": "typescript",
+                "tsx": "tsx",
+            }
 
-            # JavaScript parser
-            JS_LANGUAGE = Language(tsjavascript.language(), "javascript")
-            js_parser = Parser()
-            js_parser.set_language(JS_LANGUAGE)
-            self.parsers["javascript"] = js_parser
-
-            # TypeScript parser
-            TS_LANGUAGE = Language(tstypescript.language_typescript(), "typescript")
-            ts_parser = Parser()
-            ts_parser.set_language(TS_LANGUAGE)
-            self.parsers["typescript"] = ts_parser
-
-            # TSX parser
-            TSX_LANGUAGE = Language(tstypescript.language_tsx(), "tsx")
-            tsx_parser = Parser()
-            tsx_parser.set_language(TSX_LANGUAGE)
-            self.parsers["tsx"] = tsx_parser
+            for key, language_name in language_map.items():
+                parser = Parser()
+                parser.set_language(get_language(language_name))
+                self.parsers[key] = parser
 
             logger.info("✓ Tree-sitter parsers initialized")
         except Exception as e:
@@ -175,8 +171,11 @@ class ContextManager:
         try:
             self.repo = Repo(self.workspace_path, search_parent_directories=True)
             logger.info(f"✓ Git repository found: {self.repo.working_dir}")
-        except InvalidGitRepositoryError:
-            logger.warning("No Git repository found in workspace")
+        except (InvalidGitRepositoryError, NoSuchPathError):
+            logger.warning(
+                "Git repository missing or workspace path unavailable; "
+                "proceeding without Git context"
+            )
             self.repo = None
 
     async def get_context(
@@ -334,7 +333,9 @@ class ContextManager:
             if language == "python":
                 pattern = r"from\s+\.([\w.]+)\s+import|import\s+\.([\w.]+)"
             elif language in ["javascript", "typescript"]:
-                pattern = r'from\s+[\'"](\./[\w./]+)[\'"]|require\([\'"](\./[\w./]+)[\'"]\)'
+                pattern = (
+                    r'from\s+[\'"](\./[\w./]+)[\'"]|require\([\'"](\./[\w./]+)[\'"]\)'
+                )
             else:
                 return dependencies
 
@@ -360,7 +361,9 @@ class ContextManager:
             logger.warning(f"Failed to get current branch: {e}")
             return None
 
-    async def _get_recent_commits(self, file_path: str, limit: int = 5) -> List[GitCommit]:
+    async def _get_recent_commits(
+        self, file_path: str, limit: int = 5
+    ) -> List[GitCommit]:
         """Get recent commits for a file"""
         if not self.repo:
             return []
@@ -389,7 +392,9 @@ class ContextManager:
 
         return commits
 
-    def _get_surrounding_code(self, content: str, line: int, context_lines: int = 10) -> str:
+    def _get_surrounding_code(
+        self, content: str, line: int, context_lines: int = 10
+    ) -> str:
         """Get code surrounding a specific line"""
         try:
             lines = content.split("\n")
@@ -450,7 +455,7 @@ class ContextManager:
             if language == "python":
                 ast_info = self._extract_python_symbols(root_node, content)
             elif language in ["javascript", "typescript", "tsx"]:
-                ast_info = self._extract_js_symbols(root_node, content)
+                ast_info = self._extract_js_symbols(root_node, content, language)
 
             # Cache result
             self.ast_cache.put(cache_key, ast_info)
@@ -473,13 +478,17 @@ class ContextManager:
 
         def traverse(node):
             if node.type == "function_definition":
-                func_name = self._get_node_text(node.child_by_field_name("name"), content)
+                func_name = self._get_node_text(
+                    node.child_by_field_name("name"), content
+                )
                 symbols["functions"].append(
                     {"name": func_name, "line": node.start_point[0], "type": "function"}
                 )
 
             elif node.type == "class_definition":
-                class_name = self._get_node_text(node.child_by_field_name("name"), content)
+                class_name = self._get_node_text(
+                    node.child_by_field_name("name"), content
+                )
                 symbols["classes"].append(
                     {"name": class_name, "line": node.start_point[0], "type": "class"}
                 )
@@ -495,14 +504,16 @@ class ContextManager:
         traverse(root_node)
         return symbols
 
-    def _extract_js_symbols(self, root_node, content: str) -> Dict[str, Any]:
+    def _extract_js_symbols(
+        self, root_node, content: str, language: str = "javascript"
+    ) -> Dict[str, Any]:
         """Extract symbols from JavaScript/TypeScript AST"""
         symbols = {
             "functions": [],
             "classes": [],
             "imports": [],
             "variables": [],
-            "language": "javascript",
+            "language": "javascript" if language == "javascript" else language,
         }
 
         def traverse(node):
@@ -516,7 +527,9 @@ class ContextManager:
                 )
 
             elif node.type == "class_declaration":
-                class_name = self._get_node_text(node.child_by_field_name("name"), content)
+                class_name = self._get_node_text(
+                    node.child_by_field_name("name"), content
+                )
                 symbols["classes"].append(
                     {"name": class_name, "line": node.start_point[0], "type": "class"}
                 )
@@ -549,7 +562,9 @@ class ContextManager:
             NetworkX directed graph of file dependencies
         """
         # Check if rebuild needed
-        if not force_rebuild and time.time() - self.graph_last_updated < 300:  # 5 minutes
+        if (
+            not force_rebuild and time.time() - self.graph_last_updated < 300
+        ):  # 5 minutes
             return self.dependency_graph
 
         logger.info("Building dependency graph...")
@@ -594,7 +609,9 @@ class ContextManager:
 
         return self.dependency_graph
 
-    def _resolve_import_path(self, source_file: Path, import_path: str) -> Optional[Path]:
+    def _resolve_import_path(
+        self, source_file: Path, import_path: str
+    ) -> Optional[Path]:
         """
         Resolve relative import to absolute file path
 
@@ -655,12 +672,16 @@ class ContextManager:
         try:
             # Find all paths from root nodes
             root_nodes = [
-                n for n in self.dependency_graph.nodes() if self.dependency_graph.in_degree(n) == 0
+                n
+                for n in self.dependency_graph.nodes()
+                if self.dependency_graph.in_degree(n) == 0
             ]
             depths = []
             for root in root_nodes:
                 if nx.has_path(self.dependency_graph, root, file_path):
-                    depth = nx.shortest_path_length(self.dependency_graph, root, file_path)
+                    depth = nx.shortest_path_length(
+                        self.dependency_graph, root, file_path
+                    )
                     depths.append(depth)
             depth = max(depths) if depths else 0
         except Exception as e:
@@ -748,7 +769,9 @@ class ContextManager:
 
         return structure
 
-    async def find_related_files(self, file_path: str, max_results: int = 10) -> List[str]:
+    async def find_related_files(
+        self, file_path: str, max_results: int = 10
+    ) -> List[str]:
         """
         Find files related to the given file
 
@@ -802,7 +825,9 @@ class ContextManager:
                 "branch": self._get_current_branch(),
                 "is_dirty": self.repo.is_dirty(),
                 "untracked_files": len(self.repo.untracked_files),
-                "modified_files": len([item.a_path for item in self.repo.index.diff(None)]),
+                "modified_files": len(
+                    [item.a_path for item in self.repo.index.diff(None)]
+                ),
             }
         except Exception as e:
             logger.error(f"Failed to get Git status: {e}")
@@ -813,7 +838,9 @@ class ContextManager:
         try:
             self.observer = Observer()
             event_handler = CodeFileEventHandler(self._on_file_change)
-            self.observer.schedule(event_handler, str(self.workspace_path), recursive=True)
+            self.observer.schedule(
+                event_handler, str(self.workspace_path), recursive=True
+            )
             self.observer.start()
             logger.info("✓ File watcher started")
         except Exception as e:
@@ -843,7 +870,9 @@ class ContextManager:
         except Exception as e:
             logger.warning(f"Error handling file change: {e}")
 
-    def register_file_change_callback(self, callback: Callable[[str, str], None]) -> None:
+    def register_file_change_callback(
+        self, callback: Callable[[str, str], None]
+    ) -> None:
         """
         Register callback for file changes
 
@@ -896,12 +925,16 @@ class ContextManager:
             "git_cache_valid": self.git_cache is not None
             and (time.time() - self.git_cache_time) < self.git_cache_ttl,
             "file_watcher_active": (
-                self.observer is not None and self.observer.is_alive() if self.observer else False
+                self.observer is not None and self.observer.is_alive()
+                if self.observer
+                else False
             ),
             "dependency_graph_nodes": self.dependency_graph.number_of_nodes(),
             "dependency_graph_edges": self.dependency_graph.number_of_edges(),
             "graph_age_seconds": (
-                time.time() - self.graph_last_updated if self.graph_last_updated > 0 else None
+                time.time() - self.graph_last_updated
+                if self.graph_last_updated > 0
+                else None
             ),
         }
 

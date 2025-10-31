@@ -5,7 +5,7 @@ Date: 2025-10-13
 """
 
 import time
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 
@@ -50,9 +50,13 @@ class TestPerformanceBaseline:
         """Measure rate limiter overhead"""
         from src.services.rate_limiter import RateLimiter
 
-        mock_pipeline = AsyncMock()
+        mock_pipeline = Mock()
         mock_pipeline.execute = AsyncMock(return_value=[None, 5, None, None])
-        mock_redis_client.pipeline.return_value = mock_pipeline
+        mock_pipeline.zremrangebyscore = Mock(return_value=None)
+        mock_pipeline.zcard = Mock(return_value=None)
+        mock_pipeline.zadd = Mock(return_value=None)
+        mock_pipeline.expire = Mock(return_value=None)
+        mock_redis_client.pipeline = Mock(return_value=mock_pipeline)
 
         limiter = RateLimiter(mock_redis_client)
 

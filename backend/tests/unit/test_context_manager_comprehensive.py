@@ -43,7 +43,7 @@ from typing import List
 class ExampleClass:
     def method_one(self):
         pass
-    
+
     def method_two(self):
         return 42
 
@@ -113,7 +113,9 @@ export function utility(): void {
         if ast_info is not None:  # Only if tree-sitter is available
             assert ast_info["language"] == "python"
             assert any("ExampleClass" in str(c) for c in ast_info.get("classes", []))
-            assert any("standalone_function" in str(f) for f in ast_info.get("functions", []))
+            assert any(
+                "standalone_function" in str(f) for f in ast_info.get("functions", [])
+            )
 
             # Second parse should use cache
             ast_info_cached = await context_manager.parse_ast(py_file)
@@ -142,7 +144,9 @@ export function utility(): void {
             assert ast_info["language"] == "typescript"
 
     @pytest.mark.asyncio
-    async def test_parse_ast_with_content_provided(self, context_manager, temp_workspace):
+    async def test_parse_ast_with_content_provided(
+        self, context_manager, temp_workspace
+    ):
         """Test AST parsing with pre-provided content"""
         py_file = temp_workspace / "example.py"
         content = "def test(): pass"
@@ -153,7 +157,9 @@ export function utility(): void {
             assert ast_info["language"] == "python"
 
     @pytest.mark.asyncio
-    async def test_parse_ast_unsupported_language(self, context_manager, temp_workspace):
+    async def test_parse_ast_unsupported_language(
+        self, context_manager, temp_workspace
+    ):
         """Test AST parsing for unsupported language returns None"""
         unknown_file = temp_workspace / "file.xyz"
         unknown_file.write_text("unknown content")
@@ -594,7 +600,9 @@ def handle_request():
     @pytest.mark.asyncio
     async def test_find_related_files(self, context_manager):
         """Test finding files related to a target file"""
-        related = await context_manager.find_related_files("user_model.py", max_results=10)
+        related = await context_manager.find_related_files(
+            "user_model.py", max_results=10
+        )
 
         assert isinstance(related, list)
         # Should find files that import or reference user_model
@@ -603,7 +611,9 @@ def handle_request():
     @pytest.mark.asyncio
     async def test_find_related_files_max_results(self, context_manager):
         """Test max_results limit in find_related_files"""
-        related = await context_manager.find_related_files("user_model.py", max_results=1)
+        related = await context_manager.find_related_files(
+            "user_model.py", max_results=1
+        )
 
         assert len(related) <= 1
 

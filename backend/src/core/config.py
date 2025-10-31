@@ -7,8 +7,12 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Optional
 
+from dotenv import load_dotenv
 from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+# Ensure environment variables from backend/.env are available before settings load.
+load_dotenv(dotenv_path=Path(__file__).resolve().parents[2] / ".env")
 
 
 class DatabaseSettings(BaseSettings):

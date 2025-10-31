@@ -66,7 +66,10 @@ class SafetyLayer:
         try:
             response_text = await self.llm_manager.generate(
                 prompt=prompt,
-                system_prompt="You are a safety validator. Respond with SAFE or UNSAFE followed by reason.",
+                system_prompt=(
+                    "You are a safety validator. Respond with SAFE or UNSAFE "
+                    "followed by reason."
+                ),
                 model=self.safety_model,
                 temperature=0.1,  # Very low for consistent safety checks
                 max_tokens=500,
@@ -75,7 +78,9 @@ class SafetyLayer:
 
             # Parse response
             response_upper = response_text.upper()
-            is_safe = "UNSAFE" not in response_upper and "DANGEROUS" not in response_upper
+            is_safe = (
+                "UNSAFE" not in response_upper and "DANGEROUS" not in response_upper
+            )
 
             # Extract reason if unsafe
             reason = ""
@@ -122,7 +127,9 @@ OUTPUT TO REVIEW:
 
 ASSESSMENT:"""
 
-    async def check_code_security(self, code: str, language: str = "python") -> Dict[str, Any]:
+    async def check_code_security(
+        self, code: str, language: str = "python"
+    ) -> Dict[str, Any]:
         """
         Specialized security check for code snippets.
 
@@ -158,7 +165,9 @@ List any security issues found, or reply SECURE if none found."""
         try:
             response_text = await self.llm_manager.generate(
                 prompt=prompt,
-                system_prompt="You are a security code reviewer. Be thorough but concise.",
+                system_prompt=(
+                    "You are a security code reviewer. Be thorough but concise."
+                ),
                 model=self.safety_model,
                 temperature=0.1,
                 max_tokens=800,

@@ -3,17 +3,17 @@
  * Project Creator: Herman Swanepoel
  */
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import "./App.css";
 import "./brand.css";
 import { wsService, type ConnectionState } from "./services/websocket";
 import type {
-  ClientMessageMap,
-  ConnectionEstablishedPayload,
-  ErrorPayload,
-  ModeChangedPayload,
-  TaskAcknowledgedPayload,
-  TaskSessionResultPayload,
+    ClientMessageMap,
+    ConnectionEstablishedPayload,
+    ErrorPayload,
+    ModeChangedPayload,
+    TaskAcknowledgedPayload,
+    TaskSessionResultPayload,
 } from "./types/websocket";
 
 interface Message {
@@ -130,7 +130,10 @@ function App() {
     };
 
     const handleModeChanged = (payload: ModeChangedPayload) => {
-      const normalizedMode = payload.mode === "cloud" ? "cloud" : "local";
+      const incoming = String(payload.mode ?? "local").toLowerCase();
+      const normalizedMode = ["cloud", "online"].includes(incoming)
+        ? "cloud"
+        : "local";
       setMode(normalizedMode);
       setBanner({ type: "info", message: payload.message });
     };
@@ -284,6 +287,33 @@ function App() {
       recognition.start();
     }
   };
+
+  const renderMessageContent = useCallback((raw: string) => {
+    const segments = raw.split(/```/);
+    const nodes: ReactNode[] = [];
+
+    segments.forEach((segment, index) => {
+      const key = `segment-${index}`;
+
+      if (index % 2 === 1) {
+        nodes.push(
+          <pre key={key} className="message-code">
+            <code>{segment.trim()}</code>
+          </pre>,
+        );
+      } else {
+        segment.split(/\n/).forEach((line, lineIdx) => {
+          nodes.push(
+            <p key={`${key}-line-${lineIdx}`}>
+              {line.length > 0 ? line : "\u00A0"}
+            </p>,
+          );
+        });
+      }
+    });
+
+    return nodes;
+  }, []);
 
   const handleSend = () => {
     if (!input.trim() || !connected) return;
@@ -482,7 +512,9 @@ function App() {
                   <div className="message-avatar">
                     {msg.role === "user" ? "HS" : "AI"}
                   </div>
-                  <div className="message-content">{msg.content}</div>
+                  <div className="message-content">
+                    {renderMessageContent(msg.content)}
+                  </div>
                 </div>
               ))}
               {isLoading && (

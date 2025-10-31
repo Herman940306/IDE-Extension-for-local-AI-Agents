@@ -7,7 +7,7 @@ import time
 from enum import Enum
 from typing import Any, Dict, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class TaskType(str, Enum):
@@ -42,14 +42,23 @@ class Task(BaseModel):
     id: str = Field(..., description="Unique task identifier")
     type: TaskType = Field(..., description="Type of task to execute")
     content: str = Field(..., description="Task content or code to process")
-    context: Dict[str, Any] = Field(default_factory=dict, description="Additional context")
+    context: Dict[str, Any] = Field(
+        default_factory=dict,
+        description="Additional context",
+    )
     priority: Priority = Field(default=Priority.MEDIUM, description="Task priority")
     description: Optional[str] = Field(None, description="High-level task description")
-    metadata: Dict[str, Any] = Field(default_factory=dict, description="Additional metadata")
-    timestamp: float = Field(default_factory=time.time, description="Task creation timestamp")
+    metadata: Dict[str, Any] = Field(
+        default_factory=dict,
+        description="Additional metadata",
+    )
+    timestamp: float = Field(
+        default_factory=time.time,
+        description="Task creation timestamp",
+    )
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "id": "task-123",
                 "type": "inline_suggestion",
@@ -65,3 +74,4 @@ class Task(BaseModel):
                 "timestamp": 1705132800.0,
             }
         }
+    )

@@ -6,7 +6,7 @@ Project Creator: Herman Swanepoel
 from src.agents.bug_agent import BugAgent
 from src.agents.doc_agent import DocAgent
 from src.agents.refactor_agent import RefactorAgent
-from src.agents.test_agent import TestAgent
+from src.agents.test_agent import TestAgent as TestAgentClass
 from src.core.container import Container
 from src.orchestrator.cognitive_trace import CognitiveTraceStore
 from src.orchestrator.meta_orchestrator import MetaOrchestrator
@@ -20,6 +20,9 @@ from src.services.rate_limiter import RateLimiter
 from src.services.response_cache import ResponseCache
 from src.services.telemetry_service import TelemetryService
 from src.verifier.provenance_store import ProvenanceStore
+
+# Prevent pytest from misidentifying the agent class as a test suite
+TestAgentClass.__test__ = False
 
 
 class TestContainer:
@@ -121,7 +124,9 @@ class TestContainer:
         container = Container()
         ctx_manager = container.context_manager()
         assert isinstance(ctx_manager, ContextManager)
-        assert str(ctx_manager.workspace_path) == container.config().workspace.root_path
+        actual_path = str(ctx_manager.workspace_path).replace("\\", "/").lstrip("./")
+        expected_path = container.config().workspace.root_path.lstrip("./")
+        assert actual_path == expected_path
 
     def test_mode_manager_provider(self):
         container = Container()
@@ -147,7 +152,7 @@ class TestContainer:
         provenance = container.provenance_store()
         assert isinstance(trace_store, CognitiveTraceStore)
         assert isinstance(provenance, ProvenanceStore)
-        # Normalize paths by converting backslashes to forward slashes and removing leading './'
+        # Normalize observability paths across OS path formats
         assert str(trace_store.path).replace("\\", "/").lstrip(
             "./"
         ) == container.config().observability.trace_log_path.lstrip("./")
@@ -158,7 +163,11 @@ class TestContainer:
     def test_meta_orchestrator_provider(self):
         container = Container()
         orchestrator = container.meta_orchestrator()
+        assert orchestrator is not None
         assert isinstance(orchestrator, MetaOrchestrator)
+        # Verify orchestrator has required dependencies
+        assert hasattr(orchestrator, "agents")
+        assert hasattr(orchestrator, "llm_manager")
 
     def test_agent_registry_population(self):
         container = Container()
@@ -167,4 +176,4 @@ class TestContainer:
         assert isinstance(agents["refactor"], RefactorAgent)
         assert isinstance(agents["documentation"], DocAgent)
         assert isinstance(agents["bug"], BugAgent)
-        assert isinstance(agents["test"], TestAgent)
+        assert isinstance(agents["test"], TestAgentClass)
