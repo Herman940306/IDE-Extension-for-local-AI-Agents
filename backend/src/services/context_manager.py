@@ -9,25 +9,42 @@ import re
 import time
 from collections import OrderedDict
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, Protocol, cast
 
-import networkx as nx
+import networkx as nx  # type: ignore[import-untyped]
 from git import InvalidGitRepositoryError, Repo
 from git.exc import NoSuchPathError
-from src.models import CodeContext, GitCommit
 from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
+
+from src.models import CodeContext, GitCommit
 
 logger = logging.getLogger(__name__)
 
 try:
     from tree_sitter import Parser
-    from tree_sitter_languages import get_language
+    from tree_sitter_languages import get_language  # type: ignore[import-untyped]
 
     TREE_SITTER_AVAILABLE = True
 except ImportError:
     TREE_SITTER_AVAILABLE = False
     logger.warning("tree-sitter not available - AST parsing disabled")
+
+
+class ObserverProtocol(Protocol):
+    """Protocol defining the subset of Observer methods we rely on."""
+
+    def schedule(
+        self, event_handler: FileSystemEventHandler, path: str, recursive: bool
+    ) -> None: ...
+
+    def start(self) -> None: ...
+
+    def stop(self) -> None: ...
+
+    def join(self, timeout: Optional[float] = None) -> None: ...
+
+    def is_alive(self) -> bool: ...
 
 
 class CodeFileEventHandler(FileSystemEventHandler):
@@ -56,15 +73,15 @@ class CodeFileEventHandler(FileSystemEventHandler):
             ".h",
         }
 
-    def on_modified(self, event):
+    def on_modified(self, event: Any) -> None:
         if not event.is_directory and Path(event.src_path).suffix in self.code_extensions:
             self.callback(event.src_path, "modified")
 
-    def on_created(self, event):
+    def on_created(self, event: Any) -> None:
         if not event.is_directory and Path(event.src_path).suffix in self.code_extensions:
             self.callback(event.src_path, "created")
 
-    def on_deleted(self, event):
+    def on_deleted(self, event: Any) -> None:
         if not event.is_directory and Path(event.src_path).suffix in self.code_extensions:
             self.callback(event.src_path, "deleted")
 
@@ -129,7 +146,7 @@ class ContextManager:
             self._initialize_parsers()
 
         # File watcher
-        self.observer: Optional[Observer] = None
+        self.observer: Optional[ObserverProtocol] = None
         self.file_change_callbacks: List[Callable] = []
 
         if enable_file_watcher:
@@ -216,6 +233,7 @@ class ContextManager:
             return CodeContext(
                 file_path=file_path,
                 language=language,
+                workspace_path=str(self.workspace_path),
                 cursor_position=cursor_position,
                 selected_text=selected_text,
                 surrounding_code=surrounding_code,
@@ -231,8 +249,10 @@ class ContextManager:
             return CodeContext(
                 file_path=file_path,
                 language=self._detect_language(Path(file_path)),
+                workspace_path=str(self.workspace_path),
                 cursor_position=cursor_position,
                 selected_text=selected_text,
+                git_branch=None,
             )
 
     async def _read_file(self, file_path: Path) -> str:
@@ -352,24 +372,33 @@ class ContextManager:
 
     async def _get_recent_commits(self, file_path: str, limit: int = 5) -> List[GitCommit]:
         """Get recent commits for a file"""
-        if not self.repo:
+        repo = self.repo
+        if repo is None:
             return []
 
-        commits = []
+        commits: List[GitCommit] = []
 
         try:
             loop = asyncio.get_event_loop()
             git_commits = await loop.run_in_executor(
                 None,
-                lambda: list(self.repo.iter_commits(paths=file_path, max_count=limit)),
+                lambda: list(repo.iter_commits(paths=file_path, max_count=limit)),
             )
 
             for commit in git_commits:
+                raw_message = commit.message
+                if isinstance(raw_message, bytes):
+                    message = raw_message.decode("utf-8", errors="replace").strip()
+                else:
+                    message = raw_message.strip()
+
+                author_name = getattr(commit.author, "name", None) or "Unknown"
+
                 commits.append(
                     GitCommit(
                         hash=commit.hexsha[:8],
-                        message=commit.message.strip(),
-                        author=commit.author.name,
+                        message=message,
+                        author=author_name,
                         timestamp=float(commit.committed_date),
                     )
                 )
@@ -409,8 +438,8 @@ class ContextManager:
         # Check cache
         cache_key = str(file_path)
         cached = self.ast_cache.get(cache_key)
-        if cached:
-            return cached
+        if cached is not None:
+            return cast(Dict[str, Any], cached)
 
         try:
             language = self._detect_language(file_path)
@@ -451,9 +480,9 @@ class ContextManager:
             logger.error(f"Failed to parse AST for {file_path}: {e}")
             return None
 
-    def _extract_python_symbols(self, root_node, content: str) -> Dict[str, Any]:
+    def _extract_python_symbols(self, root_node: Any, content: str) -> Dict[str, Any]:
         """Extract symbols from Python AST"""
-        symbols = {
+        symbols: Dict[str, Any] = {
             "functions": [],
             "classes": [],
             "imports": [],
@@ -461,7 +490,7 @@ class ContextManager:
             "language": "python",
         }
 
-        def traverse(node):
+        def traverse(node: Any) -> None:
             if node.type == "function_definition":
                 func_name = self._get_node_text(node.child_by_field_name("name"), content)
                 symbols["functions"].append(
@@ -486,10 +515,10 @@ class ContextManager:
         return symbols
 
     def _extract_js_symbols(
-        self, root_node, content: str, language: str = "javascript"
+        self, root_node: Any, content: str, language: str = "javascript"
     ) -> Dict[str, Any]:
         """Extract symbols from JavaScript/TypeScript AST"""
-        symbols = {
+        symbols: Dict[str, Any] = {
             "functions": [],
             "classes": [],
             "imports": [],
@@ -497,7 +526,7 @@ class ContextManager:
             "language": "javascript" if language == "javascript" else language,
         }
 
-        def traverse(node):
+        def traverse(node: Any) -> None:
             if node.type in ["function_declaration", "function", "arrow_function"]:
                 func_name = "anonymous"
                 name_node = node.child_by_field_name("name")
@@ -524,7 +553,7 @@ class ContextManager:
         traverse(root_node)
         return symbols
 
-    def _get_node_text(self, node, content: str) -> str:
+    def _get_node_text(self, node: Any, content: str) -> str:
         """Get text content of a tree-sitter node"""
         if node is None:
             return ""
@@ -717,7 +746,7 @@ class ContextManager:
         Returns:
             Dictionary with project structure information
         """
-        structure = {
+        structure: Dict[str, Any] = {
             "workspace_path": str(self.workspace_path),
             "has_git": self.repo is not None,
             "files_by_language": {},
@@ -803,7 +832,7 @@ class ContextManager:
     def _setup_file_watcher(self) -> None:
         """Setup file system watcher for real-time updates"""
         try:
-            self.observer = Observer()
+            self.observer = cast(ObserverProtocol, Observer())
             event_handler = CodeFileEventHandler(self._on_file_change)
             self.observer.schedule(event_handler, str(self.workspace_path), recursive=True)
             self.observer.start()
@@ -897,7 +926,7 @@ class ContextManager:
             ),
         }
 
-    def __del__(self):
+    def __del__(self) -> None:
         """Cleanup on deletion"""
         if self.observer:
             try:

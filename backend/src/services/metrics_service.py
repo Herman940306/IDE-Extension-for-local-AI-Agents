@@ -49,7 +49,7 @@ class MetricsService:
         self._load_metrics()
         logger.info("Metrics Service initialized")
 
-    def _load_metrics(self):
+    def _load_metrics(self) -> None:
         """Load metrics from persistence file."""
         if self.metrics_path.exists():
             try:
@@ -62,7 +62,7 @@ class MetricsService:
         else:
             self.metrics = {}
 
-    def _persist_metrics(self):
+    def _persist_metrics(self) -> None:
         """Persist metrics to file."""
         try:
             with open(self.metrics_path, "w") as f:
@@ -77,7 +77,7 @@ class MetricsService:
         latency: float,
         success: bool,
         error: Optional[str] = None,
-    ):
+    ) -> None:
         """
         Record a model call with performance data.
 
@@ -275,7 +275,7 @@ class MetricsService:
         logger.info("Generated %d auto-tune recommendations", len(recommendations))
         return recommendations
 
-    def reset_model_metrics(self, model: str):
+    def reset_model_metrics(self, model: str) -> None:
         """Reset metrics for a specific model."""
         with self.lock:
             if model in self.metrics:
@@ -283,7 +283,7 @@ class MetricsService:
                 self._persist_metrics()
                 logger.info("Reset metrics for model: %s", model)
 
-    def reset_all_metrics(self):
+    def reset_all_metrics(self) -> None:
         """Reset all metrics."""
         with self.lock:
             self.metrics.clear()
