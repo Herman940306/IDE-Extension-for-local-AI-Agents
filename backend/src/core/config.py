@@ -33,8 +33,10 @@ class LLMSettings(BaseSettings):
 
     provider: str = "ollama"
     ollama_url: str = "http://localhost:11434"
-    default_model: str = "codellama:7b"
-    timeout: int = 30
+    # Default model tuned to qwen2.5-coder:7b per CI expectations
+    default_model: str = "qwen2.5-coder:7b"
+    # More generous default timeout to accommodate slower local models
+    timeout: int = 60
     max_retries: int = 3
     allow_cloud: bool = False
     api_key: Optional[str] = None
