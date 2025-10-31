@@ -1,37 +1,37 @@
 name: Typecheck (mypy)
 
 on:
-    pull_request:
-        paths:
-            - backend/**
-            - mypy.ini
-    push:
-        branches:
-            - main
-            - feat/**
-        paths:
-            - backend/**
-            - mypy.ini
+  pull_request:
+    paths:
+      - backend/**
+      - mypy.ini
+  push:
+    branches:
+      - main
+      - feat/**
+    paths:
+      - backend/**
+      - mypy.ini
 
 jobs:
-    mypy:
-        name: mypy (backend)
-        runs-on: ubuntu-latest
-        steps:
-            - uses: actions/checkout@v4
-                name: Checkout
+  mypy:
+    name: mypy (backend)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
-            - uses: actions/setup-python@v5
-                name: Setup Python
-                with:
-                    python-version: '3.11'
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
 
-            - name: Install dependencies
-                working-directory: backend
-                run: |
-                    python -m pip install --upgrade pip
-                    pip install -r requirements.txt
-                    pip install mypy
+      - name: Install dependencies
+        working-directory: backend
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install mypy
 
-            - name: Typecheck
-                run: python -m mypy --config-file mypy.ini
+      - name: Typecheck
+        run: python -m mypy --config-file mypy.ini
