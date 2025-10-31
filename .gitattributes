@@ -1,0 +1,17 @@
+# Normalize line endings
+* text=auto
+
+# Enforce LF for source files in repo to avoid CRLF churn across platforms
+*.py text eol=lf
+*.pyi text eol=lf
+*.sh text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.toml text eol=lf
+*.md text eol=lf
+*.json text eol=lf
+
+# Keep Windows batch/PowerShell scripts with CRLF (native)
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf

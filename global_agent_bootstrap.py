@@ -166,9 +166,7 @@ def register_task_scheduler() -> None:
     script_quoted = str(script_path).replace('"', '\\"')
     tr = f'"{python_exec}" "{script_quoted}" --watch'
     # Build schtasks command string with proper quoting.
-    cmd = (
-        f'schtasks /Create /SC ONLOGON /TN "AuraAgentsWatcher" /TR {tr} /RL HIGHEST /F'
-    )
+    cmd = f'schtasks /Create /SC ONLOGON /TN "AuraAgentsWatcher" /TR {tr} /RL HIGHEST /F'
     try:
         # Use shell=True here because schtasks expects a single string on Windows.
         subprocess.run(cmd, shell=True, check=True)
@@ -256,21 +254,21 @@ def log_watcher() -> None:
                 last_pos = size
                 POS_FILE.write_text(str(last_pos))
                 for line in new.splitlines():
-                    l = line.strip()
-                    if not l:
+                    line_str = line.strip()
+                    if not line_str:
                         continue
                     # simple rules to classify notifications
-                    if "Refactor" in l:
-                        notify("Refactor Update", l, sound=False)
-                    elif "Docs" in l:
-                        notify("Docs Update", l, sound=False)
-                    elif "QA" in l or "tests" in l.lower():
-                        notify("QA Update", l, sound=False)
-                    elif "🎉" in l or "All phases" in l:
-                        notify("Pipeline", l)
+                    if "Refactor" in line_str:
+                        notify("Refactor Update", line_str, sound=False)
+                    elif "Docs" in line_str:
+                        notify("Docs Update", line_str, sound=False)
+                    elif "QA" in line_str or "tests" in line_str.lower():
+                        notify("QA Update", line_str, sound=False)
+                    elif "🎉" in line_str or "All phases" in line_str:
+                        notify("Pipeline", line_str)
                     # write to watcher log for audit
                     with open(WATCH_LOG, "a", encoding="utf-8") as wl:
-                        wl.write(f"[{datetime.now().isoformat()}] {l}\n")
+                        wl.write(f"[{datetime.now().isoformat()}] {line_str}\n")
         except Exception as exc:
             print(f"⚠️ Log watcher error: {exc}")
         time.sleep(2)
@@ -407,9 +405,7 @@ def apply_global() -> None:
     if pystray and Image is not None:
         run_tray_menu()
     else:
-        print(
-            "🟡 Tray not started (missing libs). Watchers still active in background."
-        )
+        print("🟡 Tray not started (missing libs). Watchers still active in background.")
     print("🌍 Global multi-agent bootstrap applied.")
 
 

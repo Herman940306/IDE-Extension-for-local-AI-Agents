@@ -4,13 +4,12 @@ import asyncio
 import sys
 from pathlib import Path
 
-# Add backend to path
-sys.path.insert(0, str(Path(__file__).parent / "backend"))
-
-from src.core.container import Container
-
 
 async def main():
+    # Add backend to path lazily to avoid E402 and keep script portable
+    sys.path.insert(0, str(Path(__file__).parent / "backend"))
+    from src.core.container import Container  # noqa: E402
+
     print("Testing LLM Manager from DI Container...")
     print()
 
@@ -32,9 +31,7 @@ async def main():
     # Try to generate
     print("Testing LLM generation...")
     try:
-        response = await llm_manager.generate(
-            prompt="Say hello in one sentence", model="qwen3:8b"
-        )
+        response = await llm_manager.generate(prompt="Say hello in one sentence", model="qwen3:8b")
         print("✅ SUCCESS!")
         print(f"Response: {response}")
     except Exception as e:

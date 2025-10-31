@@ -30,7 +30,7 @@ class SmartCloner:
             return False
         try:
             return filepath.stat().st_size > 0
-        except:
+        except Exception:
             return False
 
     def files_are_identical(self, file1, file2):
@@ -39,7 +39,7 @@ class SmartCloner:
             hash1 = hashlib.md5(file1.read_bytes()).hexdigest()
             hash2 = hashlib.md5(file2.read_bytes()).hexdigest()
             return hash1 == hash2
-        except:
+        except Exception:
             return False
 
     def clone_repository(self):
@@ -177,7 +177,7 @@ def main():
     # Check if git is installed
     try:
         subprocess.run(["git", "--version"], capture_output=True, check=True)
-    except:
+    except Exception:
         print("❌ Git is not installed. Please install Git first.")
         sys.exit(1)
 
@@ -195,9 +195,7 @@ def main():
     if len(sys.argv) > 2:
         target_dir = sys.argv[2]
     else:
-        target_dir = input(
-            "Enter target directory (default: current directory): "
-        ).strip()
+        target_dir = input("Enter target directory (default: current directory): ").strip()
         if not target_dir:
             target_dir = "."
 
