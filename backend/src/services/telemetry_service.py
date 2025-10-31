@@ -22,7 +22,7 @@ class TelemetryService:
     Privacy-preserving, local-only telemetry
     """
 
-    def __init__(self, max_metrics: int = 10000):
+    def __init__(self, max_metrics: int = 10000) -> None:
         """
         Initialize telemetry service
 
@@ -204,7 +204,7 @@ def track_latency(metric_name: str, tags: Optional[Dict[str, str]] = None):
 
     def decorator(func: Callable):
         @wraps(func)
-        async def async_wrapper(*args, **kwargs):
+        async def async_wrapper(*args, **kwargs: Any):
             start_time = time.time()
             try:
                 result = await func(*args, **kwargs)
@@ -233,7 +233,7 @@ def track_latency(metric_name: str, tags: Optional[Dict[str, str]] = None):
                 raise
 
         @wraps(func)
-        def sync_wrapper(*args, **kwargs):
+        def sync_wrapper(*args, **kwargs: Any):
             start_time = time.time()
             try:
                 result = func(*args, **kwargs)
@@ -281,7 +281,7 @@ def track_accuracy(metric_name: str, tags: Optional[Dict[str, str]] = None):
 
     def decorator(func: Callable):
         @wraps(func)
-        async def async_wrapper(*args, **kwargs):
+        async def async_wrapper(*args, **kwargs: Any):
             result = await func(*args, **kwargs)
 
             # Expect result to have 'accuracy' or 'confidence' field
@@ -304,7 +304,7 @@ def track_accuracy(metric_name: str, tags: Optional[Dict[str, str]] = None):
             return result
 
         @wraps(func)
-        def sync_wrapper(*args, **kwargs):
+        def sync_wrapper(*args, **kwargs: Any):
             result = func(*args, **kwargs)
 
             accuracy = None

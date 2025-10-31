@@ -21,7 +21,7 @@ class CodeSmellDetector:
     Goes beyond traditional static analysis
     """
 
-    def __init__(self, embeddings_service: EmbeddingsService):
+    def __init__(self, embeddings_service: EmbeddingsService) -> None:
         """
         Initialize code smell detector
 

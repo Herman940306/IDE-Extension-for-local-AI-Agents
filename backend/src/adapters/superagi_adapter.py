@@ -20,7 +20,7 @@ class SuperAGIAdapter(AgentAdapter):
     SuperAGI agents can use various tools to accomplish complex tasks.
     """
 
-    def __init__(self, config: AgentConfig):
+    def __init__(self, config: AgentConfig) -> None:
         """
         Initialize SuperAGI adapter
 
@@ -399,7 +399,7 @@ class SuperAGIAdapter(AgentAdapter):
 class SuperAGICodeAgent(SuperAGIAdapter):
     """Specialized SuperAGI adapter for code generation"""
 
-    def __init__(self):
+    def __init__(self) -> None:
         config = AgentConfig(
             name="SuperAGI Code Agent",
             description="Autonomous code generation using SuperAGI",
@@ -419,7 +419,7 @@ class SuperAGICodeAgent(SuperAGIAdapter):
 class SuperAGIResearchAgent(SuperAGIAdapter):
     """Specialized SuperAGI adapter for research tasks"""
 
-    def __init__(self):
+    def __init__(self) -> None:
         config = AgentConfig(
             name="SuperAGI Research Agent",
             description="Autonomous research and analysis using SuperAGI",

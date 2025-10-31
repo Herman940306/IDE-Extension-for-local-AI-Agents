@@ -74,7 +74,7 @@ class CorrelationIDMiddleware(BaseHTTPMiddleware):
 class RateLimitMiddleware(BaseHTTPMiddleware):
     """Enforce rate limits on requests"""
 
-    def __init__(self, app, rate_limiter: RateLimiter, enabled: bool = True):
+    def __init__(self, app, rate_limiter: RateLimiter, enabled: bool = True) -> None:
         """
         Initialize rate limit middleware.
 
@@ -157,7 +157,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
 class RequestSizeMiddleware(BaseHTTPMiddleware):
     """Enforce request size limits"""
 
-    def __init__(self, app, max_size: int = 10 * 1024 * 1024):  # 10MB default
+    def __init__(self, app, max_size: int = 10 * 1024 * 1024) -> None:  # 10MB default
         """
         Initialize request size middleware.
 

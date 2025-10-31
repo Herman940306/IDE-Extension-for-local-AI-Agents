@@ -37,6 +37,8 @@ repos:
     rev: v1.11.2
     hooks:
       - id: mypy
+        # Run mypy using only what's specified in mypy.ini (do not pass filenames)
+        pass_filenames: false
         args: ["--config-file=mypy.ini"]
         files: ^backend/
         additional_dependencies:

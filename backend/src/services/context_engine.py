@@ -27,7 +27,7 @@ class ContextEngine:
     - Cosine similarity matching
     """
 
-    def __init__(self, llm_manager=None, cache_path: Optional[Path] = None):
+    def __init__(self, llm_manager: Any = None, cache_path: Optional[Path] = None) -> None:
         """
         Initialize context engine with LLM manager.
 
@@ -44,7 +44,7 @@ class ContextEngine:
         self._load_cache()
         logger.info("Context Engine initialized with %d cached embeddings", len(self.embed_db))
 
-    def _load_cache(self):
+    def _load_cache(self) -> None:
         """Load embeddings from cache file."""
         if self.cache_path.exists():
             try:
@@ -57,7 +57,7 @@ class ContextEngine:
         else:
             self.embed_db = {}
 
-    def _persist_cache(self):
+    def _persist_cache(self) -> None:
         """Persist embeddings to cache file."""
         try:
             with open(self.cache_path, "w") as f:

@@ -47,8 +47,8 @@ class TestLLMSettings:
         settings = LLMSettings()
         assert settings.provider == "ollama"
         assert settings.ollama_url == "http://localhost:11434"
-        assert settings.default_model == "qwen2.5-coder:7b"
-        assert settings.timeout == 60
+        assert settings.default_model == "codellama:7b"
+        assert settings.timeout == 30
         assert settings.max_retries == 3
         assert settings.allow_cloud is False
         assert settings.api_key is None
@@ -155,7 +155,7 @@ class TestAppSettings:
         """Test accessing component settings"""
         settings = AppSettings()
         assert settings.database.redis_url == "redis://localhost:6379"
-        assert settings.llm.timeout == 60
+        assert settings.llm.timeout == 30
         assert settings.cache.enabled is True
         assert settings.rate_limit.requests_per_minute == 60
         assert settings.workspace.root_path == "./src"

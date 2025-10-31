@@ -21,9 +21,7 @@ class TestFastReasoner:
     @pytest.fixture
     def reasoner(self):
         """Create FastReasoner instance"""
-        return FastReasoner(
-            ollama_url="http://localhost:11434", model="llama3.2:3b", timeout=30.0
-        )
+        return FastReasoner(ollama_url="http://localhost:11434", model="llama3.2:3b", timeout=30.0)
 
     def test_initialization(self, reasoner):
         """Test FastReasoner initialization"""
@@ -190,9 +188,7 @@ class TestFastReasoner:
     @pytest.mark.asyncio
     async def test_reason_failure(self, reasoner):
         """Test reasoning with API failure"""
-        reasoner.client.post = AsyncMock(
-            side_effect=httpx.RequestError("Connection failed")
-        )
+        reasoner.client.post = AsyncMock(side_effect=httpx.RequestError("Connection failed"))
 
         request = ReasoningRequest(
             task_type="refactor",
@@ -236,9 +232,7 @@ class TestFastReasoner:
             mock_settings.return_value.ollama_retry_backoff_seconds = 0.01
             mock_settings.return_value.reasoner_keep_alive = "30m"
 
-            reasoner.client.post = AsyncMock(
-                side_effect=httpx.TimeoutException("Timeout")
-            )
+            reasoner.client.post = AsyncMock(side_effect=httpx.TimeoutException("Timeout"))
 
             with pytest.raises(httpx.TimeoutException):
                 await reasoner._call_ollama("test prompt")
@@ -368,9 +362,7 @@ class TestAnalyticalVerifier:
 
     def test_parse_verification_valid(self, verifier):
         """Test parsing valid verification"""
-        response = {
-            "text": "VALID: YES\n\nThe refactoring is correct and improves code quality."
-        }
+        response = {"text": "VALID: YES\n\nThe refactoring is correct and improves code quality."}
 
         is_valid, issues, suggestions = verifier._parse_verification(response)
 
@@ -463,9 +455,7 @@ Code is correct
     async def test_verify_success(self, verifier):
         """Test successful verification"""
         mock_response = Mock()
-        mock_response.json.return_value = {
-            "response": "VALID: YES\n\nThe code is correct."
-        }
+        mock_response.json.return_value = {"response": "VALID: YES\n\nThe code is correct."}
         mock_response.raise_for_status = Mock()
 
         verifier.client.post = AsyncMock(return_value=mock_response)
@@ -521,9 +511,7 @@ SUGGESTIONS:
     @pytest.mark.asyncio
     async def test_verify_failure(self, verifier):
         """Test verification with API failure"""
-        verifier.client.post = AsyncMock(
-            side_effect=httpx.RequestError("Connection failed")
-        )
+        verifier.client.post = AsyncMock(side_effect=httpx.RequestError("Connection failed"))
 
         request = VerificationRequest(
             code="code",

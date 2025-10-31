@@ -40,7 +40,7 @@ class RefactoringPattern:
         detector: Callable[[ast.AST, str, CodeContext], List[Suggestion]],
         suggestion_template: str,
         confidence: float = 0.8,
-    ):
+    ) -> None:
         self.name = name
         self.description = description
         self.detector = detector
@@ -92,7 +92,7 @@ class RefactorAgent(AgentAdapter):
         llm_manager: LLMManager,
         code_smell_detector: CodeSmellDetector,
         memory_service: Optional[MemoryService] = None,
-    ):
+    ) -> None:
         """
         Initialize Refactor Agent
 

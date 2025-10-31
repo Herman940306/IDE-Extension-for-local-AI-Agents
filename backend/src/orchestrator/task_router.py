@@ -33,7 +33,7 @@ class TaskRouter:
     the appropriate intent and routing strategy.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize task router with intent patterns"""
         self.intent_patterns = self._build_intent_patterns()
         logger.info("TaskRouter initialized")

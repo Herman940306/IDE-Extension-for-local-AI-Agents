@@ -15,7 +15,7 @@ except ImportError:
 class RedisConnectionPool:
     """Redis connection pool manager"""
 
-    def __init__(self, url: str, max_connections: int = 50, min_idle: int = 10):
+    def __init__(self, url: str, max_connections: int = 50, min_idle: int = 10) -> None:
         self.url = url
         self.max_connections = max_connections
         self.pool = (

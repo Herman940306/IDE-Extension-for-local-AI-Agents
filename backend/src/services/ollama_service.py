@@ -18,7 +18,7 @@ logger = get_logger(__name__)
 class OllamaService:
     """Service for Ollama integration with auto-detection and health checks."""
 
-    def __init__(self, host: Optional[str] = None):
+    def __init__(self, host: Optional[str] = None) -> None:
         """
         Initialize Ollama service.
 
@@ -76,9 +76,7 @@ class OllamaService:
         for attempt in range(retries):
             for candidate in list(self._candidate_hosts):
                 try:
-                    async with session.get(
-                        f"{candidate}/api/version", timeout=timeout
-                    ) as response:
+                    async with session.get(f"{candidate}/api/version", timeout=timeout) as response:
                         if response.status == 200:
                             version_data = await response.json()
                             self._version = version_data.get("version", "unknown")
@@ -93,9 +91,7 @@ class OllamaService:
                         f"(attempt {attempt + 1}/{retries})"
                     )
                 except Exception as e:
-                    logger.error(
-                        f"❌ Unexpected error checking Ollama at {candidate}: {e}"
-                    )
+                    logger.error(f"❌ Unexpected error checking Ollama at {candidate}: {e}")
 
             if attempt < retries - 1:
                 await asyncio.sleep(2)
@@ -112,9 +108,7 @@ class OllamaService:
                 if response.status == 200:
                     data = await response.json()
                     self._models = [model["name"] for model in data.get("models", [])]
-                    logger.info(
-                        f"📦 Available models: {', '.join(self._models[:5])}..."
-                    )
+                    logger.info(f"📦 Available models: {', '.join(self._models[:5])}...")
         except Exception as e:
             logger.warning(f"⚠️ Failed to fetch models: {e}")
 
@@ -181,14 +175,10 @@ class OllamaService:
                     )
 
                 except requests.exceptions.Timeout:
-                    logger.warning(
-                        f"⏱️ Ollama request timeout (attempt {attempt + 1}/{retries})"
-                    )
+                    logger.warning(f"⏱️ Ollama request timeout (attempt {attempt + 1}/{retries})")
 
                 except Exception as e:
-                    logger.error(
-                        f"❌ Unexpected error checking Ollama at {candidate}: {e}"
-                    )
+                    logger.error(f"❌ Unexpected error checking Ollama at {candidate}: {e}")
 
             if attempt < retries - 1:
                 time.sleep(2)
@@ -210,9 +200,7 @@ class OllamaService:
         except Exception as e:
             logger.warning(f"⚠️ Failed to fetch models: {e}")
 
-    def query_ollama(
-        self, model: str, prompt: str, stream: bool = False, **kwargs
-    ) -> Any:
+    def query_ollama(self, model: str, prompt: str, stream: bool = False, **kwargs) -> Any:
         """
         Query Ollama with a prompt.
 

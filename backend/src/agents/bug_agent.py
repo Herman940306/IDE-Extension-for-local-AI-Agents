@@ -40,7 +40,7 @@ class BugAgent:
     using static analysis and LLM-powered detection.
     """
 
-    def __init__(self, llm_manager: LLMManager):
+    def __init__(self, llm_manager: LLMManager) -> None:
         """
         Initialize Bug Agent
 

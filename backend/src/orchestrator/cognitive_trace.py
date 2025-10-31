@@ -39,7 +39,7 @@ class CognitiveTraceStore:
     transparency and enable debugging of AI decisions.
     """
 
-    def __init__(self, path: str = "./data/trace_logs.jsonl"):
+    def __init__(self, path: str = "./data/trace_logs.jsonl") -> None:
         """
         Initialize cognitive trace store.
 

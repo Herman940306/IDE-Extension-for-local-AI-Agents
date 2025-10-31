@@ -20,9 +20,7 @@ class CodeSmell(BaseModel):
     line_start: int = Field(..., description="Starting line number")
     line_end: int = Field(..., description="Ending line number")
     suggestion: str = Field(..., description="Suggested fix or refactoring")
-    confidence: float = Field(
-        ..., ge=0.0, le=1.0, description="Confidence score (0.0 to 1.0)"
-    )
+    confidence: float = Field(..., ge=0.0, le=1.0, description="Confidence score (0.0 to 1.0)")
 
     model_config = ConfigDict(
         json_schema_extra={

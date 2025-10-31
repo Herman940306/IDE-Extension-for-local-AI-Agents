@@ -25,7 +25,7 @@ class VerifierEnsemble:
         self,
         ast_checker: Optional[ASTChecker] = None,
         confidence_threshold: float = 0.85,
-    ):
+    ) -> None:
         """
         Initialize verifier ensemble.
 

@@ -31,7 +31,7 @@ class LLMRouter:
         ollama_service: OllamaService,
         openai_api_key: Optional[str] = None,
         default_local_model: Optional[str] = None,
-    ):
+    ) -> None:
         self.mode_manager = mode_manager
         self.ollama_service = ollama_service
         self.openai_api_key = openai_api_key or os.environ.get("OPENAI_API_KEY")
@@ -93,13 +93,9 @@ class LLMRouter:
         system_prompt = self.system_prompts[interaction_mode]
 
         if current_mode == OperationMode.OFFLINE:
-            return await self._generate_local(
-                prompt, system_prompt, interaction_mode, context
-            )
+            return await self._generate_local(prompt, system_prompt, interaction_mode, context)
         else:
-            return await self._generate_cloud(
-                prompt, system_prompt, interaction_mode, context
-            )
+            return await self._generate_cloud(prompt, system_prompt, interaction_mode, context)
 
     async def _generate_local(
         self,
@@ -187,9 +183,7 @@ class LLMRouter:
         except Exception as e:
             logger.error("cloud_generation_failed", error=str(e), exc_info=True)
             return {
-                "content": (
-                    f"☁️ Cloud API error: {str(e)}. " "Try switching to Local mode."
-                ),
+                "content": (f"☁️ Cloud API error: {str(e)}. " "Try switching to Local mode."),
                 "provider": "error",
                 "model": "none",
                 "mode": "online",

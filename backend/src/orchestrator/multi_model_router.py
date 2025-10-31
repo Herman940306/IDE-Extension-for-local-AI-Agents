@@ -45,7 +45,7 @@ class ModelConfig:
         max_tokens: int = 2000,
         description: str = "",
         fallback_models: List[str] = None,
-    ):
+    ) -> None:
         self.name = name
         self.role = role
         self.keep_alive = keep_alive
@@ -64,7 +64,7 @@ class MultiModelRouter:
     Optimized for 1080 Ti (11GB VRAM) + 16GB RAM configuration.
     """
 
-    def __init__(self, show_model_names: bool = False):
+    def __init__(self, show_model_names: bool = False) -> None:
         """
         Initialize the multi-model router.
 

@@ -18,7 +18,7 @@ class ASTChecker:
     and can be extended for other languages using Tree-sitter.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize AST checker"""
         self.supported_languages = ["python"]
         logger.info("ASTChecker initialized")

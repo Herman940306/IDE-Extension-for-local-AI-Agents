@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 class TestAgent(AgentAdapter):
     """Specialized agent for automated test generation."""
 
-    def __init__(self, llm_manager: LLMManager, config: Optional[AgentConfig] = None):
+    def __init__(self, llm_manager: LLMManager, config: Optional[AgentConfig] = None) -> None:
         if config is None:
             config = AgentConfig(
                 name="Test Generation Agent",

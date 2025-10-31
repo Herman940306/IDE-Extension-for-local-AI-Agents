@@ -57,7 +57,7 @@ class LLMManager:
         # Device/retention hints for Ollama
         default_keep_alive: Optional[str] = None,
         force_cpu: bool = False,
-    ):
+    ) -> None:
         """
         Initialize LLM Manager
 

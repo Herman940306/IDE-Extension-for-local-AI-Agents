@@ -31,7 +31,7 @@ class AgentStatus(Enum):
 class AgentHealth:
     """Track agent health and performance"""
 
-    def __init__(self, agent_name: str):
+    def __init__(self, agent_name: str) -> None:
         self.agent_name = agent_name
         self.status = AgentStatus.IDLE
         self.success_count = 0
@@ -93,7 +93,7 @@ class MetaOrchestrator:
         llm_manager: LLMManager,
         context_manager: ContextManager,
         semantic_search: SemanticSearchService,
-    ):
+    ) -> None:
         """
         Initialize meta-orchestrator
 

@@ -38,7 +38,7 @@ class DocAgent(AgentAdapter):
         llm_manager: Optional[LLMManager] = None,
         crewai_adapter: Optional[CrewAIDocAgent] = None,
         config: Optional[AgentConfig] = None,
-    ):
+    ) -> None:
         """Initialize the documentation agent."""
         config = config or AgentConfig(
             name="Documentation Agent",

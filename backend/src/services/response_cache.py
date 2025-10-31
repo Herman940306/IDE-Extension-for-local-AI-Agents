@@ -27,7 +27,7 @@ class ResponseCache:
         redis_client: Optional[Redis],
         default_ttl: int = 3600,
         key_prefix: str = "llm_cache",
-    ):
+    ) -> None:
         """
         Initialize response cache.
 

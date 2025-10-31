@@ -36,7 +36,7 @@ class CodeBaseRetriever(BaseRetriever):  # type: ignore[misc]
         semantic_search: SemanticSearchService,
         top_k: int = 5,
         min_relevance: float = 0.0,
-    ):
+    ) -> None:
         if not LANGCHAIN_AVAILABLE:
             raise RuntimeError(
                 "LangChain dependency missing. Install 'langchain' or disable "
@@ -73,7 +73,7 @@ class ChatMemoryRetriever(BaseRetriever):  # type: ignore[misc]
         session_id: str,
         limit: int = 20,
         message_types: Optional[List[MessageType]] = None,
-    ):
+    ) -> None:
         if not LANGCHAIN_AVAILABLE:
             raise RuntimeError(
                 "LangChain dependency missing. Install 'langchain' or disable "
