@@ -37,6 +37,19 @@
 		reverse_proxy backend:8001
 	}
 
+	# --- Multi-agent backends: strip prefix so FastAPI sees original paths
+	handle_path /agent-1/* {
+		reverse_proxy backend:8001
+	}
+
+	handle_path /agent-2/* {
+		reverse_proxy backend_agent_2:8001
+	}
+
+	handle_path /agent-3/* {
+		reverse_proxy backend_agent_3:8001
+	}
+
 	# --- Grafana: keep /grafana prefix (Grafana is configured to serve from subpath)
 	handle /grafana/* {
 		reverse_proxy grafana:3000
@@ -47,8 +60,8 @@
 		reverse_proxy prometheus:9090
 	}
 
-	# Default root
+	# Default: route everything else to the frontend (nginx serving built assets)
 	handle {
-		respond "AURAIA API Gateway online" 200
+		reverse_proxy frontend:80
 	}
 }

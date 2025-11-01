@@ -74,3 +74,17 @@ services:
     ports:
       - "80:80"
       - "443:443"
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    command: ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "5288"]
+    working_dir: /app
+    volumes:
+      - ./frontend:/app:delegated
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+    ports:
+      - "5288:5288"

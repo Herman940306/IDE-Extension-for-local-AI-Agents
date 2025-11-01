@@ -55,6 +55,9 @@ services:
     environment:
       - DB_REDIS_URL=${DB_REDIS_URL:-redis://redis:6379/0}
       - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://ollama:11434}
+      - LLM_OLLAMA_URL=${LLM_OLLAMA_URL:-http://ollama:11434}
+      - EMBEDDINGS_PROVIDER=${EMBEDDINGS_PROVIDER:-ollama}
+      - EMBEDDINGS_OLLAMA_URL=${EMBEDDINGS_OLLAMA_URL:-http://ollama:11434}
       - CHROMA_PERSIST_DIR=${CHROMA_PERSIST_DIR:-/var/lib/auraia/chroma}
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
     depends_on:
@@ -72,6 +75,79 @@ services:
           "CMD-SHELL",
           'python -c "import urllib.request; urllib.request.urlopen(''http://localhost:8001/health'', timeout=5)"',
         ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    networks:
+      - auraia
+
+  # Optional additional backend agents (enable with: docker compose --profile agents up -d)
+  backend_agent_2:
+    profiles: ["agents"]
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "8002:8001"  # Map host 8002 -> container 8001
+    env_file:
+      - ./backend/.env.production
+    environment:
+      - APP_INSTANCE=agent-2
+      - DB_REDIS_URL=${DB_REDIS_URL:-redis://redis:6379/0}
+      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://ollama:11434}
+      - LLM_OLLAMA_URL=${LLM_OLLAMA_URL:-http://ollama:11434}
+      - EMBEDDINGS_PROVIDER=${EMBEDDINGS_PROVIDER:-ollama}
+      - EMBEDDINGS_OLLAMA_URL=${EMBEDDINGS_OLLAMA_URL:-http://ollama:11434}
+      - CHROMA_PERSIST_DIR=${CHROMA_PERSIST_DIR:-/var/lib/auraia/chroma}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    depends_on:
+      redis:
+        condition: service_healthy
+      ollama:
+        condition: service_healthy
+    volumes:
+      - backend_state:/var/lib/auraia
+      - backend_logs:/var/log/auraia
+    command: uvicorn src.main:app --host 0.0.0.0 --port 8001
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/metrics"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    networks:
+      - auraia
+
+  backend_agent_3:
+    profiles: ["agents"]
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "8003:8001"  # Map host 8003 -> container 8001
+    env_file:
+      - ./backend/.env.production
+    environment:
+      - APP_INSTANCE=agent-3
+      - DB_REDIS_URL=${DB_REDIS_URL:-redis://redis:6379/0}
+      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://ollama:11434}
+      - LLM_OLLAMA_URL=${LLM_OLLAMA_URL:-http://ollama:11434}
+      - EMBEDDINGS_PROVIDER=${EMBEDDINGS_PROVIDER:-ollama}
+      - EMBEDDINGS_OLLAMA_URL=${EMBEDDINGS_OLLAMA_URL:-http://ollama:11434}
+      - CHROMA_PERSIST_DIR=${CHROMA_PERSIST_DIR:-/var/lib/auraia/chroma}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    depends_on:
+      redis:
+        condition: service_healthy
+      ollama:
+        condition: service_healthy
+    volumes:
+      - backend_state:/var/lib/auraia
+      - backend_logs:/var/log/auraia
+    command: uvicorn src.main:app --host 0.0.0.0 --port 8001
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/metrics"]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -216,10 +292,48 @@ services:
       - caddy_config:/config
       - caddy_logs:/var/log/caddy
     depends_on:
-      - backend
-      - grafana
-      - prometheus
+      backend:
+        condition: service_started
+      grafana:
+        condition: service_started
+      prometheus:
+        condition: service_started
+      frontend:
+        condition: service_started
     restart: unless-stopped
+    networks:
+      - auraia
+
+  # Frontend static site served via nginx (prod build)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "5288:80"
+    depends_on:
+      backend:
+        condition: service_started
+    networks:
+      - auraia
+
+  # Optional Postgres database (enable with: docker compose --profile db up -d postgres)
+  postgres:
+    profiles: ["db"]
+    image: postgres:15-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-auraia}
+      POSTGRES_USER: ${POSTGRES_USER:-auraia}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-auraia}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     networks:
       - auraia
 
@@ -233,6 +347,7 @@ volumes:
   caddy_data:
   caddy_config:
   caddy_logs:
+  pgdata:
 
 networks:
   auraia:

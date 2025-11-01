@@ -216,8 +216,13 @@
     "**/.venv/**": true,
     "**/logs/**": true
   },
-  "docker.host": "unix:///var/run/docker.sock",
+    "docker.host": "npipe:////./pipe/dockerDesktopEngine",
   "docker.context": "default",
   "docker.defaultContextPath": "${workspaceFolder}",
-  "docker.containers.label": "com.docker.compose.project=${workspaceFolderBasename}"
+  "docker.containers.label": "com.docker.compose.project=${workspaceFolderBasename}",
+
+  "dev.containers.dockerPath": "docker",
+  "dev.containers.dockerComposePath": "docker-compose",
+  "dev.containers.dockerSocketPath": "npipe:////./pipe/dockerDesktopEngine",
+  "dev.containers.executeInWSL": false
 }

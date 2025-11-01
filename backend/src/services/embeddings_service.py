@@ -97,11 +97,15 @@ class EmbeddingsService:
         async with httpx.AsyncClient(timeout=timeout) as client:
             for attempt in range(1, max_attempts + 1):
                 try:
+                    # Ollama's native /api/embeddings expects a single string in
+                    # the "prompt" field. Some versions/libraries also support
+                    # "input" (array) and return "embeddings". To maximize
+                    # compatibility, send only "prompt" and accept both response
+                    # shapes ("embedding" or "embeddings").
                     response = await client.post(
                         f"{self.ollama_url}/api/embeddings",
                         json={
                             "model": self.ollama_model_name,
-                            "input": text,
                             "prompt": text,
                         },
                     )
@@ -113,6 +117,15 @@ class EmbeddingsService:
                         )
                     data = response.json()
                     embedding = data.get("embedding")
+
+                    # Some Ollama builds (or OpenAI-compatible routes) return
+                    # an array-of-arrays under "embeddings" when "input" is
+                    # used. Support that shape by taking the first vector.
+                    if embedding is None and isinstance(data.get("embeddings"), list):
+                        emb_list = data.get("embeddings")
+                        if emb_list and isinstance(emb_list[0], list):
+                            embedding = emb_list[0]
+
                     if not isinstance(embedding, list) or not embedding:
                         raise RuntimeError("Ollama returned empty embedding array")
                     return [float(x) for x in embedding]

@@ -2,6 +2,48 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Python: FastAPI Backend (No Reload :8001)",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "uvicorn",
+            "args": [
+                "src.main:app","--host","127.0.0.1","--port","8001","--log-level","info"
+            ],
+            "jinja": true,
+            "justMyCode": false,
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}/backend",
+            "env": { "PYTHONPATH": "${workspaceFolder}/backend", "APP_INSTANCE": "agent-1" }
+        },
+        {
+            "name": "Python: FastAPI Backend (No Reload :8002)",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "uvicorn",
+            "args": [
+                "src.main:app","--host","127.0.0.1","--port","8002","--log-level","info"
+            ],
+            "jinja": true,
+            "justMyCode": false,
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}/backend",
+            "env": { "PYTHONPATH": "${workspaceFolder}/backend", "APP_INSTANCE": "agent-2" }
+        },
+        {
+            "name": "Python: FastAPI Backend (No Reload :8003)",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "uvicorn",
+            "args": [
+                "src.main:app","--host","127.0.0.1","--port","8003","--log-level","info"
+            ],
+            "jinja": true,
+            "justMyCode": false,
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}/backend",
+            "env": { "PYTHONPATH": "${workspaceFolder}/backend", "APP_INSTANCE": "agent-3" }
+        },
+        {
             "name": "Python: FastAPI Backend",
             "type": "debugpy",
             "request": "launch",

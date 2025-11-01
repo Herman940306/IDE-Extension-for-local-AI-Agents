@@ -198,3 +198,40 @@ jobs:
           tags: |
             ghcr.io/${{ steps.owner_lc.outputs.owner_lc }}/aura-backend:ci
             ghcr.io/${{ steps.owner_lc.outputs.owner_lc }}/aura-backend:${{ github.sha }}
+
+  frontend-build:
+    name: Frontend Build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js (with cache if lockfile exists)
+        if: ${{ hashFiles('frontend/package-lock.json') != '' }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: 'frontend/package-lock.json'
+
+      - name: Set up Node.js (no cache, no lockfile)
+        if: ${{ hashFiles('frontend/package-lock.json') == '' }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies (npm ci)
+        if: ${{ hashFiles('frontend/package-lock.json') != '' }}
+        working-directory: frontend
+        run: npm ci
+
+      - name: Install dependencies (npm install)
+        if: ${{ hashFiles('frontend/package-lock.json') == '' }}
+        working-directory: frontend
+        run: npm install
+
+      - name: Build
+        working-directory: frontend
+        run: npm run build

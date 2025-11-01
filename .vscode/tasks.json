@@ -5,6 +5,9 @@
       "label": "Python: Run Tests",
       "type": "shell",
       "command": "${config:python.defaultInterpreterPath}",
+      "windows": {
+        "command": "${workspaceFolder}\\.venv\\Scripts\\python.exe"
+      },
       "args": ["-m", "pytest", "backend/tests", "-v"],
       "group": {
         "kind": "test",
@@ -15,6 +18,249 @@
         "panel": "new"
       },
       "problemMatcher": []
+    },
+    {
+      "label": "Backend: Run API (Detached)",
+      "type": "process",
+      "command": "pwsh",
+      "args": ["-NoProfile","-File","${workspaceFolder}/backend/scripts/run-api-detached.ps1","-Port","8001","-Instance","agent-1"],
+      "options": { "cwd": "${workspaceFolder}/backend" },
+      "presentation": { "reveal": "always", "panel": "new" },
+      "problemMatcher": []
+    },
+    {
+      "label": "Docker: Start Core (caddy+frontend+backend)",
+      "type": "process",
+      "command": "pwsh",
+      "args": ["-NoProfile","-File","${workspaceFolder}/scripts/start-core-docker.ps1"],
+      "presentation": { "reveal": "always", "panel": "new" },
+      "problemMatcher": []
+    },
+    {
+      "label": "Start Core (Docker + Probe)",
+      "dependsOrder": "sequence",
+      "dependsOn": [
+        "Docker: Start Core (caddy+frontend+backend)",
+        "Health: Probe Local Routes"
+      ]
+    },
+    {
+      "label": "Health: Probe Local Routes",
+      "type": "shell",
+      "command": "pwsh",
+      "args": ["-NoProfile","-File","${workspaceFolder}/scripts/health-probe.ps1"],
+      "presentation": { "reveal": "always", "panel": "new" },
+      "problemMatcher": []
+    },
+    {
+      "label": "Start Everything (Local)",
+      "dependsOrder": "sequence",
+      "dependsOn": [
+        "Backend: Run API (Dedicated, No Reload)",
+        "Frontend: Dev",
+        "Health: Probe Local Routes"
+      ]
+    },
+    {
+      "label": "Backend: Start Agent (Detached :8001)",
+      "type": "process",
+      "command": "pwsh",
+      "args": ["-NoProfile","-File","${workspaceFolder}/backend/scripts/start-agent.ps1","-Port","8001","-Instance","agent-1"],
+      "options": { "cwd": "${workspaceFolder}/backend" },
+      "presentation": { "reveal": "always", "panel": "new" },
+      "problemMatcher": []
+    },
+    {
+      "label": "Backend: Start Agent (Detached :8002)",
+      "type": "process",
+      "command": "pwsh",
+      "args": ["-NoProfile","-File","${workspaceFolder}/backend/scripts/start-agent.ps1","-Port","8002","-Instance","agent-2","-DelaySeconds","2"],
+      "options": { "cwd": "${workspaceFolder}/backend" },
+      "presentation": { "reveal": "always", "panel": "new" },
+      "problemMatcher": []
+    },
+    {
+      "label": "Backend: Start Agent (Detached :8003)",
+      "type": "process",
+      "command": "pwsh",
+      "args": ["-NoProfile","-File","${workspaceFolder}/backend/scripts/start-agent.ps1","-Port","8003","-Instance","agent-3","-DelaySeconds","4"],
+      "options": { "cwd": "${workspaceFolder}/backend" },
+      "presentation": { "reveal": "always", "panel": "new" },
+      "problemMatcher": []
+    },
+    {
+      "label": "Backend: Start Multi-Agents (Detached)",
+      "type": "process",
+      "command": "pwsh",
+      "args": ["-NoProfile","-File","${workspaceFolder}/backend/scripts/start-multi-agents.ps1"],
+      "options": { "cwd": "${workspaceFolder}/backend" },
+      "presentation": { "reveal": "always", "panel": "new" },
+      "problemMatcher": []
+    },
+    {
+      "label": "Backend: Stop Agents (pid files)",
+      "type": "process",
+      "command": "pwsh",
+      "args": ["-NoProfile","-Command","Get-ChildItem -Path '${workspaceFolder}/backend/.pids' -Filter 'agent-*.pid' -ErrorAction SilentlyContinue | ForEach-Object { try { $pid = [int](Get-Content $_.FullName); Stop-Process -Id $pid -Force -ErrorAction Stop; Remove-Item $_.FullName -Force; Write-Host ('Stopped PID {0}' -f $pid) } catch { Write-Host ('Skip/Fail PID file {0}: {1}' -f $_.Name,$_.Exception.Message) } }"],
+      "presentation": { "reveal": "always", "panel": "new" },
+      "problemMatcher": []
+    },
+    {
+      "label": "Backend: Stop APIs (ports)",
+      "type": "process",
+      "command": "pwsh",
+      "args": ["-NoProfile","-File","${workspaceFolder}/backend/scripts/stop-ports.ps1"],
+      "presentation": { "reveal": "always", "panel": "new" },
+      "problemMatcher": []
+    },
+    {
+      "label": "Backend: Debug Agent (8001)",
+      "type": "shell",
+      "command": "${workspaceFolder}/backend/.venv/bin/python",
+      "args": [
+        "-m",
+        "uvicorn",
+        "src.main:app",
+        "--host","127.0.0.1",
+        "--port","8001",
+        "--log-level","info"
+      ],
+      "windows": {
+        "command": "${workspaceFolder}\\.venv\\Scripts\\python.exe",
+        "args": [
+          "-m","uvicorn","src.main:app",
+          "--host","127.0.0.1","--port","8001","--log-level","info"
+        ]
+      },
+      "options": {
+        "cwd": "${workspaceFolder}/backend",
+        "env": { "PYTHONPATH": "${workspaceFolder}/backend", "APP_INSTANCE": "agent-1", "PYTHONIOENCODING": "utf-8", "PYTHONUTF8": "1" }
+      },
+      "presentation": { "reveal": "always", "panel": "new", "focus": true },
+      "problemMatcher": []
+    },
+    {
+      "label": "Backend: Debug Agent (8002)",
+      "type": "shell",
+      "command": "${workspaceFolder}/backend/.venv/bin/python",
+      "args": [
+        "-m","uvicorn","src.main:app",
+        "--host","127.0.0.1","--port","8002","--log-level","info"
+      ],
+      "windows": {
+        "command": "pwsh",
+        "args": [
+          "-NoProfile","-Command",
+          "Start-Sleep -Seconds 2; & \"${workspaceFolder}\\.venv\\Scripts\\python.exe\" -m uvicorn src.main:app --host 127.0.0.1 --port 8002 --log-level info"
+        ]
+      },
+      "options": {
+        "cwd": "${workspaceFolder}/backend",
+        "env": { "PYTHONPATH": "${workspaceFolder}/backend", "APP_INSTANCE": "agent-2", "PYTHONIOENCODING": "utf-8", "PYTHONUTF8": "1" }
+      },
+      "presentation": { "reveal": "always", "panel": "new", "focus": true },
+      "problemMatcher": []
+    },
+    {
+      "label": "Backend: Debug Agent (8003)",
+      "type": "shell",
+      "command": "${workspaceFolder}/backend/.venv/bin/python",
+      "args": [
+        "-m","uvicorn","src.main:app",
+        "--host","127.0.0.1","--port","8003","--log-level","info"
+      ],
+      "windows": {
+        "command": "pwsh",
+        "args": [
+          "-NoProfile","-Command",
+          "Start-Sleep -Seconds 4; & \"${workspaceFolder}\\.venv\\Scripts\\python.exe\" -m uvicorn src.main:app --host 127.0.0.1 --port 8003 --log-level info"
+        ]
+      },
+      "options": {
+        "cwd": "${workspaceFolder}/backend",
+        "env": { "PYTHONPATH": "${workspaceFolder}/backend", "APP_INSTANCE": "agent-3", "PYTHONIOENCODING": "utf-8", "PYTHONUTF8": "1" }
+      },
+      "presentation": { "reveal": "always", "panel": "new", "focus": true },
+      "problemMatcher": []
+    },
+    {
+      "label": "Observer: Multi-Agent Health",
+      "type": "process",
+      "command": "pwsh",
+      "args": [
+        "-NoProfile",
+        "-File",
+        "${workspaceFolder}/backend/scripts/observer.ps1"
+      ],
+      "presentation": { "reveal": "always", "panel": "new", "focus": true },
+      "problemMatcher": []
+    },
+    {
+      "label": "Backend: Stop APIs (8001-8003)",
+      "type": "process",
+      "command": "pwsh",
+      "args": [
+        "-NoProfile",
+        "-Command",
+        "$ErrorActionPreference='SilentlyContinue'; foreach ($p in 8001,8002,8003) { $conns = Get-NetTCPConnection -LocalPort $p -State Listen; if ($conns) { $pids = $conns | Select-Object -ExpandProperty OwningProcess -Unique; foreach ($pid in $pids) { Stop-Process -Id $pid -Force; Write-Host ('Stopped PID {0} on port {1}' -f $pid,$p) } } }"
+      ],
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Backend: Run API (Dedicated, No Reload)",
+      "type": "shell",
+      "command": "${workspaceFolder}/backend/.venv/bin/python",
+      "args": [
+        "-m",
+        "uvicorn",
+        "src.main:app",
+        "--host",
+        "127.0.0.1",
+        "--port",
+        "8001"
+      ],
+      "windows": {
+        "command": "${workspaceFolder}\\.venv\\Scripts\\python.exe",
+        "args": [
+          "-m",
+          "uvicorn",
+          "src.main:app",
+          "--host",
+          "127.0.0.1",
+          "--port",
+          "8001"
+        ]
+      },
+      "options": {
+        "cwd": "${workspaceFolder}/backend",
+        "env": {
+          "PYTHONPATH": "${workspaceFolder}/backend",
+          "PYTHONIOENCODING": "utf-8",
+          "PYTHONUTF8": "1"
+        }
+      },
+      "isBackground": true,
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "group": "backend",
+        "clear": true
+      },
+      "problemMatcher": [
+        {
+          "owner": "uvicorn",
+          "pattern": { "regexp": ".*" },
+          "background": {
+            "activeOnStart": true,
+            "beginsPattern": ".*Started server process.*|.*Waiting for application startup.*",
+            "endsPattern": ".*Uvicorn running on.*"
+          }
+        }
+      ]
     },
     {
       "label": "Python: Format with Black",
@@ -84,6 +330,9 @@
       "label": "Python: Test Coverage",
       "type": "shell",
       "command": "${config:python.defaultInterpreterPath}",
+      "windows": {
+        "command": ".\\.venv\\Scripts\\python.exe"
+      },
       "args": [
         "-m",
         "pytest",
@@ -107,6 +356,9 @@
       "label": "Python: Test Coverage (unit-only)",
       "type": "shell",
       "command": "${config:python.defaultInterpreterPath}",
+      "windows": {
+        "command": ".\\.venv\\Scripts\\python.exe"
+      },
       "args": [
         "-m",
         "pytest",
@@ -256,7 +508,7 @@
         "8001"
       ],
       "windows": {
-        "command": ".\\.venv\\Scripts\\python.exe",
+        "command": "${workspaceFolder}\\.venv\\Scripts\\python.exe",
         "args": [
           "-m",
           "uvicorn",
@@ -304,7 +556,7 @@
         "8002"
       ],
       "windows": {
-        "command": ".\\.venv\\Scripts\\python.exe",
+        "command": "${workspaceFolder}\\.venv\\Scripts\\python.exe",
         "args": [
           "-m",
           "uvicorn",
@@ -320,7 +572,9 @@
         "cwd": "${workspaceFolder}/backend",
         "env": {
           "PYTHONPATH": "${workspaceFolder}/backend",
-          "APP_INSTANCE": "agent-2"
+          "APP_INSTANCE": "agent-2",
+          "PYTHONIOENCODING": "utf-8",
+          "PYTHONUTF8": "1"
         }
       },
       "isBackground": true,
@@ -332,6 +586,53 @@
             "activeOnStart": true,
             "beginsPattern": ".*Uvicorn running.*",
             "endsPattern": ".*Application startup complete.*"
+          }
+        }
+      ]
+    },
+    {
+      "label": "Backend: Run API (Dedicated, No Reload :8002)",
+      "type": "shell",
+      "command": "${workspaceFolder}/backend/.venv/bin/python",
+      "args": [
+        "-m",
+        "uvicorn",
+        "src.main:app",
+        "--host",
+        "127.0.0.1",
+        "--port",
+        "8002"
+      ],
+      "windows": {
+        "command": "pwsh",
+        "args": [
+          "-NoProfile",
+          "-Command",
+          "Start-Sleep -Seconds 2; & \"${workspaceFolder}\\.venv\\Scripts\\python.exe\" -m uvicorn src.main:app --host 127.0.0.1 --port 8002"
+        ]
+      },
+      "options": {
+        "cwd": "${workspaceFolder}/backend",
+        "env": {
+          "PYTHONPATH": "${workspaceFolder}/backend",
+          "APP_INSTANCE": "agent-2"
+        }
+      },
+      "isBackground": true,
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "group": "backend",
+        "clear": true
+      },
+      "problemMatcher": [
+        {
+          "owner": "uvicorn",
+          "pattern": { "regexp": ".*" },
+          "background": {
+            "activeOnStart": true,
+            "beginsPattern": ".*Started server process.*|.*Waiting for application startup.*",
+            "endsPattern": ".*Uvicorn running on.*"
           }
         }
       ]
@@ -351,7 +652,7 @@
         "8003"
       ],
       "windows": {
-        "command": ".\\.venv\\Scripts\\python.exe",
+        "command": "${workspaceFolder}\\.venv\\Scripts\\python.exe",
         "args": [
           "-m",
           "uvicorn",
@@ -367,7 +668,9 @@
         "cwd": "${workspaceFolder}/backend",
         "env": {
           "PYTHONPATH": "${workspaceFolder}/backend",
-          "APP_INSTANCE": "agent-3"
+          "APP_INSTANCE": "agent-3",
+          "PYTHONIOENCODING": "utf-8",
+          "PYTHONUTF8": "1"
         }
       },
       "isBackground": true,
@@ -379,6 +682,53 @@
             "activeOnStart": true,
             "beginsPattern": ".*Uvicorn running.*",
             "endsPattern": ".*Application startup complete.*"
+          }
+        }
+      ]
+    },
+    {
+      "label": "Backend: Run API (Dedicated, No Reload :8003)",
+      "type": "shell",
+      "command": "${workspaceFolder}/backend/.venv/bin/python",
+      "args": [
+        "-m",
+        "uvicorn",
+        "src.main:app",
+        "--host",
+        "127.0.0.1",
+        "--port",
+        "8003"
+      ],
+      "windows": {
+        "command": "pwsh",
+        "args": [
+          "-NoProfile",
+          "-Command",
+          "Start-Sleep -Seconds 4; & \"${workspaceFolder}\\.venv\\Scripts\\python.exe\" -m uvicorn src.main:app --host 127.0.0.1 --port 8003"
+        ]
+      },
+      "options": {
+        "cwd": "${workspaceFolder}/backend",
+        "env": {
+          "PYTHONPATH": "${workspaceFolder}/backend",
+          "APP_INSTANCE": "agent-3"
+        }
+      },
+      "isBackground": true,
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "group": "backend",
+        "clear": true
+      },
+      "problemMatcher": [
+        {
+          "owner": "uvicorn",
+          "pattern": { "regexp": ".*" },
+          "background": {
+            "activeOnStart": true,
+            "beginsPattern": ".*Started server process.*|.*Waiting for application startup.*",
+            "endsPattern": ".*Uvicorn running on.*"
           }
         }
       ]
@@ -397,7 +747,7 @@
         "8001"
       ],
       "windows": {
-        "command": ".\\.venv\\Scripts\\python.exe",
+        "command": "${workspaceFolder}\\.venv\\Scripts\\python.exe",
         "args": [
           "-m",
           "uvicorn",
@@ -468,18 +818,28 @@
       "label": "Start Dev Servers",
       "dependsOrder": "parallel",
       "dependsOn": [
-        "Backend: Run API (Uvicorn)",
+        "Backend: Run API (Dedicated, No Reload)",
         "Frontend: Dev",
         "Extension: Compile (Watch)"
       ]
     },
     {
       "label": "Start Multi-Agent Backends (3x)",
-      "dependsOrder": "parallel",
+      "dependsOrder": "sequence",
       "dependsOn": [
-        "Backend: Run API (Uvicorn)",
-        "Backend: Run API (Uvicorn :8002)",
-        "Backend: Run API (Uvicorn :8003)"
+        "Backend: Run API (Dedicated, No Reload)",
+        "Backend: Run API (Dedicated, No Reload :8002)",
+        "Backend: Run API (Dedicated, No Reload :8003)"
+      ]
+    },
+    {
+      "label": "Start Everything (Detached + Frontend + Observer)",
+      "dependsOrder": "sequence",
+      "dependsOn": [
+        "Backend: Stop APIs (ports)",
+        "Backend: Start Multi-Agents (Detached)",
+        "Observer: Multi-Agent Health",
+        "Frontend: Dev"
       ]
     },
     {
