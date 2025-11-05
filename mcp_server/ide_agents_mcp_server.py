@@ -213,7 +213,11 @@ class AgentsMCPServer:
         self, name: str, arguments: Dict[str, Any]
     ) -> Dict[str, Any]:
         # Simple rate limit per tool+method (allow list->get sequences)
-        rl_key = f"{name}:{arguments.get('method', '')}" if isinstance(arguments, dict) else name
+        rl_key = (
+            f"{name}:{arguments.get('method', '')}"
+            if isinstance(arguments, dict)
+            else name
+        )
         if not approval_mod.rate_limiter.allow(rl_key):
             raise ValueError("rate_limited: please retry shortly")
 

@@ -7,6 +7,7 @@ from dataclasses import dataclass, asdict
 from pathlib import Path
 from typing import Optional
 
+
 def _log_paths() -> tuple[Path, Path]:
     log_dir = Path(os.getenv("MCP_TOOL_SPANS_DIR", "logs"))
     return log_dir, log_dir / "mcp_tool_spans.jsonl"

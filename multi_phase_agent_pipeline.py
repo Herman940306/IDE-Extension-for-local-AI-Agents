@@ -61,7 +61,7 @@ TASKS = {
 AGENT_MODELS = {
     "refactor": "gpt-5",
     "scaffold": "gpt-5-codex-preview",
-    "api": "gemini-2.0-pro",
+    "api": "gemini-2.5-pro",
     "docs": "claude-3.5-sonnet",
     "report": "claude-3-haiku",
 }
@@ -137,10 +137,8 @@ async def api_agent():
         )
         await log("⚠️ [Gemini] Skipped due to missing GOOGLE_API_KEY.")
     else:
-        model = genai.GenerativeModel("gemini-2.0-pro")
-        response = model.generate_content(
-            "Validate OpenAPI schema and suggest improvements."
-        )
+        model = genai.GenerativeModel("gemini-2.5-pro")
+        response = model.generate_content("Validate OpenAPI schema and suggest improvements.")
         await write_file(
             WORK_ROOT / "api" / "validation.txt",
             getattr(response, "text", "No text returned."),
@@ -157,8 +155,7 @@ async def docs_agent():
         if not os.getenv("ANTHROPIC_API_KEY"):
             await write_file(
                 WORK_ROOT / "docs" / doc.name,
-                "<!-- Placeholder: ANTHROPIC_API_KEY not set. Skipping doc rewrite. -->\n"
-                + text,
+                "<!-- Placeholder: ANTHROPIC_API_KEY not set. Skipping doc rewrite. -->\n" + text,
             )
         else:
             msg = anthropic_client.messages.create(
@@ -168,17 +165,14 @@ async def docs_agent():
                     {
                         "role": "user",
                         "content": (
-                            "Rewrite this doc clearly and align with architecture:\n\n"
-                            f"{text}"
+                            "Rewrite this doc clearly and align with architecture:\n\n" f"{text}"
                         ),
                     }
                 ],
             )
             # Gracefully handle different block types
             content_text = (
-                "".join(
-                    getattr(block, "text", "") for block in getattr(msg, "content", [])
-                ).strip()
+                "".join(getattr(block, "text", "") for block in getattr(msg, "content", [])).strip()
                 or "(empty)"
             )
             await write_file(WORK_ROOT / "docs" / doc.name, content_text)
@@ -204,9 +198,7 @@ async def report_agent():
             ],
         )
         content_text = (
-            "".join(
-                getattr(block, "text", "") for block in getattr(msg, "content", [])
-            ).strip()
+            "".join(getattr(block, "text", "") for block in getattr(msg, "content", [])).strip()
             or "(empty)"
         )
         await write_file(WORK_ROOT / "report" / "CHANGELOG.md", content_text)
@@ -230,10 +222,7 @@ async def run_phase(phase_id: str, completed_phases: set):
     # Dependency check
     for dep in deps:
         if dep not in completed_phases:
-            await log(
-                Fore.RED
-                + f"⏳ Waiting for dependency {dep} to complete before {phase_id}"
-            )
+            await log(Fore.RED + f"⏳ Waiting for dependency {dep} to complete before {phase_id}")
             return False
 
     await log(Fore.WHITE + Style.BRIGHT + f"\n🚀 Starting Phase: {phase['name']}")
@@ -262,9 +251,7 @@ async def orchestrate_pipeline():
     for pid in TASKS:
         success = await run_phase(pid, completed_phases)
         if not success:
-            await log(
-                Fore.RED + f"❌ Pipeline stopped at {pid}. Fix dependencies and re-run."
-            )
+            await log(Fore.RED + f"❌ Pipeline stopped at {pid}. Fix dependencies and re-run.")
             break
 
     if len(completed_phases) == len(TASKS):
