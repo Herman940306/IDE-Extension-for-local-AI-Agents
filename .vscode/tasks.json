@@ -1,4 +1,23 @@
 {
+  "$schema": "vscode://schemas/tasks",
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Frontend: Generate package-lock.json",
+      "type": "shell",
+      "command": "npm",
+      "args": [
+        "install",
+        "--package-lock-only"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}/frontend"
+      },
+      "problemMatcher": []
+    }
+  ]
+}
+{
   "version": "2.0.0",
   "tasks": [
     {
@@ -399,6 +418,16 @@
         "Backend: Install deps",
         "Frontend: Install",
         "Extension: Install"
+      ]
+    }
+    ,
+    {
+      "label": "Validate: Backend (Tests + Typecheck + API)",
+      "dependsOrder": "sequence",
+      "dependsOn": [
+        "Python: Run Tests",
+        "Python: Type Check (mypy)",
+        "Backend: Run API (Uvicorn)"
       ]
     }
   ],

@@ -1,29 +1,3 @@
 {
-    "recommendations": [
-        // Python Development (Essential)
-        "ms-python.python",
-        "ms-python.debugpy",
-        "ms-python.black-formatter",
-        "ms-python.flake8",
-        "ms-python.vscode-pylance",
-        "ms-python.mypy-type-checker",
-        // Notebooks (optional)
-        "ms-toolsai.jupyter",
-        
-        // Code Quality & Error Detection
-        "usernamehw.errorlens",
-        
-        // Configuration & DevOps
-        "redhat.vscode-yaml"
-    ],
-    "unwantedRecommendations": [
-        // AI Assistants (using Kiro instead)
-        "github.copilot",
-        "github.copilot-chat",
-        "RooVeterinaryInc.roo-coder",
-        
-        // Container Tools (not in stack)
-        "ms-azuretools.vscode-docker",
-        "ms-azuretools.vscode-containers"
-    ]
+  "recommendations": ["tomoki1207.pdf"]
 }
