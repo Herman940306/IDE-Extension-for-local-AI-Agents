@@ -18,6 +18,20 @@
       "env": {
         "GITHUB_PERSONAL_ACCESS_TOKEN": "${env:GITHUB_PERSONAL_ACCESS_TOKEN}"
       }
+    },
+    "ide-agents": {
+      // Command (stdio): run local Python MCP server
+      "command": "F:\\VScode Projects\\AI Agents Integration system for VS Code\\.venv-2\\Scripts\\python.exe",
+      "args": [
+        "F:\\VScode Projects\\AI Agents Integration system for VS Code\\mcp_server\\ide_agents_mcp_server.py"
+      ],
+      "env": {
+        // Optional overrides (defaults are fine if unset)
+        // "IDE_AGENTS_BACKEND_URL": "http://127.0.0.1:8001",
+        // "IDE_AGENTS_REQUEST_TIMEOUT": "30",
+        // "IDE_AGENTS_ULTRA_ENABLED": "0",
+        // "IDE_AGENTS_ULTRA_CONFIG": ""
+      }
     }
   }
 }
