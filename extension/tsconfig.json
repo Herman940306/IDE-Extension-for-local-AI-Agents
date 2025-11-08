@@ -8,7 +8,12 @@
     ],
     "types": [
       "node",
-      "vscode"
+      "vscode",
+      "mocha"
+    ],
+    "typeRoots": [
+      "./src/types",
+      "./node_modules/@types"
     ],
     "sourceMap": true,
     "rootDir": "src",
@@ -17,6 +22,8 @@
   },
   "exclude": [
     "node_modules",
-    ".vscode-test"
+    ".vscode-test",
+    "src/test",
+    "test-js"
   ]
 }

@@ -54,6 +54,34 @@
       {
         "command": "aura.openGithubRankingView",
         "title": "Aura: Open GitHub Ranking View"
+      },
+      {
+        "command": "aura.openRankingSettings",
+        "title": "Aura: Ranking Settings"
+      },
+      {
+        "command": "aura.ollama.listModels",
+        "title": "Aura: Ollama - List Models"
+      },
+      {
+        "command": "aura.ollama.pullModel",
+        "title": "Aura: Ollama - Pull Model"
+      },
+      {
+        "command": "aura.ollama.deleteModel",
+        "title": "Aura: Ollama - Delete Model"
+      },
+      {
+        "command": "aura.ollama.refreshModels",
+        "title": "Aura: Ollama - Refresh Models"
+      },
+      {
+        "command": "aura.ollama.setActiveModel",
+        "title": "Aura: Ollama - Set Active Model"
+      },
+      {
+        "command": "aura.ollama.runInference",
+        "title": "Aura: Ollama - Run Inference"
       }
     ],
     "views": {
@@ -61,6 +89,31 @@
         {
           "id": "auraGithubRanking",
           "name": "Aura: GitHub Ranking"
+        },
+        {
+          "id": "auraOllamaModels",
+          "name": "Aura: Ollama Models"
+        }
+      ]
+    },
+    "menus": {
+      "view/title": [
+        {
+          "command": "aura.ollama.refreshModels",
+          "when": "view == auraOllamaModels",
+          "group": "navigation@1"
+        },
+        {
+          "command": "aura.ollama.pullModel",
+          "when": "view == auraOllamaModels",
+          "group": "navigation@2"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "aura.ollama.deleteModel",
+          "when": "view == auraOllamaModels && viewItem == ollamaModel",
+          "group": "inline@1"
         }
       ]
     },
@@ -77,10 +130,25 @@
           "default": "ws://127.0.0.1:8001/ws",
           "description": "Backend WebSocket URL"
         },
+        "aura.ollama.url": {
+          "type": "string",
+          "default": "http://127.0.0.1:11434",
+          "description": "Ollama REST API URL"
+        },
         "aura.ranking.defaultQuery": {
           "type": "string",
           "default": "bug fix performance",
           "description": "Default query used when ranking if none provided"
+        },
+        "aura.ollama.activeModel": {
+          "type": "string",
+          "default": "",
+          "description": "Preferred active Ollama model to use across features"
+        },
+        "aura.ollama.modelsPath": {
+          "type": "string",
+          "default": "",
+          "description": "Path to Ollama models directory (optional). Leave blank for default (e.g., ~/.ollama/models). Used to estimate disk free space."
         },
         "aura.ranking.itemsPerRepo": {
           "type": "number",
@@ -117,21 +185,24 @@
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
     "test": "mocha -r ts-node/register src/test/**/*.test.ts",
+    "test:ollama": "tsc -p ./ && mocha test-js/ollamaService.cjs.js test-js/ollamaModelsTreeProvider.cjs.js",
     "lint": "echo (no linter configured)",
     "package": "npm run compile && vsce package",
     "package:publish": "npm run compile && vsce publish"
   },
   "devDependencies": {
+    "@types/mocha": "^10.0.0",
     "@types/node": "^18.x",
     "@types/vscode": "^1.80.0",
     "@types/ws": "^8.5.0",
-    "@types/mocha": "^10.0.0",
-    "mocha": "^10.2.0",
-    "ts-node": "^10.9.2",
     "@vscode/vsce": "^2.24.0",
+    "mocha": "^10.2.0",
+    "mock-require": "^3.0.3",
+    "ts-node": "^10.9.2",
     "typescript": "^5.0.0"
   },
   "dependencies": {
+    "check-disk-space": "^3.4.0",
     "ws": "^8.14.0"
   },
   "galleryBanner": {

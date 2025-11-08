@@ -7,14 +7,20 @@ import * as vscode from "vscode";
 import { AnalyticsService } from "./services/AnalyticsService";
 import { BackendService } from "./services/backendService";
 import { RankingService } from "./services/RankingService";
+import { OllamaService } from "./services/OllamaService";
+import { RankingSettingsPanel } from "./panels/RankingSettingsPanel";
 import { GithubRankingTreeProvider } from "./ui/GithubRankingTreeProvider";
+import { OllamaModelsTreeProvider } from "./ui/OllamaModelsTreeProvider";
 
 let backendService: BackendService;
 let statusBarItem: vscode.StatusBarItem;
 let healthStatusItem: vscode.StatusBarItem;
+let ollamaStatusItem: vscode.StatusBarItem;
 let analyticsService: AnalyticsService | undefined;
 let rankingService: RankingService;
 let rankingTree: GithubRankingTreeProvider;
+let ollamaTree: OllamaModelsTreeProvider;
+let ollamaService: OllamaService;
 
 export async function activate(context: vscode.ExtensionContext) {
   console.log("🚀 Aura AI Assistant activating...");
@@ -28,12 +34,43 @@ export async function activate(context: vscode.ExtensionContext) {
   statusBarItem.tooltip = "Connecting to backend...";
   statusBarItem.show();
   context.subscriptions.push(statusBarItem);
+  vscode.commands.registerCommand("aura.ollama.runInference", async () => {
+    try {
+      const cfg = vscode.workspace.getConfiguration("aura");
+      let model = cfg.get<string>("ollama.activeModel", "");
+      if (!model) {
+        const models = await ollamaService.listModels();
+        if (!models.length) {
+          vscode.window.showWarningMessage("No models installed. Pull a model first.");
+          return;
+        }
+        const pick = await vscode.window.showQuickPick(models.map(m => ({ label: m.name || m.model })), { placeHolder: "Select model to use" });
+        if (!pick) return;
+        model = pick.label;
+        await cfg.update("ollama.activeModel", model, vscode.ConfigurationTarget.Global);
+      }
+      const prompt = await vscode.window.showInputBox({ prompt: `Enter prompt for ${model}` });
+      if (!prompt) return;
+      const output = vscode.window.createOutputChannel("Ollama Inference");
+      output.clear();
+      output.appendLine(`# Model: ${model}`);
+      output.appendLine(`> ${prompt}`);
+      output.appendLine("");
+      await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: `Running inference on ${model}...` }, async () => {
+        const text = await ollamaService.generate(model!, prompt);
+        output.appendLine(text || "(empty response)");
+      });
+      output.show(true);
+    } catch (e: any) {
+      vscode.window.showErrorMessage(`Inference failed: ${e?.message || e}`);
+    }
+  }),
 
-  // Health status bar (lower priority number -> left, so use 99 just left of main)
-  healthStatusItem = vscode.window.createStatusBarItem(
-    vscode.StatusBarAlignment.Right,
-    99,
-  );
+    // Health status bar (lower priority number -> left, so use 99 just left of main)
+    healthStatusItem = vscode.window.createStatusBarItem(
+      vscode.StatusBarAlignment.Right,
+      99,
+    );
   healthStatusItem.text = "$(pulse) Health: ?";
   healthStatusItem.tooltip = "Aura backend health unknown";
   healthStatusItem.command = "aura.checkHealth";
@@ -43,12 +80,30 @@ export async function activate(context: vscode.ExtensionContext) {
   backendService = new BackendService();
   analyticsService = new AnalyticsService(context);
   rankingService = new RankingService(context);
+  ollamaService = new OllamaService();
   rankingTree = new GithubRankingTreeProvider();
+  ollamaTree = new OllamaModelsTreeProvider(ollamaService);
   const treeView = vscode.window.createTreeView("auraGithubRanking", {
     treeDataProvider: rankingTree,
     showCollapseAll: false,
   });
   context.subscriptions.push(treeView);
+  const ollamaView = vscode.window.createTreeView("auraOllamaModels", {
+    treeDataProvider: ollamaTree,
+    showCollapseAll: false,
+  });
+  context.subscriptions.push(ollamaView);
+
+  // Ollama status bar (just left of health)
+  ollamaStatusItem = vscode.window.createStatusBarItem(
+    vscode.StatusBarAlignment.Right,
+    98,
+  );
+  ollamaStatusItem.text = "$(package) Ollama: ?";
+  ollamaStatusItem.tooltip = "Ollama status unknown";
+  ollamaStatusItem.command = "aura.ollama.listModels";
+  ollamaStatusItem.show();
+  context.subscriptions.push(ollamaStatusItem);
 
   try {
     await vscode.window.withProgress(
@@ -68,6 +123,7 @@ export async function activate(context: vscode.ExtensionContext) {
     console.log("✅ Aura AI Assistant activated successfully");
     // Initial health check
     void refreshHealthStatus();
+    void refreshOllamaStatus();
   } catch (error) {
     statusBarItem.text = "$(error) Aura AI: Disconnected";
     statusBarItem.tooltip = "Failed to connect to backend. Click to troubleshoot.";
@@ -164,6 +220,9 @@ export async function activate(context: vscode.ExtensionContext) {
       await vscode.commands.executeCommand("workbench.view.explorer");
       await vscode.commands.executeCommand("workbench.viewsService.openView", "auraGithubRanking", true);
     }),
+    vscode.commands.registerCommand("aura.openRankingSettings", async () => {
+      RankingSettingsPanel.createOrShow(context.extensionUri);
+    }),
     vscode.commands.registerCommand("aura.checkHealth", async () => {
       await vscode.window.withProgress(
         { location: vscode.ProgressLocation.Window, title: "Aura: Checking health" },
@@ -172,11 +231,115 @@ export async function activate(context: vscode.ExtensionContext) {
         }
       );
     }),
+    vscode.commands.registerCommand("aura.ollama.listModels", async () => {
+      try {
+        const models = await ollamaService.listModels();
+        if (!models.length) {
+          vscode.window.showInformationMessage("No models found on Ollama.");
+          return;
+        }
+        const pick = await vscode.window.showQuickPick(models.map(m => ({
+          label: m.name || m.model,
+          description: m.model,
+        })), { placeHolder: "Installed Ollama models" });
+        if (pick) {
+          vscode.window.showInformationMessage(`Selected model: ${pick.label}`);
+        }
+        ollamaTree.refresh();
+        void refreshOllamaStatus();
+      } catch (e: any) {
+        vscode.window.showErrorMessage(`Failed to list models: ${e?.message || e}`);
+      }
+    }),
+    vscode.commands.registerCommand("aura.ollama.pullModel", async () => {
+      const name = await vscode.window.showInputBox({ prompt: "Enter model to pull (e.g., llama3.1:8b)" });
+      if (!name) return;
+      try {
+        await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: `Pulling ${name}...` }, async (progress) => {
+          let lastPercent = 0;
+          await ollamaService.pullModel(name, (status, prog) => {
+            statusBarItem.text = `$(sync~spin) Pull ${name}`;
+            if (prog && prog.total && prog.completed !== undefined) {
+              const pct = Math.floor((prog.completed / prog.total) * 100);
+              if (pct !== lastPercent) {
+                progress.report({ message: `${status} ${pct}%`, increment: pct - lastPercent });
+                lastPercent = pct;
+              }
+              statusBarItem.tooltip = `${status} ${pct}%`;
+            } else {
+              statusBarItem.tooltip = status;
+            }
+          });
+        });
+        statusBarItem.text = "$(check) Aura AI: Connected";
+        vscode.window.showInformationMessage(`Model pulled: ${name}`);
+        ollamaTree.refresh();
+        void refreshOllamaStatus();
+        // Persist active model
+        const cfg = vscode.workspace.getConfiguration("aura");
+        await cfg.update("ollama.activeModel", name, vscode.ConfigurationTarget.Global);
+      } catch (e: any) {
+        vscode.window.showErrorMessage(`Failed to pull model: ${e?.message || e}`);
+      }
+    }),
+    vscode.commands.registerCommand("aura.ollama.deleteModel", async () => {
+      try {
+        const models = await ollamaService.listModels();
+        if (!models.length) {
+          vscode.window.showInformationMessage("No models available to delete.");
+          return;
+        }
+        const pick = await vscode.window.showQuickPick(models.map(m => ({
+          label: m.name || m.model,
+          description: m.model,
+        })), { placeHolder: "Select a model to delete" });
+        if (!pick) return;
+        const confirm = await vscode.window.showWarningMessage(`Delete model '${pick.label}'?`, { modal: true }, "Delete");
+        if (confirm === "Delete") {
+          await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: `Deleting ${pick.label}...` }, async () => {
+            await ollamaService.deleteModel(pick.label);
+          });
+          vscode.window.showInformationMessage(`Deleted model: ${pick.label}`);
+          ollamaTree.refresh();
+          void refreshOllamaStatus();
+          const cfg = vscode.workspace.getConfiguration("aura");
+          const active = cfg.get<string>("ollama.activeModel", "");
+          if (active === pick.label) {
+            await cfg.update("ollama.activeModel", "", vscode.ConfigurationTarget.Global);
+            vscode.window.showInformationMessage("Active model cleared (deleted). Select a new one.");
+          }
+        }
+      } catch (e: any) {
+        vscode.window.showErrorMessage(`Failed to delete model: ${e?.message || e}`);
+      }
+    }),
+    vscode.commands.registerCommand("aura.ollama.refreshModels", async () => {
+      ollamaTree.refresh();
+      void refreshOllamaStatus();
+    }),
+    vscode.commands.registerCommand("aura.ollama.setActiveModel", async () => {
+      try {
+        const models = await ollamaService.listModels();
+        if (!models.length) {
+          vscode.window.showInformationMessage("No models installed to activate.");
+          return;
+        }
+        const pick = await vscode.window.showQuickPick(models.map(m => ({ label: m.name || m.model })), { placeHolder: "Select active model" });
+        if (!pick) return;
+        const cfg = vscode.workspace.getConfiguration("aura");
+        await cfg.update("ollama.activeModel", pick.label, vscode.ConfigurationTarget.Global);
+        vscode.window.showInformationMessage(`Active model set: ${pick.label}`);
+        void refreshOllamaStatus();
+      } catch (e: any) {
+        vscode.window.showErrorMessage(`Failed to set active model: ${e?.message || e}`);
+      }
+    }),
   );
 
   // Periodic health refresh every 60s (silent)
   const interval = setInterval(() => {
     void refreshHealthStatus();
+    void refreshOllamaStatus();
   }, 60000);
   context.subscriptions.push({ dispose: () => clearInterval(interval) });
 }
@@ -468,5 +631,61 @@ export function deactivate() {
   if (analyticsService) {
     analyticsService.dispose();
     analyticsService = undefined;
+  }
+}
+
+async function refreshOllamaStatus() {
+  try {
+    const models = await ollamaService.listModels();
+    const count = models.length;
+    const names = models.slice(0, 5).map(m => m.name || m.model).join(", ");
+    const cfg = vscode.workspace.getConfiguration("aura");
+    const active = cfg.get<string>("ollama.activeModel", "");
+    // Sum sizes for total installed footprint
+    let total = 0;
+    for (const m of models) total += (m.size || 0);
+    const fmt = (n: number) => {
+      const units = ["B", "KB", "MB", "GB", "TB"]; let u = 0; let v = n;
+      while (v >= 1024 && u < units.length - 1) { v /= 1024; u++; }
+      return `${v.toFixed(1)} ${units[u]}`;
+    };
+    // Attempt to determine free disk space using configured modelsPath
+    let freeInfo = "";
+    try {
+      const modelsPath = cfg.get<string>("ollama.modelsPath", "");
+      const path = await getModelsPath(modelsPath);
+      const disk = await getDiskFree(path);
+      if (disk) freeInfo = `\nDisk: ${fmt(disk.free)} free of ${fmt(disk.size)}`;
+    } catch { /* ignore */ }
+
+    ollamaStatusItem.text = `$(package) Ollama: ${count}${active ? ' • ' + active : ''}`;
+    const baseTooltip = (count ? `Installed models (${count}):\n${names}${count > 5 ? "\n…" : ""}` : "No models installed") + (active ? `\nActive: ${active}` : "");
+    ollamaStatusItem.tooltip = `${baseTooltip}\nTotal installed: ${fmt(total)}${freeInfo}`;
+  } catch (e: any) {
+    ollamaStatusItem.text = "$(error) Ollama";
+    ollamaStatusItem.tooltip = e?.message || "Ollama not reachable";
+  }
+}
+
+async function getModelsPath(configured: string): Promise<string> {
+  if (configured && configured.trim().length > 0) return configured;
+  const isWin = process.platform === 'win32';
+  const home = process.env.USERPROFILE || process.env.HOME || '';
+  return isWin ? `${home}\\.ollama\\models` : `${home}/.ollama/models`;
+}
+
+async function getDiskFree(modelsPath: string): Promise<{ free: number; size: number } | undefined> {
+  try {
+    // Dynamically require to keep extension lean
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const checkDiskSpace = require('check-disk-space').default || require('check-disk-space');
+    // Resolve drive root
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const path = require('path');
+    const root = path.parse(modelsPath).root || modelsPath;
+    const info = await checkDiskSpace(root);
+    return { free: info.free, size: info.size };
+  } catch {
+    return undefined;
   }
 }
