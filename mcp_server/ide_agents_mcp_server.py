@@ -75,6 +75,9 @@ SERVER_INSTRUCTIONS = {
         "ide_agents_health": {
             "schema": "health {}",
         },
+        "ide_agents_github_repos": {
+            "schema": "github_repos { visibility?: public|private, limit?: number }",
+        },
     },
     "resources": ["repo.graph", "kb.snippet", "build.logs"],
     "prompts": ["/diff_review", "/test_failures", "/hotfix_plan"],
@@ -203,6 +206,8 @@ class AgentsMCPServer:
             "ide_agents_server_instructions": self._handle_server_instructions,
             # Health/diagnostics
             "ide_agents_health": self._handle_health,
+            # GitHub bridge
+            "ide_agents_github_repos": self._handle_github_repos,
         }
 
         if self.config.ultra_enabled:
@@ -404,6 +409,48 @@ class AgentsMCPServer:
         result = await self.backend.ultra_calibrate(scores)
         return {"calibration": result}
 
+    async def _handle_github_repos(self, arguments: Dict[str, Any]) -> Dict[str, Any]:
+        token = os.getenv("GITHUB_TOKEN") or os.getenv("GITHUB_PERSONAL_ACCESS_TOKEN")
+        if not token:
+            raise ValueError(
+                "Missing GitHub token in env: set GITHUB_TOKEN or GITHUB_PERSONAL_ACCESS_TOKEN"
+            )
+        visibility = arguments.get("visibility")
+        if visibility not in (None, "public", "private"):
+            raise ValueError("visibility must be one of: public, private")
+        limit = arguments.get("limit", 25)
+        try:
+            limit = int(limit)
+        except Exception:
+            raise ValueError("limit must be a number")
+        if limit <= 0:
+            limit = 1
+        if limit > 100:
+            limit = 100
+        headers = {
+            "Authorization": f"Bearer {token}",
+            "Accept": "application/vnd.github+json",
+        }
+        params: Dict[str, Any] = {"per_page": 100}
+        if visibility:
+            params["visibility"] = visibility
+        async with httpx.AsyncClient(base_url="https://api.github.com") as client:
+            resp = await client.get("/user/repos", headers=headers, params=params)
+            resp.raise_for_status()
+            data = resp.json()
+        items = []
+        for repo in data:
+            items.append(
+                {
+                    "name": repo.get("name"),
+                    "full_name": repo.get("full_name"),
+                    "private": bool(repo.get("private")),
+                    "html_url": repo.get("html_url"),
+                    "description": repo.get("description"),
+                }
+            )
+        return {"repos": items[:limit]}
+
     async def list_tools(self) -> List[Dict[str, Any]]:
         """Expose tool metadata for MCP discovery."""
 
@@ -431,6 +478,9 @@ class AgentsMCPServer:
             "ide_agents_prompt": "List/get registered slash prompts for workflows.",
             "ide_agents_server_instructions": "Return server instructions and version.",
             "ide_agents_health": "Quick diagnostics returning ok, version, and flags.",
+            "ide_agents_github_repos": (
+                "List your GitHub repositories (public/private) with basic fields."
+            ),
         }
         return descriptions.get(name, "IDE Agents MCP tool")
 
@@ -485,6 +535,13 @@ class AgentsMCPServer:
             },
             "ide_agents_server_instructions": {"type": "object", "properties": {}},
             "ide_agents_health": {"type": "object", "properties": {}},
+            "ide_agents_github_repos": {
+                "type": "object",
+                "properties": {
+                    "visibility": {"type": "string", "enum": ["public", "private"]},
+                    "limit": {"type": "number"},
+                },
+            },
         }
         return schemas.get(name, {"type": "object"})
 
