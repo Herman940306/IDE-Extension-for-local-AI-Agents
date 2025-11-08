@@ -208,13 +208,43 @@ class AgentsMCPServer:
                 }
             )
 
-        # Register tools using fallback API (register_tool). FastMCP dynamic API disabled.
-        for tool_name, handler in self.tool_handlers.items():
-            async def wrapper(
-                arguments: Dict[str, Any], _h: ToolHandler = handler
-            ) -> Dict[str, Any]:
-                return await _h(arguments)
-            self.server.register_tool(tool_name, wrapper)
+        # Register tools using FastMCP dynamic API when available, otherwise legacy API.
+        srv_any: Any = self.server  # type: ignore[assignment]
+        if hasattr(srv_any, "tool") or hasattr(srv_any, "add_tool"):
+            for tool_name in list(self.tool_handlers.keys()):
+
+                def _make_wrapper(name: str):
+                    async def _wrapper(**kwargs: Any) -> Dict[str, Any]:
+                        return await self._dispatch_tool_call(name, dict(kwargs))
+
+                    return _wrapper
+
+                wrapper_fn = _make_wrapper(tool_name)
+                desc = self._describe_tool(tool_name)
+                tool_deco = getattr(srv_any, "tool", None)
+                add_tool_fn = getattr(srv_any, "add_tool", None)
+                if callable(tool_deco):
+                    decorated = tool_deco(
+                        name=tool_name, title=tool_name, description=desc
+                    )
+                    if callable(decorated):
+                        decorated(wrapper_fn)
+                elif callable(add_tool_fn):
+                    add_tool_fn(
+                        wrapper_fn,
+                        name=tool_name,
+                        title=tool_name,
+                        description=desc,
+                    )
+        else:
+            for tool_name, handler in self.tool_handlers.items():
+
+                async def wrapper(
+                    arguments: Dict[str, Any], _h: ToolHandler = handler
+                ) -> Dict[str, Any]:
+                    return await _h(arguments)
+
+                self.server.register_tool(tool_name, wrapper)
 
     async def _dispatch_tool_call(
         self, name: str, arguments: Dict[str, Any]
