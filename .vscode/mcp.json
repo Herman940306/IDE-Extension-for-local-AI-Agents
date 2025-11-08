@@ -30,7 +30,8 @@
         // "IDE_AGENTS_BACKEND_URL": "http://127.0.0.1:8001",
         // "IDE_AGENTS_REQUEST_TIMEOUT": "30",
         "IDE_AGENTS_ULTRA_ENABLED": "1",
-        "IDE_AGENTS_ULTRA_CONFIG": "${workspaceFolder}\\mcp_server\\ide_ultra_config.json"
+        "IDE_AGENTS_ULTRA_CONFIG": "${workspaceFolder}\\mcp_server\\ide_ultra_config.json",
+        "PYTHONPATH": "${workspaceFolder}"
       }
     }
   }
