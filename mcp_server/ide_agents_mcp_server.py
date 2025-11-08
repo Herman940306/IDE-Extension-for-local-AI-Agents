@@ -25,7 +25,9 @@ from typing import Any, Awaitable, Callable, Dict, Iterable, List, Optional
 import httpx
 
 try:
-    from mcp.server.fastmcp import FastMCPServer
+    from mcp.server.fastmcp import FastMCP as FastMCPServer
+
+    _FAST_MCP = True
 except Exception:  # pragma: no cover - fallback for test environment
 
     class FastMCPServer:  # type: ignore[misc]
@@ -206,15 +208,13 @@ class AgentsMCPServer:
                 }
             )
 
-        for name in self.tool_handlers:
-            # Wrap each handler so FastMCPServer receives only the arguments dict
-            # and we retain the tool name context internally.
-            async def _wrapper(
-                arguments: Dict[str, Any], _tool_name: str = name
+        # Register tools using fallback API (register_tool). FastMCP dynamic API disabled.
+        for tool_name, handler in self.tool_handlers.items():
+            async def wrapper(
+                arguments: Dict[str, Any], _h: ToolHandler = handler
             ) -> Dict[str, Any]:
-                return await self._dispatch_tool_call(_tool_name, arguments)
-
-            self.server.register_tool(name, _wrapper)
+                return await _h(arguments)
+            self.server.register_tool(tool_name, wrapper)
 
     async def _dispatch_tool_call(
         self, name: str, arguments: Dict[str, Any]
