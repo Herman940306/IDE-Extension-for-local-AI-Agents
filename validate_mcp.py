@@ -17,6 +17,7 @@ async def validate_ide_agents(
     include: list[str] | None = None,
     exclude: list[str] | None = None,
     top: int | None = None,
+    since: str | None = None,
 ) -> dict:
     if ultra:
         os.environ["IDE_AGENTS_ULTRA_ENABLED"] = "1"
@@ -45,6 +46,8 @@ async def validate_ide_agents(
                 args["exclude"] = exclude
             if top is not None:
                 args["top"] = top
+            if since:
+                args["since"] = since
             ranking_sample = await server.call_tool(tool_name, args)
         except Exception as exc:  # noqa: BLE001
             ranking_sample = {"error": str(exc)}
@@ -95,10 +98,19 @@ async def main():
         "--ultra", action="store_true", help="Enable ULTRA path for semantic ranking"
     )
     parser.add_argument("--state", choices=["open", "closed"], default=None)
-    parser.add_argument("--include", nargs="*", default=None, help="Restrict to listed repo names")
-    parser.add_argument("--exclude", nargs="*", default=None, help="Exclude listed repo names")
+    parser.add_argument(
+        "--include", nargs="*", default=None, help="Restrict to listed repo names"
+    )
+    parser.add_argument(
+        "--exclude", nargs="*", default=None, help="Exclude listed repo names"
+    )
     parser.add_argument(
         "--top", type=int, default=None, help="Return only top N results after ranking"
+    )
+    parser.add_argument(
+        "--since",
+        default=None,
+        help="ISO8601 timestamp to filter issues/PRs updated since (e.g., 2025-10-01T00:00:00Z)",
     )
     args = parser.parse_args()
 
@@ -113,6 +125,7 @@ async def main():
         include=args.include,
         exclude=args.exclude,
         top=args.top,
+        since=args.since,
     )
     gh = await validate_github_pat()
     print(json.dumps({"ide_agents": ide, "github_pat": gh}, indent=2))

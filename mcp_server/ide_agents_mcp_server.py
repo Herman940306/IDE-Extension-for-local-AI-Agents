@@ -78,8 +78,8 @@ SERVER_INSTRUCTIONS = {
         },
         "ide_agents_github_repos": {
             "schema": (
-                "github_repos { visibility?: public|private, limit?: number, "
-                "include?: string[], exclude?: string[], top?: number }"
+                "github_repos { visibility?: public|private, limit?: number, include?: string[], "
+                "exclude?: string[], top?: number, page?: number, per_page?: number }"
             ),
         },
         "ide_agents_github_rank_repos": {
@@ -92,7 +92,7 @@ SERVER_INSTRUCTIONS = {
             "schema": (
                 "github_rank_all { query: string, visibility?: public|private, "
                 "limit?: number, state?: open|closed, include?: string[], exclude?: string[], "
-                "top?: number, items_per_repo?: number, page?: number }"
+                "top?: number, items_per_repo?: number, page?: number, since?: ISO8601 }"
             ),
         },
     },
@@ -112,6 +112,7 @@ class AgentsMCPConfig:
     request_timeout: float = 30.0
     ultra_enabled: bool = False
     ultra_mock_enabled: bool = False
+    ultra_url: Optional[str] = None
     ultra_config_path: Optional[str] = None
 
     @classmethod
@@ -123,6 +124,7 @@ class AgentsMCPConfig:
         ultra_enabled_env = os.getenv("IDE_AGENTS_ULTRA_ENABLED")
         ultra_mock_env = os.getenv("IDE_AGENTS_ULTRA_MOCK")
         ultra_config_path = os.getenv("IDE_AGENTS_ULTRA_CONFIG")
+        ultra_url_env = os.getenv("IDE_AGENTS_ULTRA_URL")
 
         timeout = cls.request_timeout
         if timeout_env:
@@ -147,6 +149,7 @@ class AgentsMCPConfig:
             ultra_enabled=ultra_enabled,
             ultra_mock_enabled=ultra_mock_enabled,
             ultra_config_path=ultra_config_path,
+            ultra_url=ultra_url_env,
         )
 
 
@@ -399,6 +402,7 @@ class AgentsMCPServer:
                     "/hotfix_plan",
                     "/rank_github_repos",
                     "/rank_github_all",
+                    "/rank_top_bug_prs",
                 ]
             }
         if method == "get":
@@ -409,6 +413,7 @@ class AgentsMCPServer:
                 "/hotfix_plan",
                 "/rank_github_repos",
                 "/rank_github_all",
+                "/rank_top_bug_prs",
             }:
                 raise ValueError("Unknown prompt name")
             file_map = {
@@ -417,6 +422,7 @@ class AgentsMCPServer:
                 "/hotfix_plan": self._prompts_dir / "hotfix_plan.md",
                 "/rank_github_repos": self._prompts_dir / "rank_github_repos.md",
                 "/rank_github_all": self._prompts_dir / "rank_github_all.md",
+                "/rank_top_bug_prs": self._prompts_dir / "rank_top_bug_prs.md",
             }
             p = file_map[name]
             return {"name": name, "content": p.read_text(encoding="utf-8")}
@@ -439,6 +445,15 @@ class AgentsMCPServer:
         candidates = arguments.get("candidates")
         if not query or not candidates:
             raise ValueError("Both query and candidates are required for ULTRA ranking")
+        # Prefer live ULTRA URL if configured
+        if self.config.ultra_url:
+            async with httpx.AsyncClient(base_url=self.config.ultra_url) as client:
+                response = await client.post(
+                    "/ai/intelligence/rank",
+                    json={"query": query, "candidates": list(candidates)},
+                )
+                response.raise_for_status()
+                return {"ranking": response.json()}
         result = await self.backend.ultra_rank(query, candidates)
         return {"ranking": result}
 
@@ -448,6 +463,14 @@ class AgentsMCPServer:
         scores = arguments.get("scores")
         if scores is None:
             raise ValueError("Scores are required for ULTRA calibration")
+        if self.config.ultra_url:
+            async with httpx.AsyncClient(base_url=self.config.ultra_url) as client:
+                response = await client.post(
+                    "/ai/intelligence/calibrate",
+                    json={"scores": list(scores)},
+                )
+                response.raise_for_status()
+                return {"calibration": response.json()}
         result = await self.backend.ultra_calibrate(scores)
         return {"calibration": result}
 
@@ -476,13 +499,25 @@ class AgentsMCPServer:
             "Authorization": f"Bearer {token}",
             "Accept": "application/vnd.github+json",
         }
-        params: Dict[str, Any] = {"per_page": 100}
-        if visibility:
-            params["visibility"] = visibility
+        # Pagination: fetch across pages until limit reached or max 3 pages.
+        per_page = 100
+        max_pages = 3
+        data: List[Dict[str, Any]] = []
         async with httpx.AsyncClient(base_url="https://api.github.com") as client:
-            resp = await client.get("/user/repos", headers=headers, params=params)
-            resp.raise_for_status()
-            data = resp.json()
+            for page in range(1, max_pages + 1):
+                if len(data) >= limit:
+                    break
+                params: Dict[str, Any] = {"per_page": per_page, "page": page}
+                if visibility:
+                    params["visibility"] = visibility
+                resp = await client.get("/user/repos", headers=headers, params=params)
+                resp.raise_for_status()
+                batch = resp.json()
+                if not isinstance(batch, list) or not batch:
+                    break
+                data.extend(batch)
+                if len(batch) < per_page:
+                    break
         items = []
         for repo in data:
             items.append(
@@ -500,7 +535,11 @@ class AgentsMCPServer:
             )
         # Apply include/exclude filters
         if include:
-            items = [i for i in items if i.get("name") in include or i.get("full_name") in include]
+            items = [
+                i
+                for i in items
+                if i.get("name") in include or i.get("full_name") in include
+            ]
         if exclude:
             items = [
                 i
@@ -538,6 +577,7 @@ class AgentsMCPServer:
                 candidates.append(f"{r.get('full_name')}: {desc}")
             # Mock path
             if getattr(self.config, "ultra_mock_enabled", False):
+
                 def mock_score(q: str, text: str) -> float:
                     q_words = {w for w in q.lower().split() if w}
                     t_words = {w for w in text.lower().split() if w}
@@ -560,13 +600,23 @@ class AgentsMCPServer:
                 )
                 return {"ranking": results}
             try:
-                ranked = await self.backend.ultra_rank(query, candidates)
+                if self.config.ultra_url:
+                    async with httpx.AsyncClient(base_url=self.config.ultra_url) as client:
+                        resp = await client.post(
+                            "/ai/intelligence/rank",
+                            json={"query": query, "candidates": candidates},
+                        )
+                        resp.raise_for_status()
+                        ranked = resp.json()
+                else:
+                    ranked = await self.backend.ultra_rank(query, candidates)
                 # Expect a list of {index|candidate|score}. Normalize to include repo metadata.
                 items_by_candidate = {c: repos[i] for i, c in enumerate(candidates)}
                 collected: List[Dict[str, Any]] = []
-                for entry in ranked.get(
-                    "ranking", ranked if isinstance(ranked, list) else []
-                ):
+                ranked_list = (
+                    ranked.get("ranking", ranked) if isinstance(ranked, dict) else ranked
+                )
+                for entry in ranked_list:
                     candidate = (
                         entry.get("candidate") if isinstance(entry, dict) else None
                     )
@@ -621,7 +671,9 @@ class AgentsMCPServer:
                 "repos": len(repos),
             },
         )
-        return {"ranking": [{"repo": r, "score": heuristic_score(r)} for r in ranked_repos]}
+        return {
+            "ranking": [{"repo": r, "score": heuristic_score(r)} for r in ranked_repos]
+        }
 
     async def _handle_github_rank_all(
         self, arguments: Dict[str, Any]
@@ -651,6 +703,7 @@ class AgentsMCPServer:
             raise ValueError("state must be one of: open, closed")
         items_per_repo = arguments.get("items_per_repo", 30)
         page = arguments.get("page", 1)
+        since = arguments.get("since")
         try:
             items_per_repo = int(items_per_repo)
         except Exception:
@@ -669,9 +722,17 @@ class AgentsMCPServer:
             full = r.get("full_name")
             if not full:
                 return []
-            params = {"state": state_filter or "open", "per_page": items_per_repo, "page": page}
+            params = {
+                "state": state_filter or "open",
+                "per_page": items_per_repo,
+                "page": page,
+            }
+            if since:
+                params["since"] = since
             try:
-                async with httpx.AsyncClient(base_url="https://api.github.com") as client:
+                async with httpx.AsyncClient(
+                    base_url="https://api.github.com"
+                ) as client:
                     resp = await client.get(
                         f"/repos/{full}/issues", headers=headers, params=params
                     )
@@ -736,6 +797,7 @@ class AgentsMCPServer:
                 candidates.append(text)
                 candidate_map[text] = item
             if getattr(self.config, "ultra_mock_enabled", False):
+
                 def mock_score(q: str, text: str) -> float:
                     q_words = {w for w in q.lower().split() if w}
                     t_words = {w for w in text.lower().split() if w}
@@ -777,7 +839,16 @@ class AgentsMCPServer:
                         pass
                 return {"ranking": scored}
             try:
-                ranked = await self.backend.ultra_rank(query, candidates)
+                if self.config.ultra_url:
+                    async with httpx.AsyncClient(base_url=self.config.ultra_url) as client:
+                        resp = await client.post(
+                            "/ai/intelligence/rank",
+                            json={"query": query, "candidates": candidates},
+                        )
+                        resp.raise_for_status()
+                        ranked = resp.json()
+                else:
+                    ranked = await self.backend.ultra_rank(query, candidates)
                 raw_entries = ranked.get(
                     "ranking", ranked if isinstance(ranked, list) else []
                 )
@@ -1021,6 +1092,8 @@ class AgentsMCPServer:
                     "include": {"type": "array", "items": {"type": "string"}},
                     "exclude": {"type": "array", "items": {"type": "string"}},
                     "top": {"type": "number"},
+                    "page": {"type": "number"},
+                    "per_page": {"type": "number"},
                 },
             },
             "ide_agents_github_rank_repos": {
@@ -1048,6 +1121,7 @@ class AgentsMCPServer:
                     "top": {"type": "number"},
                     "items_per_repo": {"type": "number"},
                     "page": {"type": "number"},
+                    "since": {"type": "string"},
                 },
             },
         }

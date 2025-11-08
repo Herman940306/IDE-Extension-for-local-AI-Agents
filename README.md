@@ -64,6 +64,32 @@ The project is stable and fully functional for end-to-end testing. The backend s
 - Overview: [docs/overview.md](docs/overview.md)
 - Product Requirements (PRD): Internal document (local-only; not included in the public repo)
 
+### MCP GitHub Ranking Tools
+
+These tools run via the local IDE Agents MCP server. Configure GitHub PAT in your environment and, optionally, ULTRA:
+
+- `GITHUB_TOKEN` (required)
+- `IDE_AGENTS_ULTRA_ENABLED=1` to enable semantic ranking
+- `IDE_AGENTS_ULTRA_MOCK=1` to simulate semantic ranking without a backend
+- `IDE_AGENTS_ULTRA_URL=https://your-ultra-host` to use a live ULTRA service
+
+Examples (from repo root on Windows PowerShell):
+
+```powershell
+$env:PYTHONPATH = (Get-Location).Path
+.\.venv-2\Scripts\python.exe .\validate_mcp.py --query "ai agents" --visibility public --limit 50 --top 10
+
+$env:IDE_AGENTS_ULTRA_ENABLED = '1'
+$env:IDE_AGENTS_ULTRA_MOCK = '1'
+.\.venv-2\Scripts\python.exe .\validate_mcp.py --query "bug fix" --all --state open --items_per_repo 20 --top 15 --since 2025-10-01T00:00:00Z
+```
+
+You can also invoke curated prompts in the MCP client UI:
+
+- `/rank_github_repos`
+- `/rank_github_all`
+- `/rank_top_bug_prs`
+
 ## RAG v2 configuration and observability
 
 RAG v2 is available behind feature flags and integrates hybrid fusion retrieval, optional reranking, and lightweight observability.

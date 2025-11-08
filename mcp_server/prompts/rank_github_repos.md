@@ -2,7 +2,14 @@
 
 Goal: Rank my GitHub repositories by relevance to a query.
 
+Advanced Args:
+
+- `page` / `per_page`: control pagination when enumerating repos.
+- `include` / `exclude`: focus or remove specific repos.
+- `top`: truncate result list after ranking.
+
 Usage:
+
 - Tool: `ide_agents_github_rank_repos`
 - Args:
   - `query` (string): what you’re looking for (e.g., "ai agents")
@@ -12,7 +19,8 @@ Usage:
   - `top` (number, optional): return top-N results after ranking
 
 Example:
-```
+
+```json
 /ask ide_agents_github_rank_repos {
   "query": "ai agents",
   "visibility": "public",
@@ -22,5 +30,6 @@ Example:
 ```
 
 Notes:
+
 - If ULTRA is enabled, semantic ranking is applied. Otherwise a heuristic fallback is used.
 - Set `IDE_AGENTS_ULTRA_ENABLED=1` (and optionally `IDE_AGENTS_ULTRA_MOCK=1`) before invoking.
