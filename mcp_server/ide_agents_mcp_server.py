@@ -18,6 +18,7 @@ import asyncio
 import json
 import logging
 import os
+from datetime import datetime, timezone
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Awaitable, Callable, Dict, Iterable, List, Optional
@@ -77,6 +78,18 @@ SERVER_INSTRUCTIONS = {
         },
         "ide_agents_github_repos": {
             "schema": "github_repos { visibility?: public|private, limit?: number }",
+        },
+        "ide_agents_github_rank_repos": {
+            "schema": (
+                "github_rank_repos { query: string, visibility?: public|private, "
+                "limit?: number }"
+            ),
+        },
+        "ide_agents_github_rank_all": {
+            "schema": (
+                "github_rank_all { query: string, visibility?: public|private, "
+                "limit?: number }"
+            ),
         },
     },
     "resources": ["repo.graph", "kb.snippet", "build.logs"],
@@ -208,6 +221,8 @@ class AgentsMCPServer:
             "ide_agents_health": self._handle_health,
             # GitHub bridge
             "ide_agents_github_repos": self._handle_github_repos,
+            "ide_agents_github_rank_repos": self._handle_github_rank_repos,
+            "ide_agents_github_rank_all": self._handle_github_rank_all,
         }
 
         if self.config.ultra_enabled:
@@ -447,9 +462,268 @@ class AgentsMCPServer:
                     "private": bool(repo.get("private")),
                     "html_url": repo.get("html_url"),
                     "description": repo.get("description"),
+                    "stargazers_count": repo.get("stargazers_count", 0),
+                    "watchers_count": repo.get("watchers_count", 0),
+                    "forks_count": repo.get("forks_count", 0),
+                    "updated_at": repo.get("updated_at"),
                 }
             )
         return {"repos": items[:limit]}
+
+    async def _handle_github_rank_repos(
+        self, arguments: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        query = arguments.get("query")
+        if not query:
+            raise ValueError("Missing required argument: query")
+        # Reuse fetch logic
+        repos_result = await self._handle_github_repos(arguments)
+        repos: List[Dict[str, Any]] = repos_result.get("repos", [])
+        if not repos:
+            return {"ranking": []}
+
+        # ULTRA path: rank by semantic relevance using name + description
+        if self.config.ultra_enabled:
+            candidates: List[str] = []
+            for r in repos:
+                desc = r.get("description") or ""
+                candidates.append(f"{r.get('full_name')}: {desc}")
+            try:
+                ranked = await self.backend.ultra_rank(query, candidates)
+                # Expect a list of {index|candidate|score}. Normalize to include repo metadata.
+                items_by_candidate = {c: repos[i] for i, c in enumerate(candidates)}
+                collected: List[Dict[str, Any]] = []
+                for entry in ranked.get(
+                    "ranking", ranked if isinstance(ranked, list) else []
+                ):
+                    candidate = (
+                        entry.get("candidate") if isinstance(entry, dict) else None
+                    )
+                    score = entry.get("score") if isinstance(entry, dict) else None
+                    if candidate in items_by_candidate:
+                        item = items_by_candidate[candidate]
+                        collected.append({"repo": item, "score": score})
+                if collected:
+                    return {"ranking": collected}
+            except Exception as exc:  # noqa: BLE001
+                logger.warning(
+                    "ULTRA ranking failed, using heuristic fallback: %s", exc
+                )
+
+        # Heuristic fallback: stars, recent update, description match
+        def heuristic_score(r: Dict[str, Any]) -> float:
+            stars = int(r.get("stargazers_count", 0) or 0)
+            forks = int(r.get("forks_count", 0) or 0)
+            desc = (r.get("description") or "").lower()
+            q = str(query).lower()
+            match = (
+                1.0
+                if q and (q in desc or q in str(r.get("full_name", "")).lower())
+                else 0.0
+            )
+            # simple combo: stars weight 1.0, forks 0.3, match 5.0
+            return stars * 1.0 + forks * 0.3 + match * 5.0
+
+        ranked_repos = sorted(repos, key=heuristic_score, reverse=True)
+        return {
+            "ranking": [{"repo": r, "score": heuristic_score(r)} for r in ranked_repos]
+        }
+
+    async def _handle_github_rank_all(
+        self, arguments: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        query = arguments.get("query")
+        if not query:
+            raise ValueError("Missing required argument: query")
+
+        # Get base repos (respect visibility/limit)
+        repos_result = await self._handle_github_repos(arguments)
+        repos: List[Dict[str, Any]] = repos_result.get("repos", [])
+
+        token = os.getenv("GITHUB_TOKEN") or os.getenv(
+            "GITHUB_PERSONAL_ACCESS_TOKEN"
+        )
+        if not token:
+            raise ValueError(
+                "Missing GitHub token in env: set GITHUB_TOKEN or GITHUB_PERSONAL_ACCESS_TOKEN"
+            )
+        headers = {
+            "Authorization": f"Bearer {token}",
+            "Accept": "application/vnd.github+json",
+        }
+
+        # Collect issues/PRs across a subset of repos to avoid rate explosion
+        max_repos = min(len(repos), 5)
+        max_items = 50
+        agg_items: List[Dict[str, Any]] = []
+        async with httpx.AsyncClient(base_url="https://api.github.com") as client:
+            for r in repos[:max_repos]:
+                full = r.get("full_name")
+                if not full:
+                    continue
+                try:
+                    resp = await client.get(
+                        f"/repos/{full}/issues",
+                        headers=headers,
+                        params={"state": "open", "per_page": 30},
+                    )
+                    resp.raise_for_status()
+                    rows = resp.json()
+                except Exception:  # noqa: BLE001
+                    continue
+                for it in rows:
+                    # GitHub returns PRs within issues listing when 'pull_request' key present
+                    is_pr = "pull_request" in it
+                    kind = "pr" if is_pr else "issue"
+                    agg_items.append(
+                        {
+                            "type": kind,
+                            "repo": r,
+                            kind: {
+                                "number": it.get("number"),
+                                "title": it.get("title"),
+                                "body": it.get("body"),
+                                "html_url": it.get("html_url"),
+                                "comments": it.get("comments", 0),
+                                "state": it.get("state"),
+                                "updated_at": it.get("updated_at"),
+                            },
+                        }
+                    )
+                    if len(agg_items) >= max_items:
+                        break
+                if len(agg_items) >= max_items:
+                    break
+
+        # Build candidates for ULTRA if enabled
+        if self.config.ultra_enabled:
+            candidates: List[str] = []
+            candidate_map: Dict[str, Dict[str, Any]] = {}
+            for r in repos:
+                text = f"repo {r.get('full_name')}: {r.get('description') or ''}"
+                candidates.append(text)
+                candidate_map[text] = {"type": "repo", "repo": r}
+            for item in agg_items:
+                r = item["repo"]
+                if item["type"] == "issue":
+                    iss = item["issue"]
+                    text = (
+                        f"issue {r.get('full_name')} #{iss.get('number')}: "
+                        f"{iss.get('title') or ''} {iss.get('body') or ''}"
+                    )
+                else:
+                    pr = item["pr"]
+                    text = (
+                        f"pr {r.get('full_name')} #{pr.get('number')}: "
+                        f"{pr.get('title') or ''} {pr.get('body') or ''}"
+                    )
+                candidates.append(text)
+                candidate_map[text] = item
+            try:
+                ranked = await self.backend.ultra_rank(query, candidates)
+                raw_entries = ranked.get(
+                    "ranking", ranked if isinstance(ranked, list) else []
+                )
+                results: List[Dict[str, Any]] = []
+                scores: List[float] = []
+                for entry in raw_entries:
+                    cand = entry.get("candidate") if isinstance(entry, dict) else None
+                    score = entry.get("score") if isinstance(entry, dict) else None
+                    if cand in candidate_map and isinstance(score, (int, float)):
+                        scores.append(float(score))
+                # Normalize scores 0..10
+                norm_results: List[Dict[str, Any]] = []
+                smin = min(scores) if scores else 0.0
+                smax = max(scores) if scores else 1.0
+                denom = (smax - smin) or 1.0
+                for entry in raw_entries:
+                    cand = entry.get("candidate") if isinstance(entry, dict) else None
+                    score = (
+                        float(entry.get("score"))
+                        if isinstance(entry, dict) and isinstance(entry.get("score"), (int, float))
+                        else None
+                    )
+                    if cand in candidate_map and score is not None:
+                        item = candidate_map[cand]
+                        norm = (score - smin) / denom * 10.0
+                        out = {"type": item["type"], "score": score, "norm_score": norm}
+                        if item["type"] == "repo":
+                            out["repo"] = item["repo"]
+                        elif item["type"] == "issue":
+                            out["repo"] = item["repo"]
+                            out["issue"] = item["issue"]
+                        else:
+                            out["repo"] = item["repo"]
+                            out["pr"] = item["pr"]
+                        norm_results.append(out)
+                if norm_results:
+                    return {"ranking": norm_results}
+            except Exception as exc:  # noqa: BLE001
+                logger.warning(
+                    "ULTRA ranking failed in rank_all, using heuristic fallback: %s",
+                    exc,
+                )
+
+        # Heuristic fallback: score repos + issues + PRs, normalize 0..10
+        def parse_dt(s: Optional[str]) -> Optional[datetime]:
+            try:
+                return datetime.strptime(str(s), "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
+            except Exception:
+                return None
+
+        def repo_score(r: Dict[str, Any]) -> float:
+            stars = int(r.get("stargazers_count", 0) or 0)
+            forks = int(r.get("forks_count", 0) or 0)
+            desc = (r.get("description") or "").lower()
+            q = str(query).lower()
+            match = 1.0 if q and (q in desc or q in str(r.get("full_name", "")).lower()) else 0.0
+            return stars * 1.0 + forks * 0.3 + match * 5.0
+
+        def issue_like_score(it: Dict[str, Any], is_pr: bool) -> float:
+            q = str(query).lower()
+            title = (it.get("title") or "").lower()
+            body = (it.get("body") or "").lower()
+            comments = int(it.get("comments", 0) or 0)
+            updated = parse_dt(it.get("updated_at"))
+            recency = 0.0
+            if updated is not None:
+                age_days = (datetime.now(timezone.utc) - updated).total_seconds() / 86400.0
+                recency = max(0.0, (30.0 - age_days) / 30.0)  # 0..1 if within last 30 days
+            match = 1.0 if (q in title or q in body) else 0.0
+            base = (
+                comments * (0.3 if is_pr else 0.2)
+                + match * 5.0
+                + recency * (3.0 if is_pr else 2.0)
+            )
+            if is_pr:
+                base += 1.0
+            return base
+
+        scored: List[Dict[str, Any]] = []
+        for r in repos:
+            scored.append({"type": "repo", "repo": r, "score": repo_score(r)})
+        for item in agg_items:
+            if item["type"] == "issue":
+                s = issue_like_score(item["issue"], False)
+                scored.append(
+                    {
+                        "type": "issue",
+                        "repo": item["repo"],
+                        "issue": item["issue"],
+                        "score": s,
+                    }
+                )
+            else:
+                s = issue_like_score(item["pr"], True)
+                scored.append({"type": "pr", "repo": item["repo"], "pr": item["pr"], "score": s})
+
+        svals = [x["score"] for x in scored] or [0.0]
+        smin, smax = min(svals), max(svals)
+        denom = (smax - smin) or 1.0
+        for x in scored:
+            x["norm_score"] = (x["score"] - smin) / denom * 10.0
+        scored.sort(key=lambda x: x["norm_score"], reverse=True)
+        return {"ranking": scored}
 
     async def list_tools(self) -> List[Dict[str, Any]]:
         """Expose tool metadata for MCP discovery."""
@@ -480,6 +754,13 @@ class AgentsMCPServer:
             "ide_agents_health": "Quick diagnostics returning ok, version, and flags.",
             "ide_agents_github_repos": (
                 "List your GitHub repositories (public/private) with basic fields."
+            ),
+            "ide_agents_github_rank_repos": (
+                "Rank your GitHub repositories by semantic relevance (ULTRA) or heuristic fallback."
+            ),
+            "ide_agents_github_rank_all": (
+                "Aggregate ranking over repositories (future: issues/PRs) via ULTRA or "
+                "heuristic fallback."
             ),
         }
         return descriptions.get(name, "IDE Agents MCP tool")
@@ -538,6 +819,24 @@ class AgentsMCPServer:
             "ide_agents_github_repos": {
                 "type": "object",
                 "properties": {
+                    "visibility": {"type": "string", "enum": ["public", "private"]},
+                    "limit": {"type": "number"},
+                },
+            },
+            "ide_agents_github_rank_repos": {
+                "type": "object",
+                "required": ["query"],
+                "properties": {
+                    "query": {"type": "string"},
+                    "visibility": {"type": "string", "enum": ["public", "private"]},
+                    "limit": {"type": "number"},
+                },
+            },
+            "ide_agents_github_rank_all": {
+                "type": "object",
+                "required": ["query"],
+                "properties": {
+                    "query": {"type": "string"},
                     "visibility": {"type": "string", "enum": ["public", "private"]},
                     "limit": {"type": "number"},
                 },
