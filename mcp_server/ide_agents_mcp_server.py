@@ -209,8 +209,11 @@ class AgentsMCPServer:
         for name in self.tool_handlers:
             # Wrap each handler so FastMCPServer receives only the arguments dict
             # and we retain the tool name context internally.
-            async def _wrapper(arguments: Dict[str, Any], _tool_name: str = name) -> Dict[str, Any]:
+            async def _wrapper(
+                arguments: Dict[str, Any], _tool_name: str = name
+            ) -> Dict[str, Any]:
                 return await self._dispatch_tool_call(_tool_name, arguments)
+
             self.server.register_tool(name, _wrapper)
 
     async def _dispatch_tool_call(
@@ -455,16 +458,6 @@ async def main() -> None:
 
     # NOTE: Do not emit any non-protocol bytes on stdout before FastMCPServer.run.
 
-    async def tool_list_provider() -> List[Dict[str, Any]]:
-        return await server.list_tools()
-
-    async def tool_executor(tool_name: str, arguments_json: str) -> Dict[str, Any]:
-        arguments = json.loads(arguments_json or "{}")
-        return await server.call_tool(tool_name, arguments)
-
-    async def shutdown_handler() -> None:
-        await server.shutdown()
-
     # Emit startup banner to stderr so MCP stdio protocol isn't polluted
     # Moved banner earlier; keep a debug note on stderr only.
     import sys as _sys
@@ -473,11 +466,10 @@ async def main() -> None:
         f"[ide-agents-mcp] Initialized (instructions {MCP_SERVER_INSTRUCTIONS_VERSION})\n"
     )
 
-    await server.server.run(
-        tool_listing=tool_list_provider,
-        tool_execution=tool_executor,
-        on_shutdown=shutdown_handler,
-    )
+    try:
+        await server.server.run()
+    finally:
+        await server.shutdown()
 
 
 if __name__ == "__main__":
