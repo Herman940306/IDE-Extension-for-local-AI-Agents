@@ -60,16 +60,16 @@ SERVER_INSTRUCTIONS = {
         "approval gating and rate limiting enabled; telemetry spans emitted to logs/."
     ),
     "tools": {
-        "ide_agents.command": {
+        "ide_agents_command": {
             "schema": "command { method: run|dry_run|explain, command, cwd?, timeout?, payload? }",
         },
-        "ide_agents.catalog": {
+        "ide_agents_catalog": {
             "schema": "catalog { method: list_entities|get_doc, query? }",
         },
-        "ide_agents.resource": {
+        "ide_agents_resource": {
             "schema": "resource { method: list|get, name? }",
         },
-        "ide_agents.prompt": {
+        "ide_agents_prompt": {
             "schema": "prompt { method: list|get, name? }",
         },
     },
@@ -187,24 +187,24 @@ class AgentsMCPServer:
         """Register tool handlers exposed via MCP."""
 
         self.tool_handlers = {
-            "ide_agents.run_command": self._handle_run_command,
-            "ide_agents.list_entities": self._handle_list_entities,
-            "ide_agents.fetch_doc": self._handle_fetch_doc,
+            "ide_agents_run_command": self._handle_run_command,
+            "ide_agents_list_entities": self._handle_list_entities,
+            "ide_agents_fetch_doc": self._handle_fetch_doc,
             # Consolidated tools (Phase 0)
-            "ide_agents.command": self._handle_command_consolidated,
-            "ide_agents.catalog": self._handle_catalog_consolidated,
+            "ide_agents_command": self._handle_command_consolidated,
+            "ide_agents_catalog": self._handle_catalog_consolidated,
             # Resources & prompts access (Phase 0)
-            "ide_agents.resource": self._handle_resource,
-            "ide_agents.prompt": self._handle_prompt,
+            "ide_agents_resource": self._handle_resource,
+            "ide_agents_prompt": self._handle_prompt,
             # Server instructions access (Phase 0)
-            "ide_agents.server_instructions": self._handle_server_instructions,
+            "ide_agents_server_instructions": self._handle_server_instructions,
         }
 
         if self.config.ultra_enabled:
             self.tool_handlers.update(
                 {
-                    "ide_agents.ultra.rank": self._handle_ultra_rank,
-                    "ide_agents.ultra.calibrate": self._handle_ultra_calibrate,
+                    "ide_agents_ultra_rank": self._handle_ultra_rank,
+                    "ide_agents_ultra_calibrate": self._handle_ultra_calibrate,
                 }
             )
 
@@ -295,13 +295,13 @@ class AgentsMCPServer:
         if method == "run":
             action_id = f"cmd:{cmd}"
             if not approval_mod.approval_queue.is_approved(
-                "ide_agents.command", action_id
+                "ide_agents_command", action_id
             ):
-                approval_mod.approval_queue.request("ide_agents.command", action_id)
+                approval_mod.approval_queue.request("ide_agents_command", action_id)
                 payload = {
                     "approval_required": True,
                     "action_id": action_id,
-                    "tool": "ide_agents.command",
+                    "tool": "ide_agents_command",
                 }
                 raise ValueError(json.dumps(payload))
         return await run_command_adapter(self, arguments)
@@ -408,22 +408,22 @@ class AgentsMCPServer:
 
     def _describe_tool(self, name: str) -> str:
         descriptions = {
-            "ide_agents.run_command": "Execute a backend command with optional payload.",
-            "ide_agents.list_entities": "List entity mappings known to the IDE agents backend.",
-            "ide_agents.fetch_doc": "Fetch documentation snippets for a requested topic.",
-            "ide_agents.ultra.rank": "Run ULTRA semantic ranking over provided candidates.",
-            "ide_agents.ultra.calibrate": "Calibrate confidence scores using ULTRA pipeline.",
-            "ide_agents.command": "Consolidated command tool supporting run|dry_run|explain.",
-            "ide_agents.catalog": "Consolidated catalog tool for list_entities|get_doc.",
-            "ide_agents.resource": "Access registered read-only resources (list|get).",
-            "ide_agents.prompt": "List/get registered slash prompts for workflows.",
-            "ide_agents.server_instructions": "Return server instructions and version.",
+            "ide_agents_run_command": "Execute a backend command with optional payload.",
+            "ide_agents_list_entities": "List entity mappings known to the IDE agents backend.",
+            "ide_agents_fetch_doc": "Fetch documentation snippets for a requested topic.",
+            "ide_agents_ultra_rank": "Run ULTRA semantic ranking over provided candidates.",
+            "ide_agents_ultra_calibrate": "Calibrate confidence scores using ULTRA pipeline.",
+            "ide_agents_command": "Consolidated command tool supporting run|dry_run|explain.",
+            "ide_agents_catalog": "Consolidated catalog tool for list_entities|get_doc.",
+            "ide_agents_resource": "Access registered read-only resources (list|get).",
+            "ide_agents_prompt": "List/get registered slash prompts for workflows.",
+            "ide_agents_server_instructions": "Return server instructions and version.",
         }
         return descriptions.get(name, "IDE Agents MCP tool")
 
     def _tool_input_schema(self, name: str) -> Dict[str, Any]:
         schemas: Dict[str, Dict[str, Any]] = {
-            "ide_agents.run_command": {
+            "ide_agents_run_command": {
                 "type": "object",
                 "required": ["command"],
                 "properties": {
@@ -431,13 +431,13 @@ class AgentsMCPServer:
                     "payload": {"type": "object"},
                 },
             },
-            "ide_agents.list_entities": {"type": "object", "properties": {}},
-            "ide_agents.fetch_doc": {
+            "ide_agents_list_entities": {"type": "object", "properties": {}},
+            "ide_agents_fetch_doc": {
                 "type": "object",
                 "required": ["topic"],
                 "properties": {"topic": {"type": "string"}},
             },
-            "ide_agents.ultra.rank": {
+            "ide_agents_ultra_rank": {
                 "type": "object",
                 "required": ["query", "candidates"],
                 "properties": {
@@ -445,7 +445,7 @@ class AgentsMCPServer:
                     "candidates": {"type": "array", "items": {"type": "string"}},
                 },
             },
-            "ide_agents.ultra.calibrate": {
+            "ide_agents_ultra_calibrate": {
                 "type": "object",
                 "required": ["scores"],
                 "properties": {
@@ -453,24 +453,24 @@ class AgentsMCPServer:
                 },
             },
             # Consolidated tools
-            "ide_agents.command": command_args_schema(),
-            "ide_agents.catalog": catalog_args_schema(),
+            "ide_agents_command": command_args_schema(),
+            "ide_agents_catalog": catalog_args_schema(),
             # Resources/prompts/instructions
-            "ide_agents.resource": {
+            "ide_agents_resource": {
                 "type": "object",
                 "properties": {
                     "method": {"type": "string", "enum": ["list", "get"]},
                     "name": {"type": "string"},
                 },
             },
-            "ide_agents.prompt": {
+            "ide_agents_prompt": {
                 "type": "object",
                 "properties": {
                     "method": {"type": "string", "enum": ["list", "get"]},
                     "name": {"type": "string"},
                 },
             },
-            "ide_agents.server_instructions": {"type": "object", "properties": {}},
+            "ide_agents_server_instructions": {"type": "object", "properties": {}},
         }
         return schemas.get(name, {"type": "object"})
 
@@ -481,15 +481,16 @@ class AgentsMCPServer:
         await self.backend.close()
 
 
-async def main() -> None:
-    """Entry point used by MCP launcher."""
+def main() -> None:
+    """Synchronous entry point.
+
+    FastMCPServer.run() manages its own event loop (anyio.run). Wrapping it
+    in asyncio.run or awaiting it caused a nested loop RuntimeError. We call
+    it directly and then perform async shutdown in a fresh loop.
+    """
     config = AgentsMCPConfig.from_env()
     server = AgentsMCPServer(config)
 
-    # NOTE: Do not emit any non-protocol bytes on stdout before FastMCPServer.run.
-
-    # Emit startup banner to stderr so MCP stdio protocol isn't polluted
-    # Moved banner earlier; keep a debug note on stderr only.
     import sys as _sys
 
     _sys.stderr.write(
@@ -497,10 +498,13 @@ async def main() -> None:
     )
 
     try:
-        await server.server.run()
+        server.server.run()  # synchronous; starts stdio processing
     finally:
-        await server.shutdown()
+        try:
+            asyncio.run(server.shutdown())
+        except Exception:  # noqa: BLE001
+            pass
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()
