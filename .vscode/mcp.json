@@ -14,13 +14,15 @@
       "command": "docker",
       "args": [
         "run", "-i", "--rm",
-        // Pass PAT securely; mapped from input below
+        // Pass PAT securely; mapped from input below to both env names
         "-e", "GITHUB_PERSONAL_ACCESS_TOKEN",
+        "-e", "GITHUB_TOKEN",
         "ghcr.io/github/github-mcp-server"
       ],
       "env": {
-        // Use VS Code input instead of raw env to avoid missing variable
-        "GITHUB_PERSONAL_ACCESS_TOKEN": "${input:github_token}"
+        // Use VS Code input; some servers expect GITHUB_TOKEN instead
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "${input:github_token}",
+        "GITHUB_TOKEN": "${input:github_token}"
       }
     },
     "github-npx": {
