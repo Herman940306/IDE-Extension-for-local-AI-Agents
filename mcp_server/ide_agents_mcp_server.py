@@ -77,23 +77,28 @@ SERVER_INSTRUCTIONS = {
             "schema": "health {}",
         },
         "ide_agents_github_repos": {
-            "schema": "github_repos { visibility?: public|private, limit?: number }",
+            "schema": (
+                "github_repos { visibility?: public|private, limit?: number, "
+                "include?: string[], exclude?: string[], top?: number }"
+            ),
         },
         "ide_agents_github_rank_repos": {
             "schema": (
                 "github_rank_repos { query: string, visibility?: public|private, "
-                "limit?: number }"
+                "limit?: number, include?: string[], exclude?: string[], top?: number }"
             ),
         },
         "ide_agents_github_rank_all": {
             "schema": (
                 "github_rank_all { query: string, visibility?: public|private, "
-                "limit?: number }"
+                "limit?: number, state?: open|closed, include?: string[], exclude?: string[], "
+                "top?: number, items_per_repo?: number, page?: number }"
             ),
         },
     },
     "resources": ["repo.graph", "kb.snippet", "build.logs"],
     "prompts": ["/diff_review", "/test_failures", "/hotfix_plan"],
+    # Extended prompts registered dynamically include ranking examples
 }
 
 logger = logging.getLogger("ide_agents.mcp")
@@ -106,6 +111,7 @@ class AgentsMCPConfig:
     backend_base_url: str = "http://127.0.0.1:8001"
     request_timeout: float = 30.0
     ultra_enabled: bool = False
+    ultra_mock_enabled: bool = False
     ultra_config_path: Optional[str] = None
 
     @classmethod
@@ -115,6 +121,7 @@ class AgentsMCPConfig:
         base_url = os.getenv("IDE_AGENTS_BACKEND_URL", default_url)
         timeout_env = os.getenv("IDE_AGENTS_REQUEST_TIMEOUT")
         ultra_enabled_env = os.getenv("IDE_AGENTS_ULTRA_ENABLED")
+        ultra_mock_env = os.getenv("IDE_AGENTS_ULTRA_MOCK")
         ultra_config_path = os.getenv("IDE_AGENTS_ULTRA_CONFIG")
 
         timeout = cls.request_timeout
@@ -130,11 +137,15 @@ class AgentsMCPConfig:
         ultra_enabled = False
         if ultra_enabled_env:
             ultra_enabled = ultra_enabled_env.lower() in {"1", "true", "yes"}
+        ultra_mock_enabled = False
+        if ultra_mock_env:
+            ultra_mock_enabled = ultra_mock_env.lower() in {"1", "true", "yes"}
 
         return cls(
             backend_base_url=base_url,
             request_timeout=timeout,
             ultra_enabled=ultra_enabled,
+            ultra_mock_enabled=ultra_mock_enabled,
             ultra_config_path=ultra_config_path,
         )
 
@@ -381,15 +392,31 @@ class AgentsMCPServer:
     async def _handle_prompt(self, arguments: Dict[str, Any]) -> Dict[str, Any]:
         method = arguments.get("method", "list")
         if method == "list":
-            return {"prompts": ["/diff_review", "/test_failures", "/hotfix_plan"]}
+            return {
+                "prompts": [
+                    "/diff_review",
+                    "/test_failures",
+                    "/hotfix_plan",
+                    "/rank_github_repos",
+                    "/rank_github_all",
+                ]
+            }
         if method == "get":
             name = arguments.get("name")
-            if name not in {"/diff_review", "/test_failures", "/hotfix_plan"}:
+            if name not in {
+                "/diff_review",
+                "/test_failures",
+                "/hotfix_plan",
+                "/rank_github_repos",
+                "/rank_github_all",
+            }:
                 raise ValueError("Unknown prompt name")
             file_map = {
                 "/diff_review": self._prompts_dir / "diff_review.md",
                 "/test_failures": self._prompts_dir / "test_failures.md",
                 "/hotfix_plan": self._prompts_dir / "hotfix_plan.md",
+                "/rank_github_repos": self._prompts_dir / "rank_github_repos.md",
+                "/rank_github_all": self._prompts_dir / "rank_github_all.md",
             }
             p = file_map[name]
             return {"name": name, "content": p.read_text(encoding="utf-8")}
@@ -442,6 +469,9 @@ class AgentsMCPServer:
             limit = 1
         if limit > 100:
             limit = 100
+        include: List[str] = arguments.get("include") or []
+        exclude: List[str] = arguments.get("exclude") or []
+        top = arguments.get("top")
         headers = {
             "Authorization": f"Bearer {token}",
             "Accept": "application/vnd.github+json",
@@ -468,11 +498,29 @@ class AgentsMCPServer:
                     "updated_at": repo.get("updated_at"),
                 }
             )
-        return {"repos": items[:limit]}
+        # Apply include/exclude filters
+        if include:
+            items = [i for i in items if i.get("name") in include or i.get("full_name") in include]
+        if exclude:
+            items = [
+                i
+                for i in items
+                if i.get("name") not in exclude and i.get("full_name") not in exclude
+            ]
+        sliced = items[:limit]
+        if top is not None:
+            try:
+                top_int = int(top)
+            except Exception:
+                top_int = None
+            if top_int and top_int > 0:
+                sliced = sliced[:top_int]
+        return {"repos": sliced}
 
     async def _handle_github_rank_repos(
         self, arguments: Dict[str, Any]
     ) -> Dict[str, Any]:
+        start_ts = asyncio.get_event_loop().time()
         query = arguments.get("query")
         if not query:
             raise ValueError("Missing required argument: query")
@@ -488,6 +536,29 @@ class AgentsMCPServer:
             for r in repos:
                 desc = r.get("description") or ""
                 candidates.append(f"{r.get('full_name')}: {desc}")
+            # Mock path
+            if getattr(self.config, "ultra_mock_enabled", False):
+                def mock_score(q: str, text: str) -> float:
+                    q_words = {w for w in q.lower().split() if w}
+                    t_words = {w for w in text.lower().split() if w}
+                    inter = len(q_words & t_words)
+                    return float(inter) / float(len(q_words) or 1)
+
+                results = [
+                    {"repo": repos[i], "score": mock_score(query, c)}
+                    for i, c in enumerate(candidates)
+                ]
+                results.sort(key=lambda x: x["score"], reverse=True)
+                telemetry.emit_span(
+                    "ide_agents_github_rank_repos",
+                    start_ts,
+                    extra={
+                        "mode": "ultra_mock",
+                        "candidates": len(candidates),
+                        "repos": len(repos),
+                    },
+                )
+                return {"ranking": results}
             try:
                 ranked = await self.backend.ultra_rank(query, candidates)
                 # Expect a list of {index|candidate|score}. Normalize to include repo metadata.
@@ -504,6 +575,15 @@ class AgentsMCPServer:
                         item = items_by_candidate[candidate]
                         collected.append({"repo": item, "score": score})
                 if collected:
+                    telemetry.emit_span(
+                        "ide_agents_github_rank_repos",
+                        start_ts,
+                        extra={
+                            "mode": "ultra_backend",
+                            "candidates": len(candidates),
+                            "repos": len(repos),
+                        },
+                    )
                     return {"ranking": collected}
             except Exception as exc:  # noqa: BLE001
                 logger.warning(
@@ -525,24 +605,37 @@ class AgentsMCPServer:
             return stars * 1.0 + forks * 0.3 + match * 5.0
 
         ranked_repos = sorted(repos, key=heuristic_score, reverse=True)
-        return {
-            "ranking": [{"repo": r, "score": heuristic_score(r)} for r in ranked_repos]
-        }
+        top = arguments.get("top")
+        if top is not None:
+            try:
+                top_int = int(top)
+                if top_int > 0:
+                    ranked_repos = ranked_repos[:top_int]
+            except Exception:
+                pass
+        telemetry.emit_span(
+            "ide_agents_github_rank_repos",
+            start_ts,
+            extra={
+                "mode": "heuristic",
+                "repos": len(repos),
+            },
+        )
+        return {"ranking": [{"repo": r, "score": heuristic_score(r)} for r in ranked_repos]}
 
     async def _handle_github_rank_all(
         self, arguments: Dict[str, Any]
     ) -> Dict[str, Any]:
+        start_ts = asyncio.get_event_loop().time()
         query = arguments.get("query")
         if not query:
             raise ValueError("Missing required argument: query")
 
-        # Get base repos (respect visibility/limit)
+        # Get base repos (respect visibility/limit/include/exclude/top on repos first)
         repos_result = await self._handle_github_repos(arguments)
         repos: List[Dict[str, Any]] = repos_result.get("repos", [])
 
-        token = os.getenv("GITHUB_TOKEN") or os.getenv(
-            "GITHUB_PERSONAL_ACCESS_TOKEN"
-        )
+        token = os.getenv("GITHUB_TOKEN") or os.getenv("GITHUB_PERSONAL_ACCESS_TOKEN")
         if not token:
             raise ValueError(
                 "Missing GitHub token in env: set GITHUB_TOKEN or GITHUB_PERSONAL_ACCESS_TOKEN"
@@ -553,47 +646,70 @@ class AgentsMCPServer:
         }
 
         # Collect issues/PRs across a subset of repos to avoid rate explosion
+        state_filter = arguments.get("state")
+        if state_filter not in (None, "open", "closed"):
+            raise ValueError("state must be one of: open, closed")
+        items_per_repo = arguments.get("items_per_repo", 30)
+        page = arguments.get("page", 1)
+        try:
+            items_per_repo = int(items_per_repo)
+        except Exception:
+            items_per_repo = 30
+        items_per_repo = max(1, min(items_per_repo, 50))
+        try:
+            page = int(page)
+        except Exception:
+            page = 1
+        page = max(1, page)
         max_repos = min(len(repos), 5)
-        max_items = 50
+        max_items_total = 50
         agg_items: List[Dict[str, Any]] = []
-        async with httpx.AsyncClient(base_url="https://api.github.com") as client:
-            for r in repos[:max_repos]:
-                full = r.get("full_name")
-                if not full:
-                    continue
-                try:
+
+        async def fetch_repo_issues(r: Dict[str, Any]) -> List[Dict[str, Any]]:
+            full = r.get("full_name")
+            if not full:
+                return []
+            params = {"state": state_filter or "open", "per_page": items_per_repo, "page": page}
+            try:
+                async with httpx.AsyncClient(base_url="https://api.github.com") as client:
                     resp = await client.get(
-                        f"/repos/{full}/issues",
-                        headers=headers,
-                        params={"state": "open", "per_page": 30},
+                        f"/repos/{full}/issues", headers=headers, params=params
                     )
                     resp.raise_for_status()
                     rows = resp.json()
-                except Exception:  # noqa: BLE001
-                    continue
-                for it in rows:
-                    # GitHub returns PRs within issues listing when 'pull_request' key present
-                    is_pr = "pull_request" in it
-                    kind = "pr" if is_pr else "issue"
-                    agg_items.append(
-                        {
-                            "type": kind,
-                            "repo": r,
-                            kind: {
-                                "number": it.get("number"),
-                                "title": it.get("title"),
-                                "body": it.get("body"),
-                                "html_url": it.get("html_url"),
-                                "comments": it.get("comments", 0),
-                                "state": it.get("state"),
-                                "updated_at": it.get("updated_at"),
-                            },
-                        }
-                    )
-                    if len(agg_items) >= max_items:
-                        break
-                if len(agg_items) >= max_items:
+            except Exception:
+                return []
+            converted: List[Dict[str, Any]] = []
+            for it in rows:
+                is_pr = "pull_request" in it
+                kind = "pr" if is_pr else "issue"
+                converted.append(
+                    {
+                        "type": kind,
+                        "repo": r,
+                        kind: {
+                            "number": it.get("number"),
+                            "title": it.get("title"),
+                            "body": it.get("body"),
+                            "html_url": it.get("html_url"),
+                            "comments": it.get("comments", 0),
+                            "state": it.get("state"),
+                            "updated_at": it.get("updated_at"),
+                        },
+                    }
+                )
+            return converted
+
+        # Parallel fetch
+        tasks = [fetch_repo_issues(r) for r in repos[:max_repos]]
+        results = await asyncio.gather(*tasks)
+        for batch in results:
+            for it in batch:
+                agg_items.append(it)
+                if len(agg_items) >= max_items_total:
                     break
+            if len(agg_items) >= max_items_total:
+                break
 
         # Build candidates for ULTRA if enabled
         if self.config.ultra_enabled:
@@ -619,12 +735,52 @@ class AgentsMCPServer:
                     )
                 candidates.append(text)
                 candidate_map[text] = item
+            if getattr(self.config, "ultra_mock_enabled", False):
+                def mock_score(q: str, text: str) -> float:
+                    q_words = {w for w in q.lower().split() if w}
+                    t_words = {w for w in text.lower().split() if w}
+                    inter = len(q_words & t_words)
+                    return float(inter) / float(len(q_words) or 1)
+
+                scored: List[Dict[str, Any]] = []
+                for cand in candidates:
+                    item = candidate_map[cand]
+                    sc = mock_score(query, cand)
+                    out = {"type": item["type"], "score": sc, "norm_score": sc * 10.0}
+                    if item["type"] == "repo":
+                        out["repo"] = item["repo"]
+                    elif item["type"] == "issue":
+                        out["repo"] = item["repo"]
+                        out["issue"] = item["issue"]
+                    else:
+                        out["repo"] = item["repo"]
+                        out["pr"] = item["pr"]
+                    scored.append(out)
+                scored.sort(key=lambda x: x["norm_score"], reverse=True)
+                telemetry.emit_span(
+                    "ide_agents_github_rank_all",
+                    start_ts,
+                    extra={
+                        "mode": "ultra_mock",
+                        "candidates": len(candidates),
+                        "repos": len(repos),
+                        "items": len(agg_items),
+                    },
+                )
+                top = arguments.get("top")
+                if top is not None:
+                    try:
+                        top_int = int(top)
+                        if top_int > 0:
+                            scored = scored[:top_int]
+                    except Exception:
+                        pass
+                return {"ranking": scored}
             try:
                 ranked = await self.backend.ultra_rank(query, candidates)
                 raw_entries = ranked.get(
                     "ranking", ranked if isinstance(ranked, list) else []
                 )
-                results: List[Dict[str, Any]] = []
                 scores: List[float] = []
                 for entry in raw_entries:
                     cand = entry.get("candidate") if isinstance(entry, dict) else None
@@ -640,7 +796,8 @@ class AgentsMCPServer:
                     cand = entry.get("candidate") if isinstance(entry, dict) else None
                     score = (
                         float(entry.get("score"))
-                        if isinstance(entry, dict) and isinstance(entry.get("score"), (int, float))
+                        if isinstance(entry, dict)
+                        and isinstance(entry.get("score"), (int, float))
                         else None
                     )
                     if cand in candidate_map and score is not None:
@@ -657,6 +814,16 @@ class AgentsMCPServer:
                             out["pr"] = item["pr"]
                         norm_results.append(out)
                 if norm_results:
+                    telemetry.emit_span(
+                        "ide_agents_github_rank_all",
+                        start_ts,
+                        extra={
+                            "mode": "ultra_backend",
+                            "candidates": len(candidates),
+                            "repos": len(repos),
+                            "items": len(agg_items),
+                        },
+                    )
                     return {"ranking": norm_results}
             except Exception as exc:  # noqa: BLE001
                 logger.warning(
@@ -667,7 +834,9 @@ class AgentsMCPServer:
         # Heuristic fallback: score repos + issues + PRs, normalize 0..10
         def parse_dt(s: Optional[str]) -> Optional[datetime]:
             try:
-                return datetime.strptime(str(s), "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
+                return datetime.strptime(str(s), "%Y-%m-%dT%H:%M:%SZ").replace(
+                    tzinfo=timezone.utc
+                )
             except Exception:
                 return None
 
@@ -676,7 +845,11 @@ class AgentsMCPServer:
             forks = int(r.get("forks_count", 0) or 0)
             desc = (r.get("description") or "").lower()
             q = str(query).lower()
-            match = 1.0 if q and (q in desc or q in str(r.get("full_name", "")).lower()) else 0.0
+            match = (
+                1.0
+                if q and (q in desc or q in str(r.get("full_name", "")).lower())
+                else 0.0
+            )
             return stars * 1.0 + forks * 0.3 + match * 5.0
 
         def issue_like_score(it: Dict[str, Any], is_pr: bool) -> float:
@@ -687,8 +860,12 @@ class AgentsMCPServer:
             updated = parse_dt(it.get("updated_at"))
             recency = 0.0
             if updated is not None:
-                age_days = (datetime.now(timezone.utc) - updated).total_seconds() / 86400.0
-                recency = max(0.0, (30.0 - age_days) / 30.0)  # 0..1 if within last 30 days
+                age_days = (
+                    datetime.now(timezone.utc) - updated
+                ).total_seconds() / 86400.0
+                recency = max(
+                    0.0, (30.0 - age_days) / 30.0
+                )  # 0..1 if within last 30 days
             match = 1.0 if (q in title or q in body) else 0.0
             base = (
                 comments * (0.3 if is_pr else 0.2)
@@ -715,7 +892,9 @@ class AgentsMCPServer:
                 )
             else:
                 s = issue_like_score(item["pr"], True)
-                scored.append({"type": "pr", "repo": item["repo"], "pr": item["pr"], "score": s})
+                scored.append(
+                    {"type": "pr", "repo": item["repo"], "pr": item["pr"], "score": s}
+                )
 
         svals = [x["score"] for x in scored] or [0.0]
         smin, smax = min(svals), max(svals)
@@ -723,6 +902,23 @@ class AgentsMCPServer:
         for x in scored:
             x["norm_score"] = (x["score"] - smin) / denom * 10.0
         scored.sort(key=lambda x: x["norm_score"], reverse=True)
+        top = arguments.get("top")
+        if top is not None:
+            try:
+                top_int = int(top)
+                if top_int > 0:
+                    scored = scored[:top_int]
+            except Exception:
+                pass
+        telemetry.emit_span(
+            "ide_agents_github_rank_all",
+            start_ts,
+            extra={
+                "mode": "heuristic",
+                "repos": len(repos),
+                "items": len(agg_items),
+            },
+        )
         return {"ranking": scored}
 
     async def list_tools(self) -> List[Dict[str, Any]]:
@@ -762,6 +958,7 @@ class AgentsMCPServer:
                 "Aggregate ranking over repositories (future: issues/PRs) via ULTRA or "
                 "heuristic fallback."
             ),
+            # New prompts will reference ranking examples
         }
         return descriptions.get(name, "IDE Agents MCP tool")
 
@@ -821,6 +1018,9 @@ class AgentsMCPServer:
                 "properties": {
                     "visibility": {"type": "string", "enum": ["public", "private"]},
                     "limit": {"type": "number"},
+                    "include": {"type": "array", "items": {"type": "string"}},
+                    "exclude": {"type": "array", "items": {"type": "string"}},
+                    "top": {"type": "number"},
                 },
             },
             "ide_agents_github_rank_repos": {
@@ -830,6 +1030,9 @@ class AgentsMCPServer:
                     "query": {"type": "string"},
                     "visibility": {"type": "string", "enum": ["public", "private"]},
                     "limit": {"type": "number"},
+                    "include": {"type": "array", "items": {"type": "string"}},
+                    "exclude": {"type": "array", "items": {"type": "string"}},
+                    "top": {"type": "number"},
                 },
             },
             "ide_agents_github_rank_all": {
@@ -839,6 +1042,12 @@ class AgentsMCPServer:
                     "query": {"type": "string"},
                     "visibility": {"type": "string", "enum": ["public", "private"]},
                     "limit": {"type": "number"},
+                    "state": {"type": "string", "enum": ["open", "closed"]},
+                    "include": {"type": "array", "items": {"type": "string"}},
+                    "exclude": {"type": "array", "items": {"type": "string"}},
+                    "top": {"type": "number"},
+                    "items_per_repo": {"type": "number"},
+                    "page": {"type": "number"},
                 },
             },
         }

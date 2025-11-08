@@ -13,6 +13,10 @@ async def validate_ide_agents(
     limit: int,
     use_all: bool,
     ultra: bool,
+    state: str | None = None,
+    include: list[str] | None = None,
+    exclude: list[str] | None = None,
+    top: int | None = None,
 ) -> dict:
     if ultra:
         os.environ["IDE_AGENTS_ULTRA_ENABLED"] = "1"
@@ -25,10 +29,22 @@ async def validate_ide_agents(
     # Attempt ranking sample if github token present
     if os.getenv("GITHUB_TOKEN") or os.getenv("GITHUB_PERSONAL_ACCESS_TOKEN"):
         try:
-            tool_name = "ide_agents_github_rank_all" if use_all else "ide_agents_github_rank_repos"
+            tool_name = (
+                "ide_agents_github_rank_all"
+                if use_all
+                else "ide_agents_github_rank_repos"
+            )
             args: dict[str, object] = {"query": query, "limit": limit}
             if visibility:
                 args["visibility"] = visibility
+            if state:
+                args["state"] = state
+            if include:
+                args["include"] = include
+            if exclude:
+                args["exclude"] = exclude
+            if top is not None:
+                args["top"] = top
             ranking_sample = await server.call_tool(tool_name, args)
         except Exception as exc:  # noqa: BLE001
             ranking_sample = {"error": str(exc)}
@@ -78,10 +94,25 @@ async def main():
     parser.add_argument(
         "--ultra", action="store_true", help="Enable ULTRA path for semantic ranking"
     )
+    parser.add_argument("--state", choices=["open", "closed"], default=None)
+    parser.add_argument("--include", nargs="*", default=None, help="Restrict to listed repo names")
+    parser.add_argument("--exclude", nargs="*", default=None, help="Exclude listed repo names")
+    parser.add_argument(
+        "--top", type=int, default=None, help="Return only top N results after ranking"
+    )
     args = parser.parse_args()
 
+    # For script demonstration we only wire basic params to internal call
     ide = await validate_ide_agents(
-        args.query, args.visibility, args.limit, args.rank_all, args.ultra
+        args.query,
+        args.visibility,
+        args.limit,
+        args.rank_all,
+        args.ultra,
+        state=args.state,
+        include=args.include,
+        exclude=args.exclude,
+        top=args.top,
     )
     gh = await validate_github_pat()
     print(json.dumps({"ide_agents": ide, "github_pat": gh}, indent=2))

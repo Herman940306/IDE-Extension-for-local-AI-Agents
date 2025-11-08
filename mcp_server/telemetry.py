@@ -21,6 +21,8 @@ class ToolSpan:
     duration_ms: int
     success: bool
     error_code: Optional[str]
+    # Extended optional fields
+    extra: Optional[dict]
 
 
 def emit_span(
@@ -29,6 +31,7 @@ def emit_span(
     method: Optional[str] = None,
     success: bool = True,
     error_code: Optional[str] = None,
+    extra: Optional[dict] = None,
 ) -> None:
     log_dir, log_file = _log_paths()
     log_dir.mkdir(parents=True, exist_ok=True)
@@ -40,6 +43,7 @@ def emit_span(
         duration_ms=int((end - start_time) * 1000),
         success=success,
         error_code=error_code,
+        extra=extra,
     )
     with log_file.open("a", encoding="utf-8") as f:
         f.write(json.dumps(asdict(span), ensure_ascii=False) + "\n")
