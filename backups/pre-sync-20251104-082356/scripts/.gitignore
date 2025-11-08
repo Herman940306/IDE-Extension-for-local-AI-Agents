@@ -1,0 +1,26 @@
+# ==============================================================================
+# Git Ignore - DevOps SSH Scripts
+# ==============================================================================
+# Project Creator: Herman Swanepoel
+# ==============================================================================
+
+# Configuration files with credentials
+config.ps1
+config.*.ps1
+!config.example.ps1
+
+# Temporary files
+*.tmp
+*.temp
+putty_commands.txt
+winscp_script.txt
+
+# Logs
+*.log
+
+# Windows
+Thumbs.db
+desktop.ini
+
+# PowerShell
+*.ps1~

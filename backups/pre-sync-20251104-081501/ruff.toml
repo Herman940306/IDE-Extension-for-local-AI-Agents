@@ -1,0 +1,20 @@
+line-length = 100
+target-version = "py311"
+
+[lint]
+select = ["E", "F", "B"]
+extend-ignore = ["E203"]
+exclude = [
+  ".git",
+  "__pycache__",
+  ".venv",
+  ".venv_new",
+  "venv",
+  "env",
+  "node_modules",
+  "htmlcov",
+  "build",
+  "dist",
+  "migrations",
+  ".pytest_cache",
+]

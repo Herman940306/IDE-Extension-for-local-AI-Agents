@@ -6,10 +6,15 @@
 import * as vscode from "vscode";
 import { AnalyticsService } from "./services/AnalyticsService";
 import { BackendService } from "./services/backendService";
+import { RankingService } from "./services/RankingService";
+import { GithubRankingTreeProvider } from "./ui/GithubRankingTreeProvider";
 
 let backendService: BackendService;
 let statusBarItem: vscode.StatusBarItem;
+let healthStatusItem: vscode.StatusBarItem;
 let analyticsService: AnalyticsService | undefined;
+let rankingService: RankingService;
+let rankingTree: GithubRankingTreeProvider;
 
 export async function activate(context: vscode.ExtensionContext) {
   console.log("🚀 Aura AI Assistant activating...");
@@ -24,8 +29,26 @@ export async function activate(context: vscode.ExtensionContext) {
   statusBarItem.show();
   context.subscriptions.push(statusBarItem);
 
+  // Health status bar (lower priority number -> left, so use 99 just left of main)
+  healthStatusItem = vscode.window.createStatusBarItem(
+    vscode.StatusBarAlignment.Right,
+    99,
+  );
+  healthStatusItem.text = "$(pulse) Health: ?";
+  healthStatusItem.tooltip = "Aura backend health unknown";
+  healthStatusItem.command = "aura.checkHealth";
+  healthStatusItem.show();
+  context.subscriptions.push(healthStatusItem);
+
   backendService = new BackendService();
   analyticsService = new AnalyticsService(context);
+  rankingService = new RankingService(context);
+  rankingTree = new GithubRankingTreeProvider();
+  const treeView = vscode.window.createTreeView("auraGithubRanking", {
+    treeDataProvider: rankingTree,
+    showCollapseAll: false,
+  });
+  context.subscriptions.push(treeView);
 
   try {
     await vscode.window.withProgress(
@@ -43,6 +66,8 @@ export async function activate(context: vscode.ExtensionContext) {
     statusBarItem.tooltip = "Connected to backend - Ready to assist!";
     vscode.window.showInformationMessage("✅ Aura AI Assistant is ready!");
     console.log("✅ Aura AI Assistant activated successfully");
+    // Initial health check
+    void refreshHealthStatus();
   } catch (error) {
     statusBarItem.text = "$(error) Aura AI: Disconnected";
     statusBarItem.tooltip = "Failed to connect to backend. Click to troubleshoot.";
@@ -109,7 +134,51 @@ export async function activate(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand("aura.explainCode", explainCode),
     vscode.commands.registerCommand("aura.fixBugs", fixBugs),
     vscode.commands.registerCommand("aura.showConnectionHelp", showConnectionHelp),
+    vscode.commands.registerCommand("aura.rankGithubRepos", async () => {
+      const cfg = vscode.workspace.getConfiguration("aura");
+      const defaultQuery = cfg.get<string>("ranking.defaultQuery", "bug fix performance");
+      const query = await vscode.window.showInputBox({
+        prompt: "Enter ranking query for your GitHub repositories",
+        value: defaultQuery,
+      });
+      if (!query) return;
+      const results = await rankingService.rankRepos(query);
+      rankingTree.refresh(results);
+      await vscode.commands.executeCommand("workbench.view.explorer");
+      await vscode.commands.executeCommand("aura.openGithubRankingView");
+    }),
+    vscode.commands.registerCommand("aura.rankGithubAll", async () => {
+      const cfg = vscode.workspace.getConfiguration("aura");
+      const defaultQuery = cfg.get<string>("ranking.defaultQuery", "bug fix performance");
+      const query = await vscode.window.showInputBox({
+        prompt: "Enter ranking query for repos + issues/PRs",
+        value: defaultQuery,
+      });
+      if (!query) return;
+      const results = await rankingService.rankAll(query);
+      rankingTree.refresh(results);
+      await vscode.commands.executeCommand("workbench.view.explorer");
+      await vscode.commands.executeCommand("aura.openGithubRankingView");
+    }),
+    vscode.commands.registerCommand("aura.openGithubRankingView", async () => {
+      await vscode.commands.executeCommand("workbench.view.explorer");
+      await vscode.commands.executeCommand("workbench.viewsService.openView", "auraGithubRanking", true);
+    }),
+    vscode.commands.registerCommand("aura.checkHealth", async () => {
+      await vscode.window.withProgress(
+        { location: vscode.ProgressLocation.Window, title: "Aura: Checking health" },
+        async () => {
+          await refreshHealthStatus(true);
+        }
+      );
+    }),
   );
+
+  // Periodic health refresh every 60s (silent)
+  const interval = setInterval(() => {
+    void refreshHealthStatus();
+  }, 60000);
+  context.subscriptions.push({ dispose: () => clearInterval(interval) });
 }
 
 async function showConnectionHelp() {
@@ -365,6 +434,29 @@ function updateStatusBar(text: string, tooltip: string) {
   if (statusBarItem) {
     statusBarItem.text = text;
     statusBarItem.tooltip = tooltip;
+  }
+}
+
+async function refreshHealthStatus(forceToast = false) {
+  if (!rankingService || !healthStatusItem) return;
+  try {
+    const start = Date.now();
+    const res = await rankingService.checkHealth({ silent: !forceToast, force: true });
+    const ms = Date.now() - start;
+    const cfg = vscode.workspace.getConfiguration("aura");
+    const ultra = cfg.get<string>("ranking.ultraMode", "local");
+    if (res.ok) {
+      healthStatusItem.text = `$(heart) OK ${ms}ms • ${ultra}`;
+      healthStatusItem.tooltip = (res.details || "Aura backend healthy") + `\nLatency: ${ms}ms\nULTRA Mode: ${ultra}\nTrace: ${res.traceId}`;
+    } else {
+      healthStatusItem.text = `$(error) Fail ${ms}ms • ${ultra}`;
+      healthStatusItem.tooltip = (res.details || "Aura backend not reachable") + `\nLatency: ${ms}ms\nULTRA Mode: ${ultra}\nTrace: ${res.traceId}`;
+    }
+  } catch (e: any) {
+    const cfg = vscode.workspace.getConfiguration("aura");
+    const ultra = cfg.get<string>("ranking.ultraMode", "local");
+    healthStatusItem.text = `$(error) Err • ${ultra}`;
+    healthStatusItem.tooltip = (e?.message || "Health check error") + `\nULTRA Mode: ${ultra}`;
   }
 }
 

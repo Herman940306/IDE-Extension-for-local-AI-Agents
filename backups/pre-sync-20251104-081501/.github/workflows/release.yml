@@ -1,0 +1,151 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - main-*
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  packages: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    name: Verify Release Tag
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Ensure tag points to main
+        run: |
+          git fetch origin main
+          if ! git merge-base --is-ancestor origin/main HEAD; then
+            echo "Release tags must be created from the current main branch." >&2
+            exit 1
+          fi
+
+  publish-backend:
+    name: Publish Backend Image
+    needs:
+      - verify
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image_digest: ${{ steps.digest.outputs.image_digest }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract image metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/aura-backend
+          tags: |
+            type=raw,value=${{ github.ref_name }}
+            type=raw,value=latest
+
+      - name: Build and push backend image
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          context: backend
+          file: backend/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+      - name: Export image digest
+        id: digest
+        run: echo "image_digest=${{ steps.build.outputs.digest }}" >> $GITHUB_OUTPUT
+
+  publish-extension:
+    name: Package VS Code Extension
+    needs:
+      - verify
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      vsix_name: ${{ steps.capture.outputs.vsix_name }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          # Remove cache to avoid path resolution issues
+          # Will still be fast since extension build is lightweight
+
+      - name: Install dependencies
+        working-directory: extension
+        run: npm ci
+
+      - name: Package VS Code extension
+        working-directory: extension
+        run: npm run package
+
+      - name: Capture VSIX filename
+        id: capture
+        working-directory: extension
+        run: |
+          VSIX_FILE=$(ls *.vsix)
+          echo "vsix_name=${VSIX_FILE}" >> $GITHUB_OUTPUT
+
+      - name: Upload VSIX artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: aura-ai-assistant-vsix
+          path: extension/${{ steps.capture.outputs.vsix_name }}
+          if-no-files-found: error
+
+  release:
+    name: Publish GitHub Release
+    needs:
+      - publish-backend
+      - publish-extension
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download VSIX artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: aura-ai-assistant-vsix
+          path: dist
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: AuraIA ${{ github.ref_name }}
+          body: |
+            ## Backend
+            - Image: `ghcr.io/${{ github.repository_owner }}/aura-backend`
+            - Digest: `${{ needs.publish-backend.outputs.image_digest }}`
+
+            ## Extension
+            - VSIX: `${{ needs.publish-extension.outputs.vsix_name }}`
+          files: dist/${{ needs.publish-extension.outputs.vsix_name }}

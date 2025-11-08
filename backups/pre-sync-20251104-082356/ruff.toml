@@ -1,0 +1,32 @@
+line-length = 100
+target-version = "py311"
+
+[lint]
+select = ["E", "F", "B"]
+extend-ignore = [
+  "E203",
+  "E501", # Temporarily ignore long lines to unblock CI; revisit after docs cleanup
+  "B904", # Except raise from err; will be enforced later
+  "B009", # getattr with constant; style-level, safe to defer
+  "E401", # multiple imports on one line (in legacy scripts)
+  "E701", # multiple statements on one line (legacy scripts)
+  "E722", # bare except in utility scripts
+]
+exclude = [
+  ".git",
+  "__pycache__",
+  ".venv",
+  ".venv_new",
+  "venv",
+  "env",
+  "node_modules",
+  "htmlcov",
+  "build",
+  "dist",
+  "migrations",
+  ".pytest_cache",
+  "work",
+  "work/**",
+  "TEST_API.py",
+  "smart-clone.py",
+]

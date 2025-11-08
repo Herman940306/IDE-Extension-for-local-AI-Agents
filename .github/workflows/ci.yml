@@ -1,6 +1,56 @@
 name: CI
 
 on:
+  push:
+    branches: ["main", "feat/*", "fix/*"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Secret scan (gitleaks)
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          args: --verbose --redact
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: npm
+
+      - name: Install dependencies (extension)
+        working-directory: extension
+        run: npm ci
+
+      - name: Type check & compile
+        working-directory: extension
+        run: npm run compile
+
+      - name: Run tests
+        working-directory: extension
+        run: npm test
+
+      - name: Package extension
+        if: success()
+        working-directory: extension
+        run: npm run package
+
+      - name: Upload VSIX artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: aura-extension-vsix
+          path: extension/*.vsix
+name: CI
+
+on:
   pull_request:
     branches:
       - main

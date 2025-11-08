@@ -1,0 +1,918 @@
+
+		F:\VScode Projects\AI Agents Integration system for VS Code\.github\
+		F:\VScode Projects\AI Agents Integration system for VS Code\.github\workflows\
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\.github\workflows\aura-devops.yml
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\.github\workflows\ci.yml
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\.github\workflows\confidentiality-guard.yml
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\.github\workflows\release.yml
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\.github\workflows\secret-scan.yml
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\.github\workflows\typecheck.yml
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\.github\workflows\weekly-heartbeat.yml
+		F:\VScode Projects\AI Agents Integration system for VS Code\.kiro\
+		F:\VScode Projects\AI Agents Integration system for VS Code\.kiro\hooks\
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\.kiro\hooks\00-unified-master-hook.kiro.hook
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\.kiro\hooks\aura-dev-master-godmode.kiro.hook
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\.kiro\hooks\enterprise-quality-checks.kiro.hook
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\.kiro\hooks\hook-config-manager.kiro.hook
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\.kiro\hooks\HOOKS_MIGRATION_GUIDE.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\.kiro\hooks\INNOVATION_FEATURES.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\.kiro\hooks\unified-quality-gate.md
+		F:\VScode Projects\AI Agents Integration system for VS Code\.kiro\settings\
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\.kiro\settings\mcp.json
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\.kiro\settings\workspace.json
+		F:\VScode Projects\AI Agents Integration system for VS Code\.kiro\specs\
+		F:\VScode Projects\AI Agents Integration system for VS Code\.kiro\specs\enterprise-ai-agents-integration\
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\.kiro\specs\enterprise-ai-agents-integration\design.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\.kiro\specs\enterprise-ai-agents-integration\requirements.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\.kiro\specs\enterprise-ai-agents-integration\tasks.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\.kiro\specs\enterprise-ai-agents-integration\TASK_22.4_COMPLETION_SUMMARY.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\.kiro\specs\enterprise-ai-agents-integration\TASK_5.2_COMPLETION_SUMMARY.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\.kiro\specs\enterprise-ai-agents-integration\TASK_5.3_COMPLETION_SUMMARY.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\.kiro\specs\enterprise-ai-agents-integration\TASK_5_COMPLETION_SUMMARY.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\.kiro\specs\enterprise-ai-agents-integration\TASK_6_COMPLETION_SUMMARY.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\.kiro\specs\enterprise-ai-agents-integration\TASK_7_COMPLETION_SUMMARY.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\.kiro\specs\enterprise-ai-agents-integration\TASK_8_COMPLETION_SUMMARY.md
+		F:\VScode Projects\AI Agents Integration system for VS Code\.kiro\specs\foundation-hardening\
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\.kiro\specs\foundation-hardening\design.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\.kiro\specs\foundation-hardening\EXECUTION_GUIDE.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\.kiro\specs\foundation-hardening\GIT_COMMIT_SUMMARY.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\.kiro\specs\foundation-hardening\IMPLEMENTATION_PROGRESS.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\.kiro\specs\foundation-hardening\MISSION_COMPLETE.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\.kiro\specs\foundation-hardening\PHASE_2_COMPLETE.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\.kiro\specs\foundation-hardening\PHASE_3_COMPLETE.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\.kiro\specs\foundation-hardening\PHASE_4_COMPLETE.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\.kiro\specs\foundation-hardening\requirements.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\.kiro\specs\foundation-hardening\SPEC_SUMMARY.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\.kiro\specs\foundation-hardening\tasks.md
+		F:\VScode Projects\AI Agents Integration system for VS Code\.kiro\specs\nextgen-architecture-v2\
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\.kiro\specs\nextgen-architecture-v2\design.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\.kiro\specs\nextgen-architecture-v2\requirements.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\.kiro\specs\nextgen-architecture-v2\tasks.md
+		F:\VScode Projects\AI Agents Integration system for VS Code\.kiro\specs\onboarding-flow\
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\.kiro\specs\onboarding-flow\COMPLETION_SUMMARY.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\.kiro\specs\onboarding-flow\design.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\.kiro\specs\onboarding-flow\IMPLEMENTATION.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\.kiro\specs\onboarding-flow\INTEGRATION_GUIDE.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\.kiro\specs\onboarding-flow\requirements.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\.kiro\specs\onboarding-flow\tasks.md
+		F:\VScode Projects\AI Agents Integration system for VS Code\.kiro\specs\system-refactoring-v1\
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\.kiro\specs\system-refactoring-v1\design.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\.kiro\specs\system-refactoring-v1\REFACTORING_PLAN.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\.kiro\specs\system-refactoring-v1\requirements.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\.kiro\specs\system-refactoring-v1\tasks.md
+		F:\VScode Projects\AI Agents Integration system for VS Code\.kiro\steering\
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\.kiro\steering\git-workflow.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\.kiro\steering\OMNIDEVGOD.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\.kiro\steering\UNIFIED_MASTER_FRAMEWORK_v3.md
+		F:\VScode Projects\AI Agents Integration system for VS Code\.vscode\
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\.vscode\extensions.json
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\.vscode\launch.json
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\.vscode\settings.json
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\.vscode\tasks.json
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\.vscode\WORKSPACE_SETUP.md
+		F:\VScode Projects\AI Agents Integration system for VS Code\assets\
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\assets\AuraIA_logo.jpg
+		F:\VScode Projects\AI Agents Integration system for VS Code\AuraIA - IDE extension\
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\AuraIA - IDE extension\AuralA_Experience_Extras.zip
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\AuraIA - IDE extension\AuralA_Human_Experience_Pack.zip
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\AuraIA - IDE extension\ReAct and ART Prompting Methods.docx
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\AuraIA - IDE extension\ReAct and ART Prompting Methods.pdf
+		F:\VScode Projects\AI Agents Integration system for VS Code\AuraIA - IDE extension\AuralA_Experience_Extras\
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\AuraIA - IDE extension\AuralA_Experience_Extras\AuralAAvatar.jsx
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\AuraIA - IDE extension\AuralA_Experience_Extras\CognitiveTraceViewer.jsx
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\AuraIA - IDE extension\AuralA_Experience_Extras\cognitive_trace_schema.json
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\AuraIA - IDE extension\AuralA_Experience_Extras\emoji_library.json
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\AuraIA - IDE extension\AuralA_Experience_Extras\emoji_library_expanded.json
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\AuraIA - IDE extension\AuralA_Experience_Extras\persona_engine.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\AuraIA - IDE extension\AuralA_Experience_Extras\persona_engine_v2.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\AuraIA - IDE extension\AuralA_Experience_Extras\README_Human_Experience.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\AuraIA - IDE extension\AuralA_Experience_Extras\tts_modulator.py
+		F:\VScode Projects\AI Agents Integration system for VS Code\AuraIA - IDE extension\AuralA_Experience_Extras\personas\
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\AuraIA - IDE extension\AuralA_Experience_Extras\personas\calm_mentor.json
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\AuraIA - IDE extension\AuralA_Experience_Extras\personas\compassionate_innovator.json
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\AuraIA - IDE extension\AuralA_Experience_Extras\personas\creative_visionary.json
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\AuraIA - IDE extension\AuralA_Experience_Extras\personas\technical_guardian.json
+		F:\VScode Projects\AI Agents Integration system for VS Code\AuraIA - IDE extension\Design\
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\AuraIA - IDE extension\Design\1761521041807.jpg
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\AuraIA - IDE extension\Design\1761524563921.jpg
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\AuraIA - IDE extension\Design\AuraIA envisioned.jpg
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\AuraIA - IDE extension\Design\AuraIA logo.jpeg
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\AuraIA - IDE extension\Design\AuraIA New Logo (1).jpg
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\AuraIA - IDE extension\Design\AuralA_Cinematic_Deck_TapStart.html
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\AuraIA - IDE extension\Design\file_00000000f850622f8195bbc214513e94 (1).png
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\AuraIA - IDE extension\Design\file_00000000f850622f8195bbc214513e94.png
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\AuraIA - IDE extension\Design\IDE_Extension_AI_Analysis.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\AuraIA - IDE extension\Design\router_v2.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\AuraIA - IDE extension\Design\Screenshot_20251027_021509_Google.jpg
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\AuraIA - IDE extension\Design\WhatsApp Audio 2025-10-25 at 08.49.08.mpeg
+		F:\VScode Projects\AI Agents Integration system for VS Code\AuraIA - IDE extension\Legal\
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\AuraIA - IDE extension\Legal\api KEY.txt
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\AuraIA - IDE extension\Legal\Commercialization_Plan-1.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\AuraIA - IDE extension\Legal\Patent_Guide.md
+		F:\VScode Projects\AI Agents Integration system for VS Code\AuraIA - IDE extension\Marketing\
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\AuraIA - IDE extension\Marketing\AuralA_Investor_Deck.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\AuraIA - IDE extension\Marketing\AuralA_Voiceover_Script.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\AuraIA - IDE extension\Marketing\Investor_Pitch_Enhanced.md
+		F:\VScode Projects\AI Agents Integration system for VS Code\AuraIA - IDE extension\Router kit\
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\AuraIA - IDE extension\Router kit\AuralA_Model_Routing_Generated.yaml
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\AuraIA - IDE extension\Router kit\AuralA_Router_Kit_Full.zip
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\AuraIA - IDE extension\Router kit\aura_metrics.json
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\AuraIA - IDE extension\Router kit\config.json
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\AuraIA - IDE extension\Router kit\README_HTTP_Router.txt
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\AuraIA - IDE extension\Router kit\README_INSTRUCTIONS.txt
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\AuraIA - IDE extension\Router kit\router.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\AuraIA - IDE extension\Router kit\router_http.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\AuraIA - IDE extension\Router kit\sample_ide_callback.js
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\AuraIA - IDE extension\Router kit\setup.py
+		F:\VScode Projects\AI Agents Integration system for VS Code\AuraIA_Persona\
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\AuraIA_Persona\AuralAAvatar.jsx
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\AuraIA_Persona\CognitiveTraceViewer.jsx
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\AuraIA_Persona\cognitive_trace_schema.json
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\AuraIA_Persona\emoji_library.json
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\AuraIA_Persona\emoji_library_expanded.json
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\AuraIA_Persona\persona_engine.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\AuraIA_Persona\persona_engine_v2.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\AuraIA_Persona\README_Human_Experience.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\AuraIA_Persona\tts_modulator.py
+		F:\VScode Projects\AI Agents Integration system for VS Code\AuraIA_Persona\personas\
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\AuraIA_Persona\personas\calm_mentor.json
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\AuraIA_Persona\personas\compassionate_innovator.json
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\AuraIA_Persona\personas\creative_visionary.json
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\AuraIA_Persona\personas\technical_guardian.json
+		F:\VScode Projects\AI Agents Integration system for VS Code\backend\
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\.dockerignore
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\.env
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\.env.example
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\.env.production.example
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\.env.staging-validation
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\.flake8
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\ADAPTIVE_PERSONALITY.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\aura_metrics.json
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\conftest.py (if it doesn't exist)
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\constraints_langchain.txt
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\coverage.json
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\DEPLOYMENT_READY.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\diagnostic_test.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\Dockerfile
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\FOCUS_MODES.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\MODEL_CONFIGURATION.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\monitor.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\pyproject.toml
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\pytest.ini
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\requirements-dev.txt
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\requirements-minimal.txt
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\requirements-ollama.txt
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\requirements.txt
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\requirements_nextgen.txt
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\run.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\run_e2e_tests.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\sitecustomize.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\TASK_1.1_COMPLETE.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\TASK_1.2_COMPLETE.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\TASK_1.3_COMPLETE.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\TASK_1_SUMMARY.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\temp_reqs.txt
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\test_adaptive_personality.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\WSL_Docker_Setup_Chat_2025-10-19_18-46-33.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\WSL_DOCKER_SOLUTION_SUMMARY.md
+		F:\VScode Projects\AI Agents Integration system for VS Code\backend\.pytest_cache\
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\.pytest_cache\.gitignore
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\.pytest_cache\CACHEDIR.TAG
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\.pytest_cache\README.md
+		F:\VScode Projects\AI Agents Integration system for VS Code\backend\.pytest_cache\v\
+		F:\VScode Projects\AI Agents Integration system for VS Code\backend\.pytest_cache\v\cache\
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\.pytest_cache\v\cache\lastfailed
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\.pytest_cache\v\cache\nodeids
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\.pytest_cache\v\cache\stepwise
+		F:\VScode Projects\AI Agents Integration system for VS Code\backend\db\
+		F:\VScode Projects\AI Agents Integration system for VS Code\backend\db\migrations\
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\db\migrations\0001_create_context_graph.sql
+		F:\VScode Projects\AI Agents Integration system for VS Code\backend\scripts\
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\scripts\check_debug_embed.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\scripts\profile_endpoints.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\scripts\run_curated_coverage.py
+		F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\main.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\models.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\__init__.py
+		F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\adapters\
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\adapters\adapter_utils.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\adapters\autogpt_adapter.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\adapters\base_adapter.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\adapters\crewai_adapter.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\adapters\superagi_adapter.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\adapters\__init__.py
+		F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\adapters\__pycache__\
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\adapters\__pycache__\adapter_utils.cpython-311.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\adapters\__pycache__\autogpt_adapter.cpython-311.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\adapters\__pycache__\base_adapter.cpython-311.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\adapters\__pycache__\crewai_adapter.cpython-311.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\adapters\__pycache__\superagi_adapter.cpython-311.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\adapters\__pycache__\__init__.cpython-311.pyc
+		F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\agents\
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\agents\bug_agent.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\agents\doc_agent.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\agents\refactor_agent.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\agents\test_agent.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\agents\__init__.py
+		F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\agents\__pycache__\
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\agents\__pycache__\bug_agent.cpython-311.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\agents\__pycache__\doc_agent.cpython-311.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\agents\__pycache__\refactor_agent.cpython-311.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\agents\__pycache__\test_agent.cpython-311-pytest-7.4.3.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\agents\__pycache__\__init__.cpython-311.pyc
+		F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\api\
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\api\exception_handlers.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\api\middleware.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\api\router_endpoints.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\api\v2_dual_process_routes.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\api\v2_routes.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\api\__init__.py
+		F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\api\__pycache__\
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\api\__pycache__\exception_handlers.cpython-311.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\api\__pycache__\middleware.cpython-311.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\api\__pycache__\router_endpoints.cpython-311.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\api\__pycache__\v2_routes.cpython-311.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\api\__pycache__\__init__.cpython-311.pyc
+		F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\config\
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\config\settings.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\config\__init__.py
+		F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\config\__pycache__\
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\config\__pycache__\settings.cpython-311.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\config\__pycache__\__init__.cpython-311.pyc
+		F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\core\
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\core\config.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\core\connection_pool.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\core\container.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\core\logging.py
+		F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\core\__pycache__\
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\core\__pycache__\config.cpython-311.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\core\__pycache__\connection_pool.cpython-311.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\core\__pycache__\container.cpython-311.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\core\__pycache__\logging.cpython-311.pyc
+		F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\memory\
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\memory\episodic_cache.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\memory\semantic_store.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\memory\__init__.py
+		F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\models\
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\models\code_smell.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\models\context.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\models\dual_process_coordinator.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\models\metric.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\models\reasoner.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\models\response.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\models\session.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\models\task.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\models\verifier.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\models\__init__.py
+		F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\models\__pycache__\
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\models\__pycache__\code_smell.cpython-311.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\models\__pycache__\context.cpython-311.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\models\__pycache__\metric.cpython-311.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\models\__pycache__\reasoner.cpython-311.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\models\__pycache__\response.cpython-311.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\models\__pycache__\session.cpython-311.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\models\__pycache__\task.cpython-311.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\models\__pycache__\verifier.cpython-311.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\models\__pycache__\__init__.cpython-311.pyc
+		F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\orchestrator\
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\orchestrator\cognitive_trace.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\orchestrator\dual_process_integration.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\orchestrator\meta_controller.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\orchestrator\meta_orchestrator.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\orchestrator\multi_model_router.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\orchestrator\reasoning_coordinator.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\orchestrator\task_router.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\orchestrator\__init__.py
+		F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\orchestrator\policies\
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\orchestrator\policies\rl_policy.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\orchestrator\policies\__init__.py
+		F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\orchestrator\__pycache__\
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\orchestrator\__pycache__\cognitive_trace.cpython-311.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\orchestrator\__pycache__\dual_process_integration.cpython-311.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\orchestrator\__pycache__\meta_controller.cpython-311.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\orchestrator\__pycache__\meta_orchestrator.cpython-311.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\orchestrator\__pycache__\multi_model_router.cpython-311.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\orchestrator\__pycache__\reasoning_coordinator.cpython-311.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\orchestrator\__pycache__\task_router.cpython-311.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\orchestrator\__pycache__\__init__.cpython-311.pyc
+		F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\services\
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\services\cloud_providers.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\services\code_smell_detector.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\services\connection_manager.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\services\context_engine.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\services\context_manager.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\services\embeddings_service.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\services\llm_manager.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\services\llm_router.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\services\llm_service.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\services\memory_service.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\services\metrics_service.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\services\mode_manager.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\services\ollama_service.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\services\output_composer.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\services\persona_adapter.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\services\predictive_cache_manager.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\services\prompt_templates.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\services\rate_limiter.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\services\response_cache.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\services\safety_layer.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\services\self_healing_manager.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\services\semantic_search.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\services\task_orchestrator.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\services\telemetry_service.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\services\__init__.py
+		F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\services\context\
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\services\context\context_engine.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\services\context\graph_store.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\services\context\utils.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\services\context\__init__.py
+		F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\services\context\__pycache__\
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\services\context\__pycache__\context_engine.cpython-311.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\services\context\__pycache__\graph_store.cpython-311.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\services\context\__pycache__\utils.cpython-311.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\services\context\__pycache__\__init__.cpython-311.pyc
+		F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\services\retrieval\
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\services\retrieval\helpers.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\services\retrieval\langchain_retrievers.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\services\retrieval\trace.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\services\retrieval\__init__.py
+		F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\services\retrieval\__pycache__\
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\services\retrieval\__pycache__\helpers.cpython-311.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\services\retrieval\__pycache__\langchain_retrievers.cpython-311.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\services\retrieval\__pycache__\trace.cpython-311.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\services\retrieval\__pycache__\__init__.cpython-311.pyc
+		F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\services\__pycache__\
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\services\__pycache__\cloud_providers.cpython-311.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\services\__pycache__\code_smell_detector.cpython-311.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\services\__pycache__\connection_manager.cpython-311.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\services\__pycache__\context_manager.cpython-311.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\services\__pycache__\embeddings_service.cpython-311.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\services\__pycache__\llm_manager.cpython-311.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\services\__pycache__\llm_router.cpython-311.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\services\__pycache__\memory_service.cpython-311.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\services\__pycache__\metrics_service.cpython-311.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\services\__pycache__\mode_manager.cpython-311.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\services\__pycache__\ollama_service.cpython-311.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\services\__pycache__\output_composer.cpython-311.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\services\__pycache__\persona_adapter.cpython-311.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\services\__pycache__\predictive_cache_manager.cpython-311.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\services\__pycache__\prompt_templates.cpython-311.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\services\__pycache__\rate_limiter.cpython-311.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\services\__pycache__\response_cache.cpython-311.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\services\__pycache__\safety_layer.cpython-311.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\services\__pycache__\semantic_search.cpython-311.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\services\__pycache__\task_orchestrator.cpython-311.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\services\__pycache__\telemetry_service.cpython-311.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\services\__pycache__\__init__.cpython-311.pyc
+		F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\utils\
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\utils\circuit_breaker.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\utils\exceptions.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\utils\parallel_file_creator.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\utils\__init__.py
+		F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\utils\__pycache__\
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\utils\__pycache__\circuit_breaker.cpython-311.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\utils\__pycache__\exceptions.cpython-311.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\utils\__pycache__\parallel_file_creator.cpython-311.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\utils\__pycache__\__init__.cpython-311.pyc
+		F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\verifier\
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\verifier\ast_checker.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\verifier\ensemble.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\verifier\provenance_store.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\verifier\__init__.py
+		F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\verifier\__pycache__\
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\verifier\__pycache__\ast_checker.cpython-311.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\verifier\__pycache__\ensemble.cpython-311.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\verifier\__pycache__\provenance_store.cpython-311.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\verifier\__pycache__\__init__.cpython-311.pyc
+		F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\worker\
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\worker\celery_app.py
+		F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\worker\__pycache__\
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\worker\__pycache__\celery_app.cpython-311.pyc
+		F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\__pycache__\
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\__pycache__\main.cpython-311.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\src\__pycache__\__init__.cpython-311.pyc
+		F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\conftest.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\test_adapter_utils.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\test_autogpt_adapter.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\test_bug_agent.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\test_context_engine_smoke.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\test_graph_store_crud.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\test_hello_world.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\test_rag_v2_switch.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\test_refactor_agent.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\test_superagi_adapter.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\test_utils.py
+		F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\integration\
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\integration\test_dual_process_integration.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\integration\test_end_to_end_router_v2.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\integration\test_rag_v2_file_watcher_updates_embeddings.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\integration\test_rag_v2_full_pipeline.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\integration\test_security_middleware.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\integration\__init__.py
+		F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\integration\__pycache__\
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\integration\__pycache__\test_dual_process_integration.cpython-311-pytest-7.4.3.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\integration\__pycache__\test_end_to_end_router_v2.cpython-311-pytest-7.4.3.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\integration\__pycache__\test_rag_v2_file_watcher_updates_embeddings.cpython-311-pytest-7.4.3.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\integration\__pycache__\test_rag_v2_full_pipeline.cpython-311-pytest-7.4.3.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\integration\__pycache__\test_security_middleware.cpython-311-pytest-7.4.3.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\integration\__pycache__\__init__.cpython-311.pyc
+		F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\performance\
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\performance\test_performance_baseline.py
+		F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\performance\__pycache__\
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\performance\__pycache__\test_performance_baseline.cpython-311-pytest-7.4.3.pyc
+		F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\unit\
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\unit\test_api_exception_handlers.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\unit\test_api_middleware.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\unit\test_api_status_endpoint.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\unit\test_ast_checker.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\unit\test_bug_agent_enhanced.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\unit\test_circuit_breaker.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\unit\test_cloud_providers_comprehensive.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\unit\test_code_smell_detector_enhanced.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\unit\test_cognitive_trace.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\unit\test_config.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\unit\test_container.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\unit\test_context_manager_comprehensive.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\unit\test_context_manager_enhanced.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\unit\test_curated_module_imports.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\unit\test_doc_agent_enhanced.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\unit\test_embeddings_service.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\unit\test_exceptions.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\unit\test_jobs_and_metrics.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\unit\test_llm_health_checks.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\unit\test_low_missing_quick_wins.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\unit\test_memory_service_enhanced.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\unit\test_meta_controller.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\unit\test_meta_orchestrator_regressions.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\unit\test_models.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\unit\test_multi_model_router.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\unit\test_parallel_file_creator.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\unit\test_persona_adapter_engine_path.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\unit\test_persona_adapter_fallback.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\unit\test_prompt_templates.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\unit\test_provenance_store.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\unit\test_rag_debug_endpoints.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\unit\test_rag_v2_memory_retrieval.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\unit\test_rag_v2_reranker_and_fusion.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\unit\test_rapid_adapters.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\unit\test_rapid_agents.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\unit\test_rapid_services.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\unit\test_rate_limiter.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\unit\test_rate_limiter_disabled.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\unit\test_reasoner_verifier_enhanced.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\unit\test_reasoning_coordinator.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\unit\test_response_cache.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\unit\test_semantic_search_service.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\unit\test_services_batch2.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\unit\test_services_critical.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\unit\test_task_orchestrator_persona_merge.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\unit\test_task_orchestrator_style_and_emoji.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\unit\test_test_agent_enhanced.py
+		F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\unit\__pycache__\
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\unit\__pycache__\test_api_exception_handlers.cpython-311-pytest-7.4.3.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\unit\__pycache__\test_api_middleware.cpython-311-pytest-7.4.3.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\unit\__pycache__\test_api_status_endpoint.cpython-311-pytest-7.4.3.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\unit\__pycache__\test_ast_checker.cpython-311-pytest-7.4.3.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\unit\__pycache__\test_bug_agent_enhanced.cpython-311-pytest-7.4.3.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\unit\__pycache__\test_circuit_breaker.cpython-311-pytest-7.4.3.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\unit\__pycache__\test_cloud_providers_comprehensive.cpython-311-pytest-7.4.3.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\unit\__pycache__\test_code_smell_detector_enhanced.cpython-311-pytest-7.4.3.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\unit\__pycache__\test_cognitive_trace.cpython-311-pytest-7.4.3.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\unit\__pycache__\test_config.cpython-311-pytest-7.4.3.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\unit\__pycache__\test_container.cpython-311-pytest-7.4.3.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\unit\__pycache__\test_context_manager_comprehensive.cpython-311-pytest-7.4.3.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\unit\__pycache__\test_context_manager_enhanced.cpython-311-pytest-7.4.3.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\unit\__pycache__\test_curated_module_imports.cpython-311-pytest-7.4.3.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\unit\__pycache__\test_doc_agent_enhanced.cpython-311-pytest-7.4.3.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\unit\__pycache__\test_embeddings_service.cpython-311-pytest-7.4.3.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\unit\__pycache__\test_exceptions.cpython-311-pytest-7.4.3.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\unit\__pycache__\test_jobs_and_metrics.cpython-311-pytest-7.4.3.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\unit\__pycache__\test_llm_health_checks.cpython-311-pytest-7.4.3.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\unit\__pycache__\test_low_missing_quick_wins.cpython-311-pytest-7.4.3.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\unit\__pycache__\test_memory_service_enhanced.cpython-311-pytest-7.4.3.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\unit\__pycache__\test_meta_controller.cpython-311-pytest-7.4.3.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\unit\__pycache__\test_meta_orchestrator_regressions.cpython-311-pytest-7.4.3.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\unit\__pycache__\test_models.cpython-311-pytest-7.4.3.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\unit\__pycache__\test_multi_model_router.cpython-311-pytest-7.4.3.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\unit\__pycache__\test_parallel_file_creator.cpython-311-pytest-7.4.3.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\unit\__pycache__\test_persona_adapter_engine_path.cpython-311-pytest-7.4.3.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\unit\__pycache__\test_persona_adapter_fallback.cpython-311-pytest-7.4.3.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\unit\__pycache__\test_prompt_templates.cpython-311-pytest-7.4.3.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\unit\__pycache__\test_provenance_store.cpython-311-pytest-7.4.3.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\unit\__pycache__\test_rag_debug_endpoints.cpython-311-pytest-7.4.3.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\unit\__pycache__\test_rag_v2_memory_retrieval.cpython-311-pytest-7.4.3.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\unit\__pycache__\test_rag_v2_reranker_and_fusion.cpython-311-pytest-7.4.3.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\unit\__pycache__\test_rapid_adapters.cpython-311-pytest-7.4.3.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\unit\__pycache__\test_rapid_agents.cpython-311-pytest-7.4.3.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\unit\__pycache__\test_rapid_services.cpython-311-pytest-7.4.3.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\unit\__pycache__\test_rate_limiter.cpython-311-pytest-7.4.3.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\unit\__pycache__\test_rate_limiter_disabled.cpython-311-pytest-7.4.3.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\unit\__pycache__\test_reasoner_verifier_enhanced.cpython-311-pytest-7.4.3.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\unit\__pycache__\test_reasoning_coordinator.cpython-311-pytest-7.4.3.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\unit\__pycache__\test_response_cache.cpython-311-pytest-7.4.3.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\unit\__pycache__\test_semantic_search_service.cpython-311-pytest-7.4.3.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\unit\__pycache__\test_services_batch2.cpython-311-pytest-7.4.3.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\unit\__pycache__\test_services_critical.cpython-311-pytest-7.4.3.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\unit\__pycache__\test_task_orchestrator_persona_merge.cpython-311-pytest-7.4.3.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\unit\__pycache__\test_task_orchestrator_style_and_emoji.cpython-311-pytest-7.4.3.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\unit\__pycache__\test_test_agent_enhanced.cpython-311-pytest-7.4.3.pyc
+		F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\__pycache__\
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\__pycache__\conftest.cpython-311-pytest-7.4.3.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\__pycache__\test_adapter_utils.cpython-311-pytest-7.4.3.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\__pycache__\test_autogpt_adapter.cpython-311-pytest-7.4.3.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\__pycache__\test_bug_agent.cpython-311-pytest-7.4.3.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\__pycache__\test_context_engine_smoke.cpython-311-pytest-7.4.3.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\__pycache__\test_graph_store_crud.cpython-311-pytest-7.4.3.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\__pycache__\test_hello_world.cpython-311-pytest-7.4.3.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\__pycache__\test_rag_v2_switch.cpython-311-pytest-7.4.3.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\__pycache__\test_refactor_agent.cpython-311-pytest-7.4.3.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\__pycache__\test_superagi_adapter.cpython-311-pytest-7.4.3.pyc
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\backend\tests\__pycache__\test_utils.cpython-311-pytest-7.4.3.pyc
+		F:\VScode Projects\AI Agents Integration system for VS Code\docs\
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\docs\DEPLOYMENT_RUNBOOK.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\docs\HOW_TO_VALIDATE_INSTALLATION.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\docs\overview.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\docs\project_deep_summary.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\docs\WSL_DOCKER_QUICK_START.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\docs\WSL_DOCKER_TROUBLESHOOTING_GUIDE.md
+		F:\VScode Projects\AI Agents Integration system for VS Code\docs\archive\
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\docs\archive\100_PERCENT_ACHIEVEMENT.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\docs\archive\4_MODULE_BATCH_COMPLETION_SUMMARY.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\docs\archive\ACCESSIBILITY_COMPLETION_SUMMARY.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\docs\archive\BATCH_1_2_COMPLETION_SUMMARY.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\docs\archive\BATCH_1_4_COMPLETION_SUMMARY.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\docs\archive\BATCH_IMPLEMENTATION_SUMMARY.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\docs\archive\CI_BACKEND_QUALITY_GATES_FIXED.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\docs\archive\CLOUD_PROVIDERS_92_PERCENT_ACHIEVEMENT.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\docs\archive\COMPLETION_SUMMARY.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\docs\archive\COMPREHENSIVE_TEST_RESULTS.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\docs\archive\CONTEXT_MANAGER_ACHIEVEMENT.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\docs\archive\COVERAGE_IMPROVEMENT_SUMMARY.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\docs\archive\DEBUG_STATUS.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\docs\archive\DEPLOYMENT_DRY_RUN_PLAN.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\docs\archive\DEPLOYMENT_READY_SUMMARY.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\docs\archive\DEPLOYMENT_SUCCESS.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\docs\archive\EMERGENCY_FIX.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\docs\archive\EXECUTIVE_SUMMARY.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\docs\archive\EXEC_SUMMARY_WSL_DOCKER.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\docs\archive\FINAL_DEPLOYMENT.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\docs\archive\FINAL_PROJECT_STATUS.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\docs\archive\FINAL_SESSION_SUMMARY.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\docs\archive\FIXES_APPLIED.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\docs\archive\GODMODE_EXECUTION_REPORT.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\docs\archive\GODMODE_FINAL_ACHIEVEMENT_REPORT.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\docs\archive\GODMODE_FINAL_SUMMARY.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\docs\archive\GODMODE_INSTALLATION_COMPLETE.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\docs\archive\GODMODE_ITERATION_COMPLETE.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\docs\archive\GO_NO_GO_REVIEW_2025-10-22.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\docs\archive\HOOK_INSTALLATION_SUCCESS.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\docs\archive\IMPLEMENTATION_PROGRESS.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\docs\archive\LOCAL_DEPLOY_TEST_PLAN.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\docs\archive\MODEL_UPGRADE_COMPLETE.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\docs\archive\OMNIDEVGOD_COMPREHENSIVE_TEST_REPORT.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\docs\archive\OMNIDEVGOD_SPRINT_SUMMARY.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\docs\archive\PHASE2_COMPLETE.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\docs\archive\PHASE_3_BATCH_1_COMPLETE.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\docs\archive\SPRINT_PROGRESS_UPDATE.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\docs\archive\SPRINT_SUMMARY.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\docs\archive\STEP_2_COMPLETE.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\docs\archive\STEP_3_COMPLETE_FINAL_VALIDATION.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\docs\archive\SUCCESS.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\docs\archive\V2_PHASE1_SUMMARY.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\docs\archive\V2_PHASE2_SUMMARY.md
+		F:\VScode Projects\AI Agents Integration system for VS Code\docs\grafana\
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\docs\grafana\retrieval_rag_v2_overview.json
+		F:\VScode Projects\AI Agents Integration system for VS Code\extension\
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\extension\.eslintrc.json
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\extension\.vscodeignore
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\extension\LICENSE.txt
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\extension\package-lock.json
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\extension\package.json
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\extension\README.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\extension\tsconfig.json
+		F:\VScode Projects\AI Agents Integration system for VS Code\extension\images\
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\extension\images\AuraIA_logo.jpg
+		F:\VScode Projects\AI Agents Integration system for VS Code\extension\src\
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\extension\src\extension.ts
+		F:\VScode Projects\AI Agents Integration system for VS Code\extension\src\commands\
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\extension\src\commands\onboardingCommands.ts
+		F:\VScode Projects\AI Agents Integration system for VS Code\extension\src\panels\
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\extension\src\panels\AgentDiscussionPanel.ts
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\extension\src\panels\AnalyticsDashboardPanel.ts
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\extension\src\panels\QuickStartGuide.ts
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\extension\src\panels\SetupWizard.ts
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\extension\src\panels\TourPanel.ts
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\extension\src\panels\WelcomePanel.ts
+		F:\VScode Projects\AI Agents Integration system for VS Code\extension\src\providers\
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\extension\src\providers\CodeActionProvider.ts
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\extension\src\providers\InlineSuggestionProvider.ts
+		F:\VScode Projects\AI Agents Integration system for VS Code\extension\src\services\
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\extension\src\services\AccessibilityManager.ts
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\extension\src\services\AnalyticsService.ts
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\extension\src\services\backendService.ts
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\extension\src\services\KeyboardNavigationManager.ts
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\extension\src\services\ModeToggle.ts
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\extension\src\services\OnboardingManager.ts
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\extension\src\services\TooltipManager.ts
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\extension\src\services\WebSocketClient.ts
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\extension\src\services\WorkspaceManager.ts
+		F:\VScode Projects\AI Agents Integration system for VS Code\extension\src\ui\
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\extension\src\ui\AgentStatusTreeProvider.ts
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\extension\src\ui\StatusBarManager.ts
+		F:\VScode Projects\AI Agents Integration system for VS Code\frontend\
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\frontend\cypress.config.ts
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\frontend\index.html
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\frontend\package.json
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\frontend\playwright.config.ts
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\frontend\README.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\frontend\tsconfig.json
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\frontend\tsconfig.node.json
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\frontend\vite.config.ts
+		F:\VScode Projects\AI Agents Integration system for VS Code\frontend\cypress\
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\frontend\cypress\tsconfig.json
+		F:\VScode Projects\AI Agents Integration system for VS Code\frontend\cypress\e2e\
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\frontend\cypress\e2e\smoke.cy.ts
+		F:\VScode Projects\AI Agents Integration system for VS Code\frontend\cypress\screenshots\
+		F:\VScode Projects\AI Agents Integration system for VS Code\frontend\cypress\screenshots\smoke.cy.ts\
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\frontend\cypress\screenshots\smoke.cy.ts\AuraIA smoke test -- loads the home page root (failed).png
+		F:\VScode Projects\AI Agents Integration system for VS Code\frontend\cypress\support\
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\frontend\cypress\support\e2e.ts
+		F:\VScode Projects\AI Agents Integration system for VS Code\frontend\src\
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\frontend\src\App.css
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\frontend\src\App.tsx
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\frontend\src\brand.css
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\frontend\src\main.tsx
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\frontend\src\vite-env.d.ts
+		F:\VScode Projects\AI Agents Integration system for VS Code\frontend\src\services\
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\frontend\src\services\api.ts
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\frontend\src\services\websocket.ts
+		F:\VScode Projects\AI Agents Integration system for VS Code\frontend\src\types\
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\frontend\src\types\websocket.ts
+		F:\VScode Projects\AI Agents Integration system for VS Code\frontend\test-results\
+		F:\VScode Projects\AI Agents Integration system for VS Code\frontend\test-results\smoke-AuraIA-smoke-coverag-071b6-nd-surfaces-banner-messages-chromium\
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\frontend\test-results\smoke-AuraIA-smoke-coverag-071b6-nd-surfaces-banner-messages-chromium\error-context.md
+		F:\VScode Projects\AI Agents Integration system for VS Code\frontend\test-results\smoke-AuraIA-smoke-coverag-17ad5-r-once-backend-is-reachable-chromium\
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\frontend\test-results\smoke-AuraIA-smoke-coverag-17ad5-r-once-backend-is-reachable-chromium\error-context.md
+		F:\VScode Projects\AI Agents Integration system for VS Code\frontend\test-results\smoke-AuraIA-smoke-coverag-19781-equential-messages-in-order-chromium\
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\frontend\test-results\smoke-AuraIA-smoke-coverag-19781-equential-messages-in-order-chromium\error-context.md
+		F:\VScode Projects\AI Agents Integration system for VS Code\frontend\test-results\smoke-AuraIA-smoke-coverag-20afb-feedback-without-truncation-chromium\
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\frontend\test-results\smoke-AuraIA-smoke-coverag-20afb-feedback-without-truncation-chromium\error-context.md
+		F:\VScode Projects\AI Agents Integration system for VS Code\frontend\test-results\smoke-AuraIA-smoke-coverag-24dea-fications-when-mode-changes-chromium\
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\frontend\test-results\smoke-AuraIA-smoke-coverag-24dea-fications-when-mode-changes-chromium\error-context.md
+		F:\VScode Projects\AI Agents Integration system for VS Code\frontend\test-results\smoke-AuraIA-smoke-coverag-47e6d-s-chat-entries-from-history-chromium\
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\frontend\test-results\smoke-AuraIA-smoke-coverag-47e6d-s-chat-entries-from-history-chromium\error-context.md
+		F:\VScode Projects\AI Agents Integration system for VS Code\frontend\test-results\smoke-AuraIA-smoke-coverag-6978e-chat-history-across-reloads-chromium\
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\frontend\test-results\smoke-AuraIA-smoke-coverag-6978e-chat-history-across-reloads-chromium\error-context.md
+		F:\VScode Projects\AI Agents Integration system for VS Code\frontend\test-results\smoke-AuraIA-smoke-coverag-c58ad-te-when-starting-a-new-chat-chromium\
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\frontend\test-results\smoke-AuraIA-smoke-coverag-c58ad-te-when-starting-a-new-chat-chromium\error-context.md
+		F:\VScode Projects\AI Agents Integration system for VS Code\frontend\test-results\smoke-AuraIA-smoke-coverag-cc4dd-d-surfaces-listening-banner-chromium\
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\frontend\test-results\smoke-AuraIA-smoke-coverag-cc4dd-d-surfaces-listening-banner-chromium\error-context.md
+		F:\VScode Projects\AI Agents Integration system for VS Code\frontend\test-results\smoke-AuraIA-smoke-coverag-ed42f-between-Chat-Agent-and-Edit-chromium\
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\frontend\test-results\smoke-AuraIA-smoke-coverag-ed42f-between-Chat-Agent-and-Edit-chromium\error-context.md
+		F:\VScode Projects\AI Agents Integration system for VS Code\frontend\test-results\smoke-AuraIA-smoke-coverag-ed8e0-ip-and-clears-after-sending-chromium\
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\frontend\test-results\smoke-AuraIA-smoke-coverag-ed8e0-ip-and-clears-after-sending-chromium\error-context.md
+		F:\VScode Projects\AI Agents Integration system for VS Code\frontend\test-results\smoke-AuraIA-smoke-coverage-renders-core-layout-and-branding-chromium\
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\frontend\test-results\smoke-AuraIA-smoke-coverage-renders-core-layout-and-branding-chromium\error-context.md
+		F:\VScode Projects\AI Agents Integration system for VS Code\frontend\tests\
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\frontend\tests\smoke.spec.ts
+		F:\VScode Projects\AI Agents Integration system for VS Code\frontend\tests\fixtures\
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\frontend\tests\fixtures\sample-attachment.txt
+		F:\VScode Projects\AI Agents Integration system for VS Code\monitoring\
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\monitoring\alerts.yml
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\monitoring\prometheus.yml
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\monitoring\recording-rules.yml
+		F:\VScode Projects\AI Agents Integration system for VS Code\monitoring\caddy\
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\monitoring\caddy\Caddyfile
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\monitoring\caddy\Dockerfile
+		F:\VScode Projects\AI Agents Integration system for VS Code\monitoring\dashboards\
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\monitoring\dashboards\gpu_vram_and_latency.json
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\monitoring\dashboards\jobs_and_http_metrics.json
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\monitoring\dashboards\overview.json
+		F:\VScode Projects\AI Agents Integration system for VS Code\monitoring\nginx\
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\monitoring\nginx\nginx.conf
+		F:\VScode Projects\AI Agents Integration system for VS Code\monitoring\nginx\certs\
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\monitoring\nginx\certs\.gitignore
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\monitoring\nginx\certs\.gitkeep
+		F:\VScode Projects\AI Agents Integration system for VS Code\monitoring\provisioning\
+		F:\VScode Projects\AI Agents Integration system for VS Code\monitoring\provisioning\alerting\
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\monitoring\provisioning\alerting\alert-rules.yml
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\monitoring\provisioning\alerting\contact-points.yml
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\monitoring\provisioning\alerting\notification-policies.yml
+		F:\VScode Projects\AI Agents Integration system for VS Code\monitoring\provisioning\dashboards\
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\monitoring\provisioning\dashboards\dashboard.yml
+		F:\VScode Projects\AI Agents Integration system for VS Code\monitoring\provisioning\datasources\
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\monitoring\provisioning\datasources\datasource.yml
+		F:\VScode Projects\AI Agents Integration system for VS Code\monitoring\scripts\
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\monitoring\scripts\Quick-Import-GrafanaDashboard.ps1
+		F:\VScode Projects\AI Agents Integration system for VS Code\Router kit\
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\Router kit\AuralA_Model_Routing_Generated.yaml
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\Router kit\aura_metrics.json
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\Router kit\config.json
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\Router kit\README_HTTP_Router.txt
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\Router kit\README_INSTRUCTIONS.txt
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\Router kit\router.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\Router kit\router_http.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\Router kit\sample_ide_callback.js
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\Router kit\setup.py
+		F:\VScode Projects\AI Agents Integration system for VS Code\scripts\
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\scripts\.gitignore
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\scripts\config.example.ps1
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\scripts\create-shortcut.ps1
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\scripts\DEPLOYMENT_SUMMARY.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\scripts\devops-ssh-connect.ps1
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\scripts\EXECUTION_GUIDE.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\scripts\generate_docs.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\scripts\heartbeat_check.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\scripts\Launch-WSL-Install-Elevated.ps1
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\scripts\load_health.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\scripts\pull_core_models.ps1
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\scripts\QUICKSTART.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\scripts\README.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\scripts\Setup-PreCommitConfidentiality.ps1
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\scripts\sync-kiro-global.ps1
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\scripts\sync_external_aura.ps1
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\scripts\Validate-WSL-Docker-Installation.ps1
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\scripts\verify-installation.ps1
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\scripts\WSL-Docker-SafeMode-Recovery.ps1
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\scripts\WSL-Docker-Setup-Enterprise.ps1
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\scripts\WSL2_VirtualMachinePlatform_Fix.ps1
+		F:\VScode Projects\AI Agents Integration system for VS Code\scripts\hooks\
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\scripts\hooks\block_confidential_paths.py
+		F:\VScode Projects\AI Agents Integration system for VS Code\tools\
+		F:\VScode Projects\AI Agents Integration system for VS Code\tools\gitleaks\
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\tools\gitleaks\gitleaks.exe
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\tools\gitleaks\LICENSE
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\tools\gitleaks\README.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\.agentplan.yml
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\.dockerignore
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\.editorconfig
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\.env.example
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\.flake8
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\.gitattributes
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\.gitignore
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\.gitleaks.toml
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\.pre-commit-config.yaml
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\.ruffignore
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\.yamllint.yml
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\30_SECOND_START.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\ACCESSIBILITY_IMPLEMENTATION.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\API_REFERENCE.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\ARCHITECTURE.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\ARCHITECTURE_V2_NEXTGEN.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\ATTRIBUTION.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\aura-backend-deploy.tar.gz
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\aura_metrics.json
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\automated_e2e_test.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\AUTOMATION_COMPLETE.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\BACKUP_TO_D_DRIVE.ps1
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\BATCH_2_IMPLEMENTATION_GUIDE.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\CHANGELOG.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\Check-WSL-Docker-Installation.bat
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\cleanup-automation.sh
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\COMPLETE_PORTABLE_SETUP.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\CONTRIBUTING.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\COPYRIGHT
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\deploy.sh
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\DEPLOYMENT_GUIDE.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\DEVELOPER_GUIDE.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\docker-compose.dev.yml
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\docker-compose.prod.yml
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\docker-compose.yml
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\DOCKER_SETUP_GUIDE.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\DOCKER_TESTING_GUIDE.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\EMERGENCY_BACKUP.ps1
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\ENTERPRISE_PARALLEL_FILE_CREATOR.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\EXTENSION_DEVELOPMENT.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\Fixing Windows Crashes When Enabling VirtualMachinePlatform (for WSL2).pdf
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\fix_linting_errors.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\FRONTEND_INTEGRATION.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\gitleaks-report.sarif
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\global_agent_bootstrap.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\HOW_TO_RUN.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\INSTALLED_PACKAGES.txt
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\Launch-PowerShell7-Automation.bat
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\LICENSE
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\MASTER_GODMODE_HOOK_GUIDE.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\MODEL_RECOMMENDATIONS.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\MONITORING_GUIDE.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\multi_agent_orchestrator.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\multi_phase_agent_pipeline.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\mypy.ini
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\mypy_report.txt
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\NEW_CHAT_INFO.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\ONE_CLICK_SETUP.ps1
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\Ops-OneClick.ps1
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\optimize_for_testing.ps1
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\Optional
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\PORTABLE_SETUP_COMPLETE.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\PowerShell7-Full-Automation.ps1
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\POWERSHELL7_AUTOMATION_GUIDE.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\PRIVACY_COMPLIANCE.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\PRODUCTION_CHECKLIST.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\PRODUCTION_DEPLOYMENT_GUIDE.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\PROJECT_ARCHITECTURE.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\PROJECT_SETUP.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\pull_models.ps1
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\pyrightconfig.json
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\QUICKSTART.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\QUICK_START.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\quick_test.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\README.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\README_AUTOMATION.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\README_PORTABLE.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\README_Run-WSL2-VirtualMachinePlatform-Fix-Improved.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\REDIS_EXPLAINED.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\RELEASE_NOTES.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\ruff.toml
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\Run-WSL-Diagnostics-Admin.bat
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\Run-WSL-Install-Admin.bat
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\Run-WSL-Recovery-Admin.bat
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\Run-WSL2-VirtualMachinePlatform-Fix-Improved.bat
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\Run-WSL2-VirtualMachinePlatform-Fix.bat
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\run_ollama.ps1
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\RUN_TESTS.ps1
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\SECRETS_ROTATION.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\SECURITY.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\SECURITY_THREAT_MODEL.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\setup-redis.bat
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\setup.ps1
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\setup_portable_ollama.ps1
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\smart-clone.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\start-ai.ps1
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\start-backend.bat
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\start-docker.ps1
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\start-multi-agents.ps1
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\START_BACKEND.bat
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\start_backend.ps1
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\START_HERE.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\start_ollama.ps1
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\START_SYSTEM.bat
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\STEP_2_EXTENSION_VALIDATION_GUIDE.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\STEP_3_DOCKER_DEPLOYMENT.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\SYSTEM_RECOVERY.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\TASK.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\TASKS_2_3_COMPLETE.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\test-docker-stack.ps1
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\Test-LocalService.ps1
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\TESTING_GUIDE_E2E.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\TEST_API.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\test_container_init.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\test_extension_demo.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\test_llm_manager.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\test_ollama_direct.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\test_orchestrator.py
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\WSL_DOCKER_INDEX.md
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\_diff-external_to_ws.txt
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\_diff-H_to_ws.txt
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\_diff-ws_to_external.txt
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\_diff-ws_to_H.txt
+		F:\VScode Projects\AI Agents Integration system for VS Code\data\context\
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\data\context\context.db
+		F:\VScode Projects\AI Agents Integration system for VS Code\data\sessions\
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\data\sessions\memory.db
+	  			F:\VScode Projects\AI Agents Integration system for VS Code\data\provenance.db
+	  			H:\VS_Code_Projects\AuraIA\IDE_Extension\models\blobs\sha256-05a61d37b08453e59290add468e3bb2f688e23a01e967fecb0e2fa41218cea76
+	  			H:\VS_Code_Projects\AuraIA\IDE_Extension\models\blobs\sha256-23291dc44752bac878bf46ab0f2b8daf75c710060f80f1a351151c7be2f5ee0f
+	  			H:\VS_Code_Projects\AuraIA\IDE_Extension\models\blobs\sha256-2d54db2b9bb29ce7db54fea63a891f5859603813c555b1f88b5e0994652897f9
+	  			H:\VS_Code_Projects\AuraIA\IDE_Extension\models\blobs\sha256-2e0493f67d0c8c9c68a8aeacdf6a38a2151cb3c4c1d42accf296e19810527988
+	  			H:\VS_Code_Projects\AuraIA\IDE_Extension\models\blobs\sha256-3116c52250752e00dd06b16382e952bd33c34fd79fc4fe3a5d2c77cf7de1b14b
+	  			H:\VS_Code_Projects\AuraIA\IDE_Extension\models\blobs\sha256-316526ac7323d6f42305c5bbf1939e1197487c1e6ea1f01292ceb5e3040b707a
+	  			H:\VS_Code_Projects\AuraIA\IDE_Extension\models\blobs\sha256-31df23ea7daa448f9ccdbbcecce6c14689c8552222b80defd3830707c0139d4f
+	  			H:\VS_Code_Projects\AuraIA\IDE_Extension\models\blobs\sha256-34bb5ab01051a11372a91f95f3fbbc51173eed8e7f13ec395b9ae9b8bd0e242b
+	  			H:\VS_Code_Projects\AuraIA\IDE_Extension\models\blobs\sha256-35e261fb2c733bb8c50e83e972781ec3ee589c83944aaac582e13ba679ac3592
+	  			H:\VS_Code_Projects\AuraIA\IDE_Extension\models\blobs\sha256-3a43f93b78ec50f7c4e4dc8bd1cb3fff5a900e7d574c51a6f7495e48486e0dac
+	  			H:\VS_Code_Projects\AuraIA\IDE_Extension\models\blobs\sha256-3e4cb14174460404e7a233e531675303b2fbf7749c02f91864fe311ab6344e4f
+	  			H:\VS_Code_Projects\AuraIA\IDE_Extension\models\blobs\sha256-542b217f179c7825eeb5bca3c77d2b75ed05bafbd3451d9188891a60a85337c6
+	  			H:\VS_Code_Projects\AuraIA\IDE_Extension\models\blobs\sha256-56bb8bd477a519ffa694fc449c2413c6f0e1d3b1c88fa7e3c9d88d3ae49d4dcb
+	  			H:\VS_Code_Projects\AuraIA\IDE_Extension\models\blobs\sha256-590d74a5569b8a20eb2a8b0aa869d1d1d3faf6a7fdda1955ae827073c7f502fc
+	  			H:\VS_Code_Projects\AuraIA\IDE_Extension\models\blobs\sha256-633fc5be925f9a484b61d6f9b9a78021eeb462100bd557309f01ba84cac26adf
+	  			H:\VS_Code_Projects\AuraIA\IDE_Extension\models\blobs\sha256-6819964c2bcf53f6dd3593f9571e91cbf2bab9665493f870f96eeb29873049b4
+	  			H:\VS_Code_Projects\AuraIA\IDE_Extension\models\blobs\sha256-6e4c38e1172f42fdbff13edf9a7a017679fb82b0fde415a3e8b3c31c6ed4a4e4
+	  			H:\VS_Code_Projects\AuraIA\IDE_Extension\models\blobs\sha256-7f6a57943a88ef021326428676fe749d38e82448a858433f41dae5e05ac39963
+	  			H:\VS_Code_Projects\AuraIA\IDE_Extension\models\blobs\sha256-8c17c2ebb0ea011be9981cc3922db8ca8fa61e828c5d3f44cb6ae342bf80460b
+	  			H:\VS_Code_Projects\AuraIA\IDE_Extension\models\blobs\sha256-8dde1baf1db03d318a2ab076ae363318357dff487bdd8c1703a29886611e581f
+	  			H:\VS_Code_Projects\AuraIA\IDE_Extension\models\blobs\sha256-966de95ca8a62200913e3f8bfbf84c8494536f1b94b49166851e76644e966396
+	  			H:\VS_Code_Projects\AuraIA\IDE_Extension\models\blobs\sha256-970aa74c0a90ef7482477cf803618e776e173c007bf957f635f1015bfcfef0e6
+	  			H:\VS_Code_Projects\AuraIA\IDE_Extension\models\blobs\sha256-a3de86cd1c132c822487ededd47a324c50491393e6565cd14bafa40d0b8e686f
+	  			H:\VS_Code_Projects\AuraIA\IDE_Extension\models\blobs\sha256-a70ff7e570d97baaf4e62ac6e6ad9975e04caa6d900d3742d37698494479e0cd
+	  			H:\VS_Code_Projects\AuraIA\IDE_Extension\models\blobs\sha256-ae370d884f108d16e7cc8fd5259ebc5773a0afa6e078b11f4ed7e39a27e0dfc4
+	  			H:\VS_Code_Projects\AuraIA\IDE_Extension\models\blobs\sha256-aeda25e63ebd698fab8638ffb778e68bed908b960d39d0becc650fa981609d25
+	  			H:\VS_Code_Projects\AuraIA\IDE_Extension\models\blobs\sha256-b6ae5839783f2ba248e65e4b960ab15f9c4b7118db285827dba6cba9754759e2
+	  			H:\VS_Code_Projects\AuraIA\IDE_Extension\models\blobs\sha256-c5ad996bda6eed4df6e3b605a9869647624851ac248209d22fd5e2c0cc1121d3
+	  			H:\VS_Code_Projects\AuraIA\IDE_Extension\models\blobs\sha256-c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4
+	  			H:\VS_Code_Projects\AuraIA\IDE_Extension\models\blobs\sha256-ce4a164fc04605703b485251fe9f1a181688ba0eb6badb80cc6335c0de17ca0d
+	  			H:\VS_Code_Projects\AuraIA\IDE_Extension\models\blobs\sha256-cff3f395ef3756ab63e58b0ad1b32bb6f802905cae1472e6a12034e4246fbbdb
+	  			H:\VS_Code_Projects\AuraIA\IDE_Extension\models\blobs\sha256-d18a5cc71b84bc4af394a31116bd3932b42241de70c77d2b76d69a314ec8aa12
+	  			H:\VS_Code_Projects\AuraIA\IDE_Extension\models\blobs\sha256-dd084c7d92a3c1c14cc09ae77153b903fd2024b64a100a0cc8ec9316063d2dbc
+	  			H:\VS_Code_Projects\AuraIA\IDE_Extension\models\blobs\sha256-dde5aa3fc5ffc17176b5e8bdc82f587b24b2678c6c66101bf7da77af9f7ccdff
+	  			H:\VS_Code_Projects\AuraIA\IDE_Extension\models\blobs\sha256-e0a42594d802e5d31cdc786deb4823edb8adff66094d49de8fffe976d753e348
+	  			H:\VS_Code_Projects\AuraIA\IDE_Extension\models\blobs\sha256-e18a783aae5525fd2852fc94c985541a77e791e034abc2d3056474d59de336fc
+	  			H:\VS_Code_Projects\AuraIA\IDE_Extension\models\blobs\sha256-e6a7edc1a4d7d9b2de136a221a57336b76316cfe53a252aeba814496c5ae439d
+	  			H:\VS_Code_Projects\AuraIA\IDE_Extension\models\blobs\sha256-e73cc17c718156e5ad34b119eb363e2c10389a503673f9c36144c42dfde8334c
+	  			H:\VS_Code_Projects\AuraIA\IDE_Extension\models\blobs\sha256-e8ad13eff07a78d89926e9e8b882317d082ef5bf9768ad7b50fcdbbcd63748de
+	  			H:\VS_Code_Projects\AuraIA\IDE_Extension\models\blobs\sha256-ed8474dc73db8ca0d85c1958c91c3a444e13a469c2efb10cd777ca9baeaddcb7
+	  			H:\VS_Code_Projects\AuraIA\IDE_Extension\models\blobs\sha256-f64cd5418e4b038ef90cf5fab6eb7ce6ae8f18909416822751d3b9fca827c2ab
+	  			H:\VS_Code_Projects\AuraIA\IDE_Extension\models\blobs\sha256-fa8235e5b48faca34e3ca98cf4f694ef08bd216d28b58071a1f85b1d50cb814d
+	  			H:\VS_Code_Projects\AuraIA\IDE_Extension\models\blobs\sha256-fcc5a6bec9daf9b561a68827b67ab6088e1dba9d1fa2a50d7bbcc8384e0a265d

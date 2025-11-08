@@ -14,7 +14,14 @@ from typing import Any, Awaitable, Dict, Optional, cast
 
 import requests
 from celery.result import AsyncResult  # type: ignore
-from fastapi import BackgroundTasks, FastAPI, Response, WebSocket, WebSocketDisconnect
+from fastapi import (
+    BackgroundTasks,
+    FastAPI,
+    Response,
+    WebSocket,
+    WebSocketDisconnect,
+    HTTPException,
+)
 from fastapi.middleware.cors import CORSMiddleware
 from prometheus_client import (
     CONTENT_TYPE_LATEST,
@@ -48,6 +55,10 @@ from src.services.llm_router import InteractionMode, LLMRouter
 from src.services.mode_manager import ModeManager, OperationMode
 from src.services.ollama_service import get_ollama_service
 from src.worker.celery_app import app as celery_app  # type: ignore
+from mcp_server.ide_agents_mcp_server import (
+    AgentsMCPConfig as _AgentsMCPConfig,
+    AgentsMCPServer as _AgentsMCPServer,
+)
 
 # Configure structured logging
 settings = get_settings()
@@ -776,6 +787,143 @@ async def prometheus_http_middleware(request, call_next):
 def metrics_endpoint() -> Response:
     """Prometheus scrape endpoint"""
     return Response(generate_latest(APP_METRICS_REGISTRY), media_type=CONTENT_TYPE_LATEST)
+
+
+# --- MCP proxy endpoints (Option A) ---
+def _cfg_from_ultra_mode(ultra_mode: str | None) -> _AgentsMCPConfig:
+    mode = (ultra_mode or os.getenv("IDE_AGENTS_ULTRA_MODE") or "local").lower()
+    enabled = mode != "disabled"
+    return _AgentsMCPConfig(
+        backend_base_url=os.getenv("IDE_AGENTS_BACKEND_URL", "http://127.0.0.1:8001"),
+        request_timeout=float(os.getenv("IDE_AGENTS_REQUEST_TIMEOUT", "30") or 30),
+        ultra_enabled=enabled,
+        ultra_mock_enabled=(mode == "mock"),
+        ultra_local_enabled=(mode == "local"),
+        ultra_url=os.getenv("IDE_AGENTS_ULTRA_URL") if mode == "backend" else None,
+        ultra_config_path=os.getenv("IDE_AGENTS_ULTRA_CONFIG"),
+    )
+
+
+@app.post(
+    "/mcp/github/rank_repos",
+    tags=["mcp"],
+)  # body: { query, visibility?, limit?, include?, exclude?, top?, ultraMode? }
+async def mcp_rank_github_repos(body: dict[str, Any] | None = None) -> dict[str, Any]:
+    payload = body or {}
+    query = payload.get("query")
+    if not query or not isinstance(query, str):
+        raise HTTPException(status_code=400, detail="Missing required field: query")
+    # Build per-request MCP config from ultraMode
+    cfg = _cfg_from_ultra_mode(str(payload.get("ultraMode") or ""))
+    server = _AgentsMCPServer(cfg)
+    # Whitelist arguments expected by tool
+    args = {
+        k: v
+        for k, v in payload.items()
+        if k in {"query", "visibility", "limit", "include", "exclude", "top"}
+    }
+    try:
+        result = await server.call_tool("ide_agents_github_rank_repos", args)
+        return result
+    except Exception as e:  # noqa: BLE001
+        raise HTTPException(status_code=500, detail=f"mcp_rank_repos_failed: {e}")
+
+
+@app.post(
+    "/mcp/github/rank_all",
+    tags=["mcp"],
+)
+# body: { query, visibility?, limit?, state?, include?, exclude?, top?,
+#         items_per_repo?, page?, since?, ultraMode? }
+async def mcp_rank_github_all(body: dict[str, Any] | None = None) -> dict[str, Any]:
+    payload = body or {}
+    query = payload.get("query")
+    if not query or not isinstance(query, str):
+        raise HTTPException(status_code=400, detail="Missing required field: query")
+    cfg = _cfg_from_ultra_mode(str(payload.get("ultraMode") or ""))
+    server = _AgentsMCPServer(cfg)
+    args = {
+        k: v
+        for k, v in payload.items()
+        if k
+        in {
+            "query",
+            "visibility",
+            "limit",
+            "state",
+            "include",
+            "exclude",
+            "top",
+            "items_per_repo",
+            "page",
+            "since",
+        }
+    }
+    try:
+        result = await server.call_tool("ide_agents_github_rank_all", args)
+        return result
+    except Exception as e:  # noqa: BLE001
+        raise HTTPException(status_code=500, detail=f"mcp_rank_all_failed: {e}")
+
+
+@app.get("/mcp/health", tags=["mcp"])
+async def mcp_health() -> dict[str, Any]:
+    cfg = _cfg_from_ultra_mode(os.getenv("IDE_AGENTS_ULTRA_MODE"))
+    server = _AgentsMCPServer(cfg)
+    try:
+        res = await server.call_tool("ide_agents_health", {})
+        return {"ok": True, **res}
+    except Exception as e:  # noqa: BLE001
+        return {"ok": False, "error": str(e)}
+
+
+@app.get("/mcp/github/health", tags=["mcp"])  # lightweight GitHub token check
+def mcp_github_health() -> dict[str, Any]:
+    token = os.getenv("GITHUB_TOKEN") or os.getenv("GITHUB_PERSONAL_ACCESS_TOKEN")
+    if not token:
+        return {
+            "ok": False,
+            "token_present": False,
+            "token_valid": False,
+            "message": "Missing GITHUB_TOKEN or GITHUB_PERSONAL_ACCESS_TOKEN",
+        }
+    try:
+        resp = requests.get(
+            "https://api.github.com/user",
+            headers={
+                "Authorization": f"Bearer {token}",
+                "Accept": "application/vnd.github+json",
+            },
+            timeout=6,
+        )
+        if resp.status_code == 200:
+            payload = resp.json() if hasattr(resp, "json") else {}
+            login = None
+            try:
+                login = (payload or {}).get("login")
+            except Exception:
+                login = None
+            return {
+                "ok": True,
+                "token_present": True,
+                "token_valid": True,
+                "login": login,
+            }
+        else:
+            return {
+                "ok": False,
+                "token_present": True,
+                "token_valid": False,
+                "status": resp.status_code,
+                "message": "GitHub API /user check failed",
+            }
+    except Exception as e:  # noqa: BLE001
+        return {
+            "ok": False,
+            "token_present": True,
+            "token_valid": False,
+            "error": str(e),
+        }
 
 
 @app.get(

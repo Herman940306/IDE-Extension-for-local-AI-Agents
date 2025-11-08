@@ -1,0 +1,57 @@
+repos:
+  - repo: https://github.com/charliermarsh/ruff-pre-commit
+    rev: v0.6.8
+    hooks:
+      - id: ruff
+        args: ["--fix"]
+        files: ^backend/
+      - id: ruff-format
+        files: ^backend/
+
+  - repo: https://github.com/psf/black
+    rev: 24.10.0
+    hooks:
+      - id: black
+        args: ["--line-length=100"]
+
+  # Removed pytest mirror hook due to upstream deprecation/404; run tests in CI instead
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: check-yaml
+        files: ^backend/
+      - id: end-of-file-fixer
+        files: ^backend/
+      - id: trailing-whitespace
+        files: ^backend/
+
+  - repo: https://github.com/PyCQA/flake8
+    rev: 7.1.1
+    hooks:
+      - id: flake8
+        args: ["--max-line-length=100", "--extend-ignore=E203,W503"]
+        files: ^backend/
+
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.11.2
+    hooks:
+      - id: mypy
+        # Run mypy using only what's specified in mypy.ini (do not pass filenames)
+        pass_filenames: false
+        args: ["--config-file=mypy.ini"]
+        files: ^backend/
+        additional_dependencies:
+          - types-requests
+          - types-PyYAML
+          - types-redis
+          - types-aiofiles
+
+  - repo: local
+    hooks:
+      - id: block-confidential-paths
+        name: Block commits to confidential folder
+        description: Prevent committing files under 'AuraIA IDE Vision and Roadmap/'
+        language: python
+        entry: python scripts/hooks/block_confidential_paths.py
+        pass_filenames: true

@@ -71,7 +71,10 @@ These tools run via the local IDE Agents MCP server. Configure GitHub PAT in you
 - `GITHUB_TOKEN` (required)
 - `IDE_AGENTS_ULTRA_ENABLED=1` to enable semantic ranking
 - `IDE_AGENTS_ULTRA_MOCK=1` to simulate semantic ranking without a backend
+- `IDE_AGENTS_ULTRA_LOCAL=1` to enable local semantic fallback (cosine-like lexical overlap)
 - `IDE_AGENTS_ULTRA_URL=https://your-ultra-host` to use a live ULTRA service
+
+Fallback order: live ULTRA → backend ULTRA → mock → ultra_local → heuristic.
 
 Examples (from repo root on Windows PowerShell):
 
@@ -89,6 +92,50 @@ You can also invoke curated prompts in the MCP client UI:
 - `/rank_github_repos`
 - `/rank_github_all`
 - `/rank_top_bug_prs`
+
+### VS Code commands (Extension)
+
+The extension exposes commands and a tree view for GitHub ranking:
+
+- `Aura: Rank GitHub Repos` (`aura.rankGithubRepos`)
+- `Aura: Rank GitHub Repos + Issues/PRs` (`aura.rankGithubAll`)
+- `Aura: Open GitHub Ranking View` (`aura.openGithubRankingView`)
+
+Configuration (Settings → Aura):
+
+- `aura.backend.url` (default `http://127.0.0.1:8001`)
+- `aura.ranking.ultraMode` — `disabled | mock | local | backend`
+- `aura.ranking.defaultQuery` — default search query
+- `aura.ranking.itemsPerRepo` — per-repo items for aggregate search
+- `aura.ranking.sinceDays` — recency window for issues/PRs
+
+When you run a ranking command, results appear under Explorer → “Aura: GitHub Ranking.” Clicking an item opens it in the browser.
+
+### Backend proxy endpoints (for the extension)
+
+The backend exposes a thin proxy over the MCP tools:
+
+- `POST /mcp/github/rank_repos` — body: `{ query, visibility?, limit?, include?, exclude?, top?, ultraMode? }`
+- `POST /mcp/github/rank_all` — body: `{ query, visibility?, limit?, state?, include?, exclude?, top?, items_per_repo?, page?, since?, ultraMode? }`
+
+Health checks:
+
+- `GET /mcp/health` — returns MCP server health and ULTRA flags
+- `GET /mcp/github/health` — validates presence/validity of `GITHUB_TOKEN`
+
+Troubleshooting (PowerShell):
+
+```powershell
+# Verify MCP and GitHub readiness
+$env:GITHUB_TOKEN = '<your_PAT>'
+Invoke-RestMethod http://127.0.0.1:8001/mcp/health -Method GET
+Invoke-RestMethod http://127.0.0.1:8001/mcp/github/health -Method GET
+
+# Rank via proxy (repos only)
+Invoke-RestMethod http://127.0.0.1:8001/mcp/github/rank_repos -Method POST -Body (
+  @{ query = 'bug fix'; ultraMode = 'local' } | ConvertTo-Json
+) -ContentType 'application/json'
+```
 
 ## RAG v2 configuration and observability
 

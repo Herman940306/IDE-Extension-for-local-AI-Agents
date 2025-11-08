@@ -52,8 +52,19 @@ npm run watch
 ## Packaging
 
 - `npm run package` builds the extension and produces a `.vsix` file in the `extension` directory using the local `vsce` binary.
-- `npm run package:publish` publishes directly to the VS Code Marketplace. Set the `VSCE_PAT` environment variable to a Personal Access Token with the **Marketplace** publish scope before running this command.
-- Both commands run `npm run compile` first, ensuring the TypeScript output is up to date.
+- `npm run package:publish` publishes directly to the VS Code Marketplace. Set `VSCE_PAT` env var to a Personal Access Token with Marketplace publish scope.
+- Both commands run `npm run compile` first.
+
+Quick build and install locally:
+
+```powershell
+cd extension
+npm ci
+npm run package
+code --install-extension (Get-ChildItem *.vsix | Select-Object -Last 1).FullName
+```
+
+CI builds on pushes/PRs to main via GitHub Actions and uploads the `.vsix` artifact.
 
 ## Accessibility
 

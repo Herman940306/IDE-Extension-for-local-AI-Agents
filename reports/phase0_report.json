@@ -1,0 +1,7 @@
+{
+    "branch": "feat/mcp-phase0-foundations",
+    "commits": 1,
+    "tests_passed": true,
+    "spans_emitted": 5,
+    "approvals_required": true
+}

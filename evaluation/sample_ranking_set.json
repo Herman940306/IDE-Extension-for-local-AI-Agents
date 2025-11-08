@@ -1,0 +1,15 @@
+[
+    {
+        "query": "performance bug fix",
+        "expected_top_repo_full_names": [
+            "owner/core-lib",
+            "owner/engine"
+        ],
+        "focus_repos": [
+            "owner/core-lib",
+            "owner/engine",
+            "owner/ui-module"
+        ],
+        "notes": "Example only. Replace with your repositories."
+    }
+]

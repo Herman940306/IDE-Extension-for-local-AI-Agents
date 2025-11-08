@@ -4,6 +4,7 @@
   "description": "Enterprise AI Agents for VS Code",
   "version": "1.0.0",
   "publisher": "herman-swanepoel",
+  "icon": "images/AuraIA_logo.jpg",
   "repository": {
     "type": "git",
     "url": "https://github.com/Herman940306/IDE-Extension-for-local-AI-Agents"
@@ -41,8 +42,28 @@
       {
         "command": "enterpriseAI.toggleTelemetry",
         "title": "Aura: Toggle Telemetry"
+      },
+      {
+        "command": "aura.rankGithubRepos",
+        "title": "Aura: Rank GitHub Repos"
+      },
+      {
+        "command": "aura.rankGithubAll",
+        "title": "Aura: Rank GitHub Repos + Issues/PRs"
+      },
+      {
+        "command": "aura.openGithubRankingView",
+        "title": "Aura: Open GitHub Ranking View"
       }
     ],
+    "views": {
+      "explorer": [
+        {
+          "id": "auraGithubRanking",
+          "name": "Aura: GitHub Ranking"
+        }
+      ]
+    },
     "configuration": {
       "title": "Aura AI",
       "properties": {
@@ -55,6 +76,32 @@
           "type": "string",
           "default": "ws://127.0.0.1:8001/ws",
           "description": "Backend WebSocket URL"
+        },
+        "aura.ranking.defaultQuery": {
+          "type": "string",
+          "default": "bug fix performance",
+          "description": "Default query used when ranking if none provided"
+        },
+        "aura.ranking.itemsPerRepo": {
+          "type": "number",
+          "default": 20,
+          "description": "Items per repo to fetch for aggregate ranking"
+        },
+        "aura.ranking.sinceDays": {
+          "type": "number",
+          "default": 30,
+          "description": "Only include issues/PRs updated within the last N days"
+        },
+        "aura.ranking.ultraMode": {
+          "type": "string",
+          "enum": [
+            "disabled",
+            "mock",
+            "local",
+            "backend"
+          ],
+          "default": "local",
+          "description": "Semantic mode for ranking: disabled=heuristic, mock=word overlap, local=cosine-like local, backend=try server ULTRA"
         },
         "enterpriseAI.privacy.allowTelemetry": {
           "type": "boolean",
@@ -69,6 +116,8 @@
     "vscode:prepublish": "npm run compile",
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
+    "test": "mocha -r ts-node/register src/test/**/*.test.ts",
+    "lint": "echo (no linter configured)",
     "package": "npm run compile && vsce package",
     "package:publish": "npm run compile && vsce publish"
   },
@@ -76,6 +125,9 @@
     "@types/node": "^18.x",
     "@types/vscode": "^1.80.0",
     "@types/ws": "^8.5.0",
+    "@types/mocha": "^10.0.0",
+    "mocha": "^10.2.0",
+    "ts-node": "^10.9.2",
     "@vscode/vsce": "^2.24.0",
     "typescript": "^5.0.0"
   },

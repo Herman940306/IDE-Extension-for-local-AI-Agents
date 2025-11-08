@@ -90,6 +90,23 @@ This project is configured for local-first development with production hardening
   - JWT secrets
   - Private keys
   - OAuth client secrets
+  - GitHub Personal Access Tokens
+
+### 🧾 GitHub Token Scope Guidance
+
+For ranking features the extension/backend uses the GitHub API to list repositories, issues and pull requests.
+
+Recommended scopes for a Personal Access Token (classic):
+
+| Use Case | Required Scope | Notes |
+|----------|----------------|-------|
+| Public repo ranking only | `public_repo` | Least-privilege for reading public repos/issues/PRs |
+| Private + public repos | `repo` | Grants read access to private repositories |
+| Fine-grained token (preferred) | Repository access: Read on "Metadata", "Issues", "Pull requests" | Create a fine-grained PAT restricted to selected repos |
+
+Do NOT grant unnecessary write scopes (e.g., `repo:invite`, `workflow`, `delete_repo`). The ranking endpoints only require read operations. Rotate tokens every 90 days and revoke immediately if exposed.
+
+Environment variable: Set `GITHUB_TOKEN` before starting the backend. The health endpoint `/mcp/github/health` validates token accessibility.
 
 ### 🌐 Network Security
 

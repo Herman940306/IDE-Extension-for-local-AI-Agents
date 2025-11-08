@@ -1,0 +1,551 @@
+{
+    "__inputs": [
+        {
+            "name": "DS_PROMETHEUS",
+            "label": "Prometheus",
+            "description": "Prometheus datasource",
+            "type": "datasource",
+            "pluginId": "prometheus",
+            "pluginName": "Prometheus"
+        }
+    ],
+    "__requires": [
+        {
+            "type": "grafana",
+            "id": "grafana",
+            "name": "Grafana",
+            "version": "10.0.0"
+        },
+        {
+            "type": "panel",
+            "id": "timeseries",
+            "name": "Time series",
+            "version": "10.0.0"
+        },
+        {
+            "type": "panel",
+            "id": "stat",
+            "name": "Stat",
+            "version": "10.0.0"
+        },
+        {
+            "type": "panel",
+            "id": "bargauge",
+            "name": "Bar gauge",
+            "version": "10.0.0"
+        },
+        {
+            "type": "panel",
+            "id": "heatmap",
+            "name": "Heatmap",
+            "version": "10.0.0"
+        },
+        {
+            "type": "datasource",
+            "id": "prometheus",
+            "name": "Prometheus",
+            "version": "2.7.0"
+        }
+    ],
+    "title": "AURAIA: Jobs & HTTP Metrics",
+    "uid": null,
+    "timezone": "browser",
+    "schemaVersion": 39,
+    "version": 1,
+    "time": {
+        "from": "now-1h",
+        "to": "now"
+    },
+    "timepicker": {
+        "refresh_intervals": [
+            "5s",
+            "10s",
+            "30s",
+            "1m",
+            "5m"
+        ],
+        "nowDelay": "0s"
+    },
+    "tags": [
+        "auraia",
+        "backend",
+        "celery"
+    ],
+    "templating": {
+        "list": [
+            {
+                "type": "query",
+                "name": "path",
+                "label": "HTTP Path",
+                "datasource": {
+                    "type": "prometheus",
+                    "uid": "${DS_PROMETHEUS}"
+                },
+                "query": "label_values(http_requests_total, path)",
+                "includeAll": true,
+                "multi": true,
+                "refresh": 1,
+                "sort": 1
+            },
+            {
+                "type": "query",
+                "name": "job_type",
+                "label": "Job Type",
+                "datasource": {
+                    "type": "prometheus",
+                    "uid": "${DS_PROMETHEUS}"
+                },
+                "query": "label_values(jobs_queued_total, job_type)",
+                "includeAll": true,
+                "multi": true,
+                "refresh": 1,
+                "sort": 1
+            }
+        ]
+    },
+    "panels": [
+        {
+            "type": "row",
+            "title": "HTTP Overview",
+            "collapsed": false,
+            "gridPos": {
+                "h": 1,
+                "w": 24,
+                "x": 0,
+                "y": 0
+            }
+        },
+        {
+            "type": "timeseries",
+            "title": "Request rate by path (RPS)",
+            "datasource": {
+                "type": "prometheus",
+                "uid": "${DS_PROMETHEUS}"
+            },
+            "targets": [
+                {
+                    "expr": "sum by (path) (rate(http_requests_total{path=~\"$path\"}[5m]))",
+                    "legendFormat": "{{path}}",
+                    "refId": "A"
+                }
+            ],
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "req/s"
+                },
+                "overrides": []
+            },
+            "gridPos": {
+                "h": 7,
+                "w": 12,
+                "x": 0,
+                "y": 1
+            }
+        },
+        {
+            "type": "timeseries",
+            "title": "Error rate by path (5xx RPS)",
+            "datasource": {
+                "type": "prometheus",
+                "uid": "${DS_PROMETHEUS}"
+            },
+            "targets": [
+                {
+                    "expr": "sum by (path) (rate(http_requests_total{status_code=~\"5..\", path=~\"$path\"}[5m]))",
+                    "legendFormat": "{{path}}",
+                    "refId": "A"
+                }
+            ],
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "req/s"
+                },
+                "overrides": []
+            },
+            "gridPos": {
+                "h": 7,
+                "w": 12,
+                "x": 12,
+                "y": 1
+            }
+        },
+        {
+            "type": "timeseries",
+            "title": "Success rate by path (%)",
+            "datasource": {
+                "type": "prometheus",
+                "uid": "${DS_PROMETHEUS}"
+            },
+            "targets": [
+                {
+                    "expr": "100 * (sum by (path) (rate(http_requests_total{status_code=~\"2..\", path=~\"$path\"}[5m])) / sum by (path) (rate(http_requests_total{path=~\"$path\"}[5m])))",
+                    "legendFormat": "{{path}}",
+                    "refId": "A"
+                }
+            ],
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "percent"
+                },
+                "overrides": []
+            },
+            "gridPos": {
+                "h": 7,
+                "w": 12,
+                "x": 0,
+                "y": 8
+            }
+        },
+        {
+            "type": "timeseries",
+            "title": "Latency quantiles by path (p50/p90/p99)",
+            "datasource": {
+                "type": "prometheus",
+                "uid": "${DS_PROMETHEUS}"
+            },
+            "targets": [
+                {
+                    "expr": "histogram_quantile(0.5, sum by (le, path) (rate(http_request_duration_seconds_bucket{path=~\"$path\"}[5m])))",
+                    "legendFormat": "p50 {{path}}",
+                    "refId": "A"
+                },
+                {
+                    "expr": "histogram_quantile(0.9, sum by (le, path) (rate(http_request_duration_seconds_bucket{path=~\"$path\"}[5m])))",
+                    "legendFormat": "p90 {{path}}",
+                    "refId": "B"
+                },
+                {
+                    "expr": "histogram_quantile(0.99, sum by (le, path) (rate(http_request_duration_seconds_bucket{path=~\"$path\"}[5m])))",
+                    "legendFormat": "p99 {{path}}",
+                    "refId": "C"
+                }
+            ],
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "s"
+                },
+                "overrides": []
+            },
+            "gridPos": {
+                "h": 7,
+                "w": 12,
+                "x": 12,
+                "y": 8
+            }
+        },
+        {
+            "type": "heatmap",
+            "title": "HTTP latency heatmap (all paths)",
+            "datasource": {
+                "type": "prometheus",
+                "uid": "${DS_PROMETHEUS}"
+            },
+            "targets": [
+                {
+                    "expr": "sum by (le) (rate(http_request_duration_seconds_bucket[5m]))",
+                    "legendFormat": "{{le}}",
+                    "refId": "A"
+                }
+            ],
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "s"
+                },
+                "overrides": []
+            },
+            "gridPos": {
+                "h": 8,
+                "w": 24,
+                "x": 0,
+                "y": 15
+            }
+        },
+        {
+            "type": "row",
+            "title": "Jobs",
+            "collapsed": false,
+            "gridPos": {
+                "h": 1,
+                "w": 24,
+                "x": 0,
+                "y": 23
+            }
+        },
+        {
+            "type": "timeseries",
+            "title": "Jobs queued rate (by job_type)",
+            "datasource": {
+                "type": "prometheus",
+                "uid": "${DS_PROMETHEUS}"
+            },
+            "targets": [
+                {
+                    "expr": "sum by (job_type) (rate(jobs_queued_total{job_type=~\"$job_type\"}[5m]))",
+                    "legendFormat": "queued {{job_type}}",
+                    "refId": "A"
+                }
+            ],
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "ops"
+                },
+                "overrides": []
+            },
+            "gridPos": {
+                "h": 6,
+                "w": 12,
+                "x": 0,
+                "y": 24
+            }
+        },
+        {
+            "type": "timeseries",
+            "title": "Jobs completed rate (by job_type/outcome)",
+            "datasource": {
+                "type": "prometheus",
+                "uid": "${DS_PROMETHEUS}"
+            },
+            "targets": [
+                {
+                    "expr": "sum by (job_type, outcome) (rate(jobs_completed_total{job_type=~\"$job_type\"}[5m]))",
+                    "legendFormat": "{{job_type}} {{outcome}}",
+                    "refId": "A"
+                }
+            ],
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "ops"
+                },
+                "overrides": []
+            },
+            "gridPos": {
+                "h": 6,
+                "w": 12,
+                "x": 12,
+                "y": 24
+            }
+        },
+        {
+            "type": "bargauge",
+            "title": "Jobs in progress (by job_type)",
+            "datasource": {
+                "type": "prometheus",
+                "uid": "${DS_PROMETHEUS}"
+            },
+            "options": {
+                "displayMode": "basic",
+                "orientation": "horizontal"
+            },
+            "targets": [
+                {
+                    "expr": "jobs_in_progress{job_type=~\"$job_type\"}",
+                    "legendFormat": "{{job_type}}",
+                    "refId": "A",
+                    "instant": true
+                }
+            ],
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "none"
+                },
+                "overrides": []
+            },
+            "gridPos": {
+                "h": 6,
+                "w": 12,
+                "x": 0,
+                "y": 30
+            }
+        },
+        {
+            "type": "timeseries",
+            "title": "Task duration quantiles (by job_type)",
+            "datasource": {
+                "type": "prometheus",
+                "uid": "${DS_PROMETHEUS}"
+            },
+            "targets": [
+                {
+                    "expr": "histogram_quantile(0.5, sum by (le, job_type) (rate(job_duration_seconds_bucket{job_type=~\"$job_type\"}[5m])))",
+                    "legendFormat": "p50 {{job_type}}",
+                    "refId": "A"
+                },
+                {
+                    "expr": "histogram_quantile(0.9, sum by (le, job_type) (rate(job_duration_seconds_bucket{job_type=~\"$job_type\"}[5m])))",
+                    "legendFormat": "p90 {{job_type}}",
+                    "refId": "B"
+                },
+                {
+                    "expr": "histogram_quantile(0.99, sum by (le, job_type) (rate(job_duration_seconds_bucket{job_type=~\"$job_type\"}[5m])))",
+                    "legendFormat": "p99 {{job_type}}",
+                    "refId": "C"
+                }
+            ],
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "s"
+                },
+                "overrides": []
+            },
+            "gridPos": {
+                "h": 6,
+                "w": 12,
+                "x": 12,
+                "y": 30
+            }
+        },
+        {
+            "type": "row",
+            "title": "Caddy Metrics",
+            "collapsed": false,
+            "gridPos": {
+                "h": 1,
+                "w": 24,
+                "x": 0,
+                "y": 36
+            }
+        },
+        {
+            "type": "timeseries",
+            "title": "Caddy request rate (RPS)",
+            "datasource": {
+                "type": "prometheus",
+                "uid": "${DS_PROMETHEUS}"
+            },
+            "targets": [
+                {
+                    "expr": "sum(rate(caddy_http_requests_total[5m]))",
+                    "refId": "A"
+                }
+            ],
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "req/s"
+                },
+                "overrides": []
+            },
+            "gridPos": {
+                "h": 6,
+                "w": 12,
+                "x": 0,
+                "y": 37
+            }
+        },
+        {
+            "type": "timeseries",
+            "title": "Caddy error rate (5xx RPS)",
+            "datasource": {
+                "type": "prometheus",
+                "uid": "${DS_PROMETHEUS}"
+            },
+            "targets": [
+                {
+                    "expr": "sum(rate(caddy_http_requests_total{status_code=~\"5..\"}[5m]))",
+                    "refId": "A"
+                }
+            ],
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "req/s"
+                },
+                "overrides": []
+            },
+            "gridPos": {
+                "h": 6,
+                "w": 12,
+                "x": 12,
+                "y": 37
+            }
+        },
+        {
+            "type": "timeseries",
+            "title": "Caddy latency quantiles (p50/p90/p99)",
+            "datasource": {
+                "type": "prometheus",
+                "uid": "${DS_PROMETHEUS}"
+            },
+            "targets": [
+                {
+                    "expr": "histogram_quantile(0.5, sum by (le) (rate(caddy_http_request_duration_seconds_bucket[5m])))",
+                    "legendFormat": "p50",
+                    "refId": "A"
+                },
+                {
+                    "expr": "histogram_quantile(0.9, sum by (le) (rate(caddy_http_request_duration_seconds_bucket[5m])))",
+                    "legendFormat": "p90",
+                    "refId": "B"
+                },
+                {
+                    "expr": "histogram_quantile(0.99, sum by (le) (rate(caddy_http_request_duration_seconds_bucket[5m])))",
+                    "legendFormat": "p99",
+                    "refId": "C"
+                }
+            ],
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "s"
+                },
+                "overrides": []
+            },
+            "gridPos": {
+                "h": 7,
+                "w": 24,
+                "x": 0,
+                "y": 43
+            }
+        },
+        {
+            "type": "stat",
+            "title": "Caddy active connections",
+            "datasource": {
+                "type": "prometheus",
+                "uid": "${DS_PROMETHEUS}"
+            },
+            "targets": [
+                {
+                    "expr": "caddy_http_connections_active",
+                    "refId": "A",
+                    "instant": true
+                }
+            ],
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "none"
+                },
+                "overrides": []
+            },
+            "gridPos": {
+                "h": 4,
+                "w": 6,
+                "x": 0,
+                "y": 50
+            }
+        },
+        {
+            "type": "timeseries",
+            "title": "Caddy TLS handshakes (rate)",
+            "datasource": {
+                "type": "prometheus",
+                "uid": "${DS_PROMETHEUS}"
+            },
+            "targets": [
+                {
+                    "expr": "rate(caddy_tls_handshake_success_total[5m])",
+                    "refId": "A"
+                }
+            ],
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "ops"
+                },
+                "overrides": []
+            },
+            "gridPos": {
+                "h": 4,
+                "w": 18,
+                "x": 6,
+                "y": 50
+            }
+        }
+    ]
+}

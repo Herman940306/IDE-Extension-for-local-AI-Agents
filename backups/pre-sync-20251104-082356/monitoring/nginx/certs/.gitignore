@@ -1,0 +1,7 @@
+# Ignore real certificate material
+*.pem
+*.crt
+*.key
+
+# Keep this directory in git
+!.gitkeep

@@ -694,6 +694,7 @@ class AgentsMCPServer:
 
             # Local semantic fallback (ultra_local) if enabled
             if getattr(self.config, "ultra_local_enabled", False):
+
                 def local_semantic_score(q: str, text: str) -> float:
                     q_words = {w for w in q.lower().split() if w}
                     t_words = {w for w in text.lower().split() if w}
@@ -1022,6 +1023,7 @@ class AgentsMCPServer:
 
             # Local semantic fallback (ultra_local) if enabled
             if getattr(self.config, "ultra_local_enabled", False):
+
                 def local_semantic_score(q: str, text: str) -> float:
                     q_words = {w for w in q.lower().split() if w}
                     t_words = {w for w in text.lower().split() if w}
@@ -1045,7 +1047,11 @@ class AgentsMCPServer:
                     item = e["item"]
                     score = e["score"]
                     norm = (score - smin) / denom * 10.0
-                    out: Dict[str, Any] = {"type": item["type"], "score": score, "norm_score": norm}
+                    out: Dict[str, Any] = {
+                        "type": item["type"],
+                        "score": score,
+                        "norm_score": norm,
+                    }
                     if item["type"] == "repo":
                         out["repo"] = item["repo"]
                     elif item["type"] == "issue":
