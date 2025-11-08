@@ -9,14 +9,18 @@
   ],
   "servers": {
     "github": {
+      // Requires Docker Desktop running. If unavailable, switch to an npm or python implementation.
+      // Example alternative (Node): "command": "npx", "args": ["-y", "@github/mcp-server"]
       "command": "docker",
       "args": [
         "run", "-i", "--rm",
+        // Pass PAT securely; mapped from input below
         "-e", "GITHUB_PERSONAL_ACCESS_TOKEN",
         "ghcr.io/github/github-mcp-server"
       ],
       "env": {
-        "GITHUB_PERSONAL_ACCESS_TOKEN": "${env:GITHUB_PERSONAL_ACCESS_TOKEN}"
+        // Use VS Code input instead of raw env to avoid missing variable
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "${input:github_token}"
       }
     },
     "ide-agents": {
