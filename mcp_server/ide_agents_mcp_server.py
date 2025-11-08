@@ -112,6 +112,7 @@ class AgentsMCPConfig:
     request_timeout: float = 30.0
     ultra_enabled: bool = False
     ultra_mock_enabled: bool = False
+    ultra_local_enabled: bool = False
     ultra_url: Optional[str] = None
     ultra_config_path: Optional[str] = None
 
@@ -123,6 +124,7 @@ class AgentsMCPConfig:
         timeout_env = os.getenv("IDE_AGENTS_REQUEST_TIMEOUT")
         ultra_enabled_env = os.getenv("IDE_AGENTS_ULTRA_ENABLED")
         ultra_mock_env = os.getenv("IDE_AGENTS_ULTRA_MOCK")
+        ultra_local_env = os.getenv("IDE_AGENTS_ULTRA_LOCAL")
         ultra_config_path = os.getenv("IDE_AGENTS_ULTRA_CONFIG")
         ultra_url_env = os.getenv("IDE_AGENTS_ULTRA_URL")
 
@@ -142,12 +144,16 @@ class AgentsMCPConfig:
         ultra_mock_enabled = False
         if ultra_mock_env:
             ultra_mock_enabled = ultra_mock_env.lower() in {"1", "true", "yes"}
+        ultra_local_enabled = False
+        if ultra_local_env:
+            ultra_local_enabled = ultra_local_env.lower() in {"1", "true", "yes"}
 
         return cls(
             backend_base_url=base_url,
             request_timeout=timeout,
             ultra_enabled=ultra_enabled,
             ultra_mock_enabled=ultra_mock_enabled,
+            ultra_local_enabled=ultra_local_enabled,
             ultra_config_path=ultra_config_path,
             ultra_url=ultra_url_env,
         )
@@ -676,15 +682,42 @@ class AgentsMCPServer:
             except Exception as exc:  # noqa: BLE001
                 try:
                     raw_snapshot = (
-                        str(ranked)[:300] if 'ranked' in locals() else 'unavailable'
+                        str(ranked)[:300] if "ranked" in locals() else "unavailable"
                     )
                 except Exception:  # pragma: no cover
-                    raw_snapshot = 'error_capturing'
+                    raw_snapshot = "error_capturing"
                 logger.warning(
                     "ULTRA ranking failed, using heuristic fallback: %s | raw=%s",
                     exc,
                     raw_snapshot,
                 )
+
+            # Local semantic fallback (ultra_local) if enabled
+            if getattr(self.config, "ultra_local_enabled", False):
+                def local_semantic_score(q: str, text: str) -> float:
+                    q_words = {w for w in q.lower().split() if w}
+                    t_words = {w for w in text.lower().split() if w}
+                    if not q_words or not t_words:
+                        return 0.0
+                    inter = len(q_words & t_words)
+                    # cosine-like on binary vectors
+                    return inter / ((len(q_words) * len(t_words)) ** 0.5)
+
+                results = [
+                    {"repo": repos[i], "score": local_semantic_score(query, c)}
+                    for i, c in enumerate(candidates)
+                ]
+                results.sort(key=lambda x: x["score"], reverse=True)
+                telemetry.emit_span(
+                    "ide_agents_github_rank_repos",
+                    start_ts,
+                    extra={
+                        "mode": "ultra_local",
+                        "candidates": len(candidates),
+                        "repos": len(repos),
+                    },
+                )
+                return {"ranking": results}
 
         # Heuristic fallback: stars, recent update, description match
         def heuristic_score(r: Dict[str, Any]) -> float:
@@ -977,15 +1010,71 @@ class AgentsMCPServer:
             except Exception as exc:  # noqa: BLE001
                 try:
                     raw_snapshot = (
-                        str(ranked)[:300] if 'ranked' in locals() else 'unavailable'
+                        str(ranked)[:300] if "ranked" in locals() else "unavailable"
                     )
                 except Exception:  # pragma: no cover
-                    raw_snapshot = 'error_capturing'
+                    raw_snapshot = "error_capturing"
                 logger.warning(
                     "ULTRA ranking failed in rank_all, using heuristic fallback: %s | raw=%s",
                     exc,
                     raw_snapshot,
                 )
+
+            # Local semantic fallback (ultra_local) if enabled
+            if getattr(self.config, "ultra_local_enabled", False):
+                def local_semantic_score(q: str, text: str) -> float:
+                    q_words = {w for w in q.lower().split() if w}
+                    t_words = {w for w in text.lower().split() if w}
+                    if not q_words or not t_words:
+                        return 0.0
+                    inter = len(q_words & t_words)
+                    return inter / ((len(q_words) * len(t_words)) ** 0.5)
+
+                extracted: List[Dict[str, Any]] = []
+                for cand in candidates:
+                    if cand not in candidate_map:
+                        continue
+                    sc = local_semantic_score(query, cand)
+                    extracted.append({"item": candidate_map[cand], "score": sc})
+
+                scores_only = [e["score"] for e in extracted] or [0.0]
+                smin, smax = min(scores_only), max(scores_only)
+                denom = (smax - smin) or 1.0
+                norm_results: List[Dict[str, Any]] = []
+                for e in extracted:
+                    item = e["item"]
+                    score = e["score"]
+                    norm = (score - smin) / denom * 10.0
+                    out: Dict[str, Any] = {"type": item["type"], "score": score, "norm_score": norm}
+                    if item["type"] == "repo":
+                        out["repo"] = item["repo"]
+                    elif item["type"] == "issue":
+                        out["repo"] = item["repo"]
+                        out["issue"] = item["issue"]
+                    else:
+                        out["repo"] = item["repo"]
+                        out["pr"] = item["pr"]
+                    norm_results.append(out)
+
+                telemetry.emit_span(
+                    "ide_agents_github_rank_all",
+                    start_ts,
+                    extra={
+                        "mode": "ultra_local",
+                        "candidates": len(candidates),
+                        "repos": len(repos),
+                        "items": len(agg_items),
+                    },
+                )
+                top = arguments.get("top")
+                if top is not None:
+                    try:
+                        top_int = int(top)
+                        if top_int > 0:
+                            norm_results = norm_results[:top_int]
+                    except Exception:
+                        pass
+                return {"ranking": norm_results}
 
         # Heuristic fallback: score repos + issues + PRs, normalize 0..10
         def parse_dt(s: Optional[str]) -> Optional[datetime]:
