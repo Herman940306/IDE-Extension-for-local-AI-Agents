@@ -10,7 +10,7 @@
   "servers": {
     "github": {
       // Requires Docker Desktop running. If unavailable, switch to an npm or python implementation.
-      // Example alternative (Node): "command": "npx", "args": ["-y", "@github/mcp-server"]
+      // Example alternative (Node): "command": "npx", "args": ["-y", "@modelcontextprotocol/server-github"]
       "command": "docker",
       "args": [
         "run", "-i", "--rm",
@@ -21,6 +21,14 @@
       "env": {
         // Use VS Code input instead of raw env to avoid missing variable
         "GITHUB_PERSONAL_ACCESS_TOKEN": "${input:github_token}"
+      }
+    },
+    "github-npx": {
+      // Node-based GitHub MCP server (no Docker required)
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-github"],
+      "env": {
+        "GITHUB_TOKEN": "${input:github_token}"
       }
     },
     "ide-agents": {
