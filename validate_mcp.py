@@ -18,6 +18,7 @@ async def validate_ide_agents(
     exclude: list[str] | None = None,
     top: int | None = None,
     since: str | None = None,
+    items_per_repo: int | None = None,
 ) -> dict:
     if ultra:
         os.environ["IDE_AGENTS_ULTRA_ENABLED"] = "1"
@@ -48,6 +49,8 @@ async def validate_ide_agents(
                 args["top"] = top
             if since:
                 args["since"] = since
+            if items_per_repo is not None:
+                args["items_per_repo"] = items_per_repo
             ranking_sample = await server.call_tool(tool_name, args)
         except Exception as exc:  # noqa: BLE001
             ranking_sample = {"error": str(exc)}
@@ -112,6 +115,12 @@ async def main():
         default=None,
         help="ISO8601 timestamp to filter issues/PRs updated since (e.g., 2025-10-01T00:00:00Z)",
     )
+    parser.add_argument(
+        "--items_per_repo",
+        type=int,
+        default=None,
+        help="Number of issues/PRs to fetch per repo (rank_all)",
+    )
     args = parser.parse_args()
 
     # For script demonstration we only wire basic params to internal call
@@ -126,6 +135,7 @@ async def main():
         exclude=args.exclude,
         top=args.top,
         since=args.since,
+        items_per_repo=args.items_per_repo,
     )
     gh = await validate_github_pat()
     print(json.dumps({"ide_agents": ide, "github_pat": gh}, indent=2))

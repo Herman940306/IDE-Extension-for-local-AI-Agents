@@ -601,7 +601,9 @@ class AgentsMCPServer:
                 return {"ranking": results}
             try:
                 if self.config.ultra_url:
-                    async with httpx.AsyncClient(base_url=self.config.ultra_url) as client:
+                    async with httpx.AsyncClient(
+                        base_url=self.config.ultra_url
+                    ) as client:
                         resp = await client.post(
                             "/ai/intelligence/rank",
                             json={"query": query, "candidates": candidates},
@@ -610,20 +612,52 @@ class AgentsMCPServer:
                         ranked = resp.json()
                 else:
                     ranked = await self.backend.ultra_rank(query, candidates)
-                # Expect a list of {index|candidate|score}. Normalize to include repo metadata.
+
+                # Robust extraction of entries regardless of shape
+                raw_entries: Any = ranked
+                if isinstance(ranked, dict):
+                    # Common keys that might hold the list
+                    for k in ("ranking", "results", "data"):
+                        if isinstance(ranked.get(k), list):
+                            raw_entries = ranked.get(k)
+                            break
+                if not isinstance(raw_entries, list):
+                    raise ValueError("ULTRA response did not contain a list of entries")
+
                 items_by_candidate = {c: repos[i] for i, c in enumerate(candidates)}
                 collected: List[Dict[str, Any]] = []
-                ranked_list = (
-                    ranked.get("ranking", ranked) if isinstance(ranked, dict) else ranked
-                )
-                for entry in ranked_list:
-                    candidate = (
-                        entry.get("candidate") if isinstance(entry, dict) else None
-                    )
-                    score = entry.get("score") if isinstance(entry, dict) else None
-                    if candidate in items_by_candidate:
-                        item = items_by_candidate[candidate]
-                        collected.append({"repo": item, "score": score})
+                for entry in raw_entries:
+                    if isinstance(entry, dict):
+                        candidate = (
+                            entry.get("candidate")
+                            or entry.get("text")
+                            or entry.get("item")
+                        )
+                        score_raw = (
+                            entry.get("score")
+                            or entry.get("value")
+                            or entry.get("similarity")
+                        )
+                        # Skip if we cannot map candidate
+                        if candidate not in items_by_candidate:
+                            continue
+                        # Coerce score to float if numeric-like
+                        score: Optional[float] = None
+                        if isinstance(score_raw, (int, float)):
+                            score = float(score_raw)
+                        elif isinstance(score_raw, str):
+                            try:
+                                score = float(score_raw)
+                            except Exception:
+                                score = None
+                        if score is None:
+                            continue
+                        collected.append(
+                            {"repo": items_by_candidate[candidate], "score": score}
+                        )
+                    else:
+                        # Unknown entry type; ignore
+                        continue
                 if collected:
                     telemetry.emit_span(
                         "ide_agents_github_rank_repos",
@@ -635,9 +669,21 @@ class AgentsMCPServer:
                         },
                     )
                     return {"ranking": collected}
+                else:
+                    raise ValueError(
+                        "ULTRA response contained no usable scored entries"
+                    )
             except Exception as exc:  # noqa: BLE001
+                try:
+                    raw_snapshot = (
+                        str(ranked)[:300] if 'ranked' in locals() else 'unavailable'
+                    )
+                except Exception:  # pragma: no cover
+                    raw_snapshot = 'error_capturing'
                 logger.warning(
-                    "ULTRA ranking failed, using heuristic fallback: %s", exc
+                    "ULTRA ranking failed, using heuristic fallback: %s | raw=%s",
+                    exc,
+                    raw_snapshot,
                 )
 
         # Heuristic fallback: stars, recent update, description match
@@ -840,7 +886,9 @@ class AgentsMCPServer:
                 return {"ranking": scored}
             try:
                 if self.config.ultra_url:
-                    async with httpx.AsyncClient(base_url=self.config.ultra_url) as client:
+                    async with httpx.AsyncClient(
+                        base_url=self.config.ultra_url
+                    ) as client:
                         resp = await client.post(
                             "/ai/intelligence/rank",
                             json={"query": query, "candidates": candidates},
@@ -849,57 +897,94 @@ class AgentsMCPServer:
                         ranked = resp.json()
                 else:
                     ranked = await self.backend.ultra_rank(query, candidates)
-                raw_entries = ranked.get(
-                    "ranking", ranked if isinstance(ranked, list) else []
-                )
-                scores: List[float] = []
+
+                raw_entries: Any = ranked
+                if isinstance(ranked, dict):
+                    for k in ("ranking", "results", "data"):
+                        if isinstance(ranked.get(k), list):
+                            raw_entries = ranked.get(k)
+                            break
+                if not isinstance(raw_entries, list):
+                    raise ValueError("ULTRA response did not contain a list of entries")
+
+                extracted: List[Dict[str, Any]] = []
                 for entry in raw_entries:
-                    cand = entry.get("candidate") if isinstance(entry, dict) else None
-                    score = entry.get("score") if isinstance(entry, dict) else None
-                    if cand in candidate_map and isinstance(score, (int, float)):
-                        scores.append(float(score))
-                # Normalize scores 0..10
-                norm_results: List[Dict[str, Any]] = []
-                smin = min(scores) if scores else 0.0
-                smax = max(scores) if scores else 1.0
+                    if not isinstance(entry, dict):
+                        continue
+                    cand = (
+                        entry.get("candidate") or entry.get("text") or entry.get("item")
+                    )
+                    score_raw = (
+                        entry.get("score")
+                        or entry.get("value")
+                        or entry.get("similarity")
+                    )
+                    if cand not in candidate_map:
+                        continue
+                    score: Optional[float] = None
+                    if isinstance(score_raw, (int, float)):
+                        score = float(score_raw)
+                    elif isinstance(score_raw, str):
+                        try:
+                            score = float(score_raw)
+                        except Exception:
+                            score = None
+                    if score is None:
+                        continue
+                    item = candidate_map[cand]
+                    extracted.append({"item": item, "score": score})
+
+                if not extracted:
+                    raise ValueError(
+                        "ULTRA response contained no usable scored entries"
+                    )
+
+                scores_only = [e["score"] for e in extracted]
+                smin = min(scores_only)
+                smax = max(scores_only)
                 denom = (smax - smin) or 1.0
-                for entry in raw_entries:
-                    cand = entry.get("candidate") if isinstance(entry, dict) else None
-                    score = (
-                        float(entry.get("score"))
-                        if isinstance(entry, dict)
-                        and isinstance(entry.get("score"), (int, float))
-                        else None
-                    )
-                    if cand in candidate_map and score is not None:
-                        item = candidate_map[cand]
-                        norm = (score - smin) / denom * 10.0
-                        out = {"type": item["type"], "score": score, "norm_score": norm}
-                        if item["type"] == "repo":
-                            out["repo"] = item["repo"]
-                        elif item["type"] == "issue":
-                            out["repo"] = item["repo"]
-                            out["issue"] = item["issue"]
-                        else:
-                            out["repo"] = item["repo"]
-                            out["pr"] = item["pr"]
-                        norm_results.append(out)
-                if norm_results:
-                    telemetry.emit_span(
-                        "ide_agents_github_rank_all",
-                        start_ts,
-                        extra={
-                            "mode": "ultra_backend",
-                            "candidates": len(candidates),
-                            "repos": len(repos),
-                            "items": len(agg_items),
-                        },
-                    )
-                    return {"ranking": norm_results}
+                norm_results: List[Dict[str, Any]] = []
+                for e in extracted:
+                    item = e["item"]
+                    score = e["score"]
+                    norm = (score - smin) / denom * 10.0
+                    out: Dict[str, Any] = {
+                        "type": item["type"],
+                        "score": score,
+                        "norm_score": norm,
+                    }
+                    if item["type"] == "repo":
+                        out["repo"] = item["repo"]
+                    elif item["type"] == "issue":
+                        out["repo"] = item["repo"]
+                        out["issue"] = item["issue"]
+                    else:
+                        out["repo"] = item["repo"]
+                        out["pr"] = item["pr"]
+                    norm_results.append(out)
+
+                telemetry.emit_span(
+                    "ide_agents_github_rank_all",
+                    start_ts,
+                    extra={
+                        "mode": "ultra_backend",
+                        "candidates": len(candidates),
+                        "repos": len(repos),
+                        "items": len(agg_items),
+                    },
+                )
+                return {"ranking": norm_results}
             except Exception as exc:  # noqa: BLE001
+                try:
+                    raw_snapshot = (
+                        str(ranked)[:300] if 'ranked' in locals() else 'unavailable'
+                    )
+                except Exception:  # pragma: no cover
+                    raw_snapshot = 'error_capturing'
                 logger.warning(
-                    "ULTRA ranking failed in rank_all, using heuristic fallback: %s",
+                    "ULTRA ranking failed in rank_all, using heuristic fallback: %s | raw=%s",
                     exc,
+                    raw_snapshot,
                 )
 
         # Heuristic fallback: score repos + issues + PRs, normalize 0..10
