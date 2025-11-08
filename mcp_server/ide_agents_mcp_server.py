@@ -460,8 +460,10 @@ async def main() -> None:
     async def shutdown_handler() -> None:
         await server.shutdown()
 
-    print(
-        f"[ide-agents-mcp] Server instructions version: {MCP_SERVER_INSTRUCTIONS_VERSION}"
+    # Emit startup banner to stderr so MCP stdio protocol isn't polluted
+    import sys as _sys
+    _sys.stderr.write(
+        f"[ide-agents-mcp] Server instructions version: {MCP_SERVER_INSTRUCTIONS_VERSION}\n"
     )
 
     await server.server.run(
