@@ -446,9 +446,20 @@ class AgentsMCPServer:
 
 async def main() -> None:
     """Entry point used by MCP launcher."""
-
     config = AgentsMCPConfig.from_env()
     server = AgentsMCPServer(config)
+
+    # Handshake: send an initial JSON object on stdout that the MCP host can parse.
+    # Using a simple envelope with a type allows future evolution if needed.
+    import sys as _sys
+    import json as _json
+    startup_payload = {
+        "type": "startup",
+        "server": "ide-agents-mcp",
+        "instructions_version": MCP_SERVER_INSTRUCTIONS_VERSION,
+    }
+    _sys.stdout.write(_json.dumps(startup_payload) + "\n")
+    _sys.stdout.flush()
 
     async def tool_list_provider() -> List[Dict[str, Any]]:
         return await server.list_tools()
@@ -461,9 +472,10 @@ async def main() -> None:
         await server.shutdown()
 
     # Emit startup banner to stderr so MCP stdio protocol isn't polluted
+    # Moved banner earlier; keep a debug note on stderr only.
     import sys as _sys
     _sys.stderr.write(
-        f"[ide-agents-mcp] Server instructions version: {MCP_SERVER_INSTRUCTIONS_VERSION}\n"
+        f"[ide-agents-mcp] Initialized (instructions v{MCP_SERVER_INSTRUCTIONS_VERSION})\n"
     )
 
     await server.server.run(
