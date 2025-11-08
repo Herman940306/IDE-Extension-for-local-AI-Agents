@@ -72,6 +72,9 @@ SERVER_INSTRUCTIONS = {
         "ide_agents_prompt": {
             "schema": "prompt { method: list|get, name? }",
         },
+        "ide_agents_health": {
+            "schema": "health {}",
+        },
     },
     "resources": ["repo.graph", "kb.snippet", "build.logs"],
     "prompts": ["/diff_review", "/test_failures", "/hotfix_plan"],
@@ -198,6 +201,8 @@ class AgentsMCPServer:
             "ide_agents_prompt": self._handle_prompt,
             # Server instructions access (Phase 0)
             "ide_agents_server_instructions": self._handle_server_instructions,
+            # Health/diagnostics
+            "ide_agents_health": self._handle_health,
         }
 
         if self.config.ultra_enabled:
@@ -375,6 +380,13 @@ class AgentsMCPServer:
     ) -> Dict[str, Any]:
         return SERVER_INSTRUCTIONS
 
+    async def _handle_health(self, arguments: Dict[str, Any]) -> Dict[str, Any]:
+        return {
+            "ok": True,
+            "version": MCP_SERVER_INSTRUCTIONS_VERSION,
+            "ultra_enabled": self.config.ultra_enabled,
+        }
+
     async def _handle_ultra_rank(self, arguments: Dict[str, Any]) -> Dict[str, Any]:
         query = arguments.get("query")
         candidates = arguments.get("candidates")
@@ -418,6 +430,7 @@ class AgentsMCPServer:
             "ide_agents_resource": "Access registered read-only resources (list|get).",
             "ide_agents_prompt": "List/get registered slash prompts for workflows.",
             "ide_agents_server_instructions": "Return server instructions and version.",
+            "ide_agents_health": "Quick diagnostics returning ok, version, and flags.",
         }
         return descriptions.get(name, "IDE Agents MCP tool")
 
@@ -471,6 +484,7 @@ class AgentsMCPServer:
                 },
             },
             "ide_agents_server_instructions": {"type": "object", "properties": {}},
+            "ide_agents_health": {"type": "object", "properties": {}},
         }
         return schemas.get(name, {"type": "object"})
 
